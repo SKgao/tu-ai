@@ -1,0 +1,222 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { listOrders } from '@/app/services/orders';
+import { FeedbackBanner } from '@/app/components/FeedbackBanner';
+import { PageTableCard } from '@/app/components/PageTableCard';
+import { useFeedbackState } from '@/app/hooks/useFeedbackState';
+import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { createOrderColumns } from './configs/tableColumns';
+import {
+  selectOrderFilterOptions,
+  useMemberCommerceOptionsStore,
+} from '@/app/stores/memberCommerceOptions';
+
+const INITIAL_FILTERS = {
+  tutuNumber: '',
+  orderNo: '',
+  itemId: '',
+  payType: '',
+  orderStatus: '',
+  activityId: '',
+  textbookId: '',
+};
+
+const INITIAL_QUERY = {
+  ...INITIAL_FILTERS,
+  pageNum: 1,
+  pageSize: 10,
+};
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+const PAY_TYPE_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: '1', label: '微信' },
+  { value: '2', label: '支付宝' },
+];
+
+const ORDER_STATUS_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: '1', label: '待支付' },
+  { value: '2', label: '已支付' },
+  { value: '3', label: '用户取消' },
+  { value: '4', label: '超时关闭' },
+];
+
+export function OrderManagementPage() {
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const { feedback, showError } = useFeedbackState();
+  const { memberLevelOptions, activityOptions, courseOptions } = useMemberCommerceOptionsStore(
+    useShallow(selectOrderFilterOptions),
+  );
+  const ensureOrderFilterOptions = useMemberCommerceOptionsStore(
+    (state) => state.ensureOrderFilterOptions,
+  );
+  const columns = useMemo(() => createOrderColumns(), []);
+  const {
+    query,
+    data: orders,
+    totalCount,
+    totalPages,
+    loading,
+    applyFilters,
+    setPageNum,
+    setPageSize,
+    reload,
+  } = useRemoteTable({
+    initialQuery: INITIAL_QUERY,
+    request: listOrders,
+    getItems: (result) => result?.data,
+    getTotalCount: (result) => result?.totalCount || 0,
+    onError: (message) => showError(message || '订单列表加载失败'),
+  });
+
+  useEffect(() => {
+    ensureOrderFilterOptions().catch((error) => {
+      showError(error?.message || '筛选项加载失败');
+    });
+  }, []);
+
+  function updateFilter(key, value) {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function handleSearch() {
+    applyFilters({
+      ...filters,
+      tutuNumber: filters.tutuNumber.trim(),
+      orderNo: filters.orderNo.trim(),
+    });
+  }
+
+  return (
+    <div className="page-stack">
+      <section className="page-stack__hero">
+        <div>
+          <span className="app-badge">Legacy Rewrite</span>
+          <h2 className="page-title">订单管理</h2>
+          <p className="page-copy">这一页对应旧版 `order` 模块，保留订单列表和核心筛选能力。</p>
+        </div>
+      </section>
+
+      <FeedbackBanner feedback={feedback} />
+
+      <section className="surface-card">
+        <div className="toolbar-grid toolbar-grid--books">
+          <label className="form-field">
+            <span>图图号</span>
+            <input
+              value={filters.tutuNumber}
+              onChange={(event) => updateFilter('tutuNumber', event.target.value)}
+              placeholder="输入图图号"
+            />
+          </label>
+          <label className="form-field">
+            <span>订单号</span>
+            <input
+              value={filters.orderNo}
+              onChange={(event) => updateFilter('orderNo', event.target.value)}
+              placeholder="输入订单号"
+            />
+          </label>
+          <label className="form-field">
+            <span>会员等级</span>
+            <select value={filters.itemId} onChange={(event) => updateFilter('itemId', event.target.value)}>
+              <option value="">全部</option>
+              {memberLevelOptions.map((item) => (
+                <option key={item.userLevel} value={String(item.userLevel)}>
+                  {item.levelName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>支付类型</span>
+            <select value={filters.payType} onChange={(event) => updateFilter('payType', event.target.value)}>
+              {PAY_TYPE_OPTIONS.map((item) => (
+                <option key={item.value || 'all'} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>支付状态</span>
+            <select
+              value={filters.orderStatus}
+              onChange={(event) => updateFilter('orderStatus', event.target.value)}
+            >
+              {ORDER_STATUS_OPTIONS.map((item) => (
+                <option key={item.value || 'all'} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>活动筛选</span>
+            <select
+              value={filters.activityId}
+              onChange={(event) => updateFilter('activityId', event.target.value)}
+            >
+              <option value="">全部</option>
+              {activityOptions.map((item) => (
+                <option key={item.id} value={String(item.id)}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>精品课程</span>
+            <select
+              value={filters.textbookId}
+              onChange={(event) => updateFilter('textbookId', event.target.value)}
+            >
+              <option value="">全部</option>
+              {courseOptions.map((item) => (
+                <option key={item.textbookId} value={String(item.textbookId)}>
+                  {item.textbookName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="toolbar-actions">
+            <button type="button" className="app-button app-button--primary" onClick={handleSearch}>
+              搜索
+            </button>
+            <button
+              type="button"
+              className="app-button app-button--ghost"
+              onClick={() => reload().catch(() => {})}
+              disabled={loading}
+            >
+              {loading ? '刷新中...' : '刷新'}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <PageTableCard
+        title="订单列表"
+        totalCount={totalCount}
+        columns={columns}
+        data={orders}
+        rowKey={(row) => row.orderNo || row.id}
+        loading={loading}
+        minWidth={1480}
+        pagination={{
+          pageNum: query.pageNum,
+          pageSize: query.pageSize,
+          totalPages,
+          pageSizeOptions: PAGE_SIZE_OPTIONS,
+          onPageChange: setPageNum,
+          onPageSizeChange: setPageSize,
+        }}
+      />
+    </div>
+  );
+}
