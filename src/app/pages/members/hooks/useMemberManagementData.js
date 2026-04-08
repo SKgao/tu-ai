@@ -1,33 +1,11 @@
 import { listMemberFeedback, listMembers } from '@/app/services/members';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
-import { toApiDateTime } from '@/app/lib/dateTime';
-
-const INITIAL_MEMBER_QUERY = {
-  pageNum: 1,
-  pageSize: 10,
-  userLevelIds: [],
-  expireStartTime: '',
-  expireEndTime: '',
-  payStartTime: '',
-  payEndTime: '',
-  registerStartTime: '',
-  registerEndTime: '',
-  tutuNumber: '',
-  mobile: '',
-  sex: '',
-  hasSetPassword: '',
-  sortInvite: '',
-  sortUserId: '',
-};
-
-const INITIAL_FEEDBACK_QUERY = {
-  pageNum: 1,
-  pageSize: 10,
-  startTime: '',
-  endTime: '',
-  tutuNumber: '',
-  mobile: '',
-};
+import {
+  INITIAL_FEEDBACK_QUERY,
+  INITIAL_MEMBER_QUERY,
+  buildFeedbackSearchFilters,
+  buildMemberSearchFilters,
+} from '../utils/forms';
 
 export function useMemberManagementData({ activeTab, onError }) {
   const memberTable = useRemoteTable({
@@ -49,30 +27,11 @@ export function useMemberManagementData({ activeTab, onError }) {
   });
 
   function searchMembers(filters) {
-    memberTable.applyFilters({
-      userLevelIds: filters.userLevelIds.map((item) => Number(item)),
-      expireStartTime: toApiDateTime(filters.expireStartTime),
-      expireEndTime: toApiDateTime(filters.expireEndTime),
-      payStartTime: toApiDateTime(filters.payStartTime),
-      payEndTime: toApiDateTime(filters.payEndTime),
-      registerStartTime: toApiDateTime(filters.registerStartTime),
-      registerEndTime: toApiDateTime(filters.registerEndTime),
-      tutuNumber: filters.tutuNumber.trim(),
-      mobile: filters.mobile.trim(),
-      sex: filters.sex,
-      hasSetPassword: filters.hasSetPassword,
-      sortInvite: filters.sortInvite,
-      sortUserId: filters.sortUserId,
-    });
+    memberTable.applyFilters(buildMemberSearchFilters(filters));
   }
 
   function searchFeedback(filters) {
-    feedbackTable.applyFilters({
-      startTime: toApiDateTime(filters.startTime),
-      endTime: toApiDateTime(filters.endTime),
-      tutuNumber: filters.tutuNumber.trim(),
-      mobile: filters.mobile.trim(),
-    });
+    feedbackTable.applyFilters(buildFeedbackSearchFilters(filters));
   }
 
   async function reloadCurrentTab() {
