@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tutu-admin-postgres
+    environment:
+      POSTGRES_DB: tutu_admin
+      POSTGRES_USER: tutu_admin
+      POSTGRES_PASSWORD: tutu_admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - tutu_admin_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tutu_admin -d tutu_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  tutu_admin_postgres_data:
