@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button, Popconfirm, Space, Tag, Typography } from 'antd';
 
 const MENU_SCOPE_LABELS = {
   1: '左侧菜单',
@@ -17,7 +18,7 @@ function getScopeLabel(value) {
 }
 
 function getStatusMeta(value) {
-  return MENU_STATUS_META[value] || { text: '-', className: 'status-pill' };
+  return MENU_STATUS_META[value] || { text: '-', color: 'default' };
 }
 
 export function createMenuColumns({ onEdit, onDelete, submitting }) {
@@ -38,13 +39,15 @@ export function createMenuColumns({ onEdit, onDelete, submitting }) {
       dataIndex: 'status',
       render: (value) => {
         const meta = getStatusMeta(String(value));
-        return <span className={meta.className}>{meta.text}</span>;
+        const color =
+          String(value) === '1' ? 'success' : String(value) === '2' ? 'warning' : String(value) === '3' ? 'error' : 'default';
+        return <Tag color={color}>{meta.text}</Tag>;
       },
     },
     {
       title: 'URL',
       dataIndex: 'url',
-      render: (value) => value || <span className="table-muted">无</span>,
+      render: (value) => value || <Typography.Text type="secondary">无</Typography.Text>,
     },
     { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
     { title: '更新时间', dataIndex: 'updatedAt', render: (value) => value || '-' },
@@ -52,19 +55,22 @@ export function createMenuColumns({ onEdit, onDelete, submitting }) {
       title: '操作',
       key: 'actions',
       render: (_, menu) => (
-        <div className="table-actions">
-          <button type="button" className="text-button" onClick={() => onEdit(menu)}>
+        <Space size="small">
+          <Button type="link" onClick={() => onEdit(menu)} style={{ paddingInline: 0 }}>
             编辑
-          </button>
-          <button
-            type="button"
-            className="text-button text-button--danger"
-            onClick={() => onDelete(menu)}
+          </Button>
+          <Popconfirm
+            title={`确认删除菜单 ${menu.menuName || menu.id} 吗？`}
+            okText="确认"
+            cancelText="取消"
+            onConfirm={() => onDelete(menu)}
             disabled={submitting}
           >
-            删除
-          </button>
-        </div>
+            <Button type="link" danger disabled={submitting} style={{ paddingInline: 0 }}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];

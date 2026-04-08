@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export function useConfirmAction({ showSuccess, showError }) {
   const [submitting, setSubmitting] = useState(false);
 
-  async function runAction({
+  const runAction = useCallback(async ({
     action,
     confirmText = '',
     successMessage = '',
     errorMessage = '操作失败',
     afterSuccess,
-  }) {
+  }) => {
     if (confirmText && !window.confirm(confirmText)) {
       return false;
     }
@@ -30,7 +30,7 @@ export function useConfirmAction({ showSuccess, showError }) {
     } finally {
       setSubmitting(false);
     }
-  }
+  }, [showError, showSuccess]);
 
   return {
     submitting,

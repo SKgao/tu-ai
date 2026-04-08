@@ -1,14 +1,28 @@
-import React, { startTransition, useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppModal } from '@/app/components/AppModal';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { FileUploadField } from '@/app/components/FileUploadField';
-import { ModalActions } from '@/app/components/ModalActions';
-import { useConfirmAction } from '@/app/hooks/useConfirmAction';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
-import { useFileUpload } from '@/app/hooks/useFileUpload';
-import { useModalState } from '@/app/hooks/useModalState';
-import { useModalSubmit } from '@/app/hooks/useModalSubmit';
+import {
+  App,
+  Button,
+  Card,
+  DatePicker,
+  Form,
+  Image,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+  Upload,
+} from 'antd';
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { toApiDateTime } from '@/app/lib/dateTime';
+import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import {
   createBook,
   createGrade,
@@ -26,845 +40,759 @@ import {
   uploadAsset,
 } from '@/app/services/books';
 
-const BOOK_FORM_EMPTY = {
-  id: '',
-  name: '',
-  icon: '',
-  gradeId: '',
-  bookVersionId: '',
-  status: '',
-};
-
-const RESOURCE_FORM_EMPTY = {
-  id: '',
-  name: '',
-  sortValue: '',
-};
-
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-function toApiDateTime(value) {
-  return value ? `${value.replace('T', ' ')}:00` : '';
+const EMPTY_BOOK_FORM = {
+  id: undefined,
+  name: '',
+  icon: '',
+  gradeId: undefined,
+  bookVersionId: undefined,
+  status: undefined,
+};
+
+const EMPTY_RESOURCE_FORM = {
+  id: undefined,
+  name: '',
+  sortValue: undefined,
+};
+
+function normalizeBookFormValues(book) {
+  if (!book) {
+    return { ...EMPTY_BOOK_FORM };
+  }
+
+  return {
+    id: Number(book.id),
+    name: book.name || '',
+    icon: book.icon || '',
+    gradeId: book.gradeId ? String(book.gradeId) : undefined,
+    bookVersionId: book.bookVersionId ? String(book.bookVersionId) : undefined,
+    status: book.status !== undefined && book.status !== null ? Number(book.status) : undefined,
+  };
 }
 
-function TabButton({ active, children, onClick }) {
-  return (
-    <button
-      type="button"
-      className={active ? 'tab-chip tab-chip--active' : 'tab-chip'}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
+function normalizeResourceFormValues(type, item) {
+  if (!item) {
+    return { ...EMPTY_RESOURCE_FORM };
+  }
 
-function BookModal({
-  mode,
-  form,
-  grades,
-  versions,
-  uploadState,
-  submitting,
-  onClose,
-  onChange,
-  onSubmit,
-  onUpload,
-}) {
-  return (
-    <AppModal
-      title={mode === 'create' ? '新增教材' : '编辑教材'}
-      description="统一维护教材名称、封面、年级和教材版本。"
-      size="lg"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-          <label className="form-field">
-            <span>教材名称</span>
-            <input
-              value={form.name}
-              onChange={(event) => onChange('name', event.target.value)}
-              placeholder="请输入教材名称"
-            />
-          </label>
-          <label className="form-field">
-            <span>年级</span>
-            <select value={form.gradeId} onChange={(event) => onChange('gradeId', event.target.value)}>
-              <option value="">请选择年级</option>
-              {grades.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {item.gradeName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>教材版本</span>
-            <select
-              value={form.bookVersionId}
-              onChange={(event) => onChange('bookVersionId', event.target.value)}
-            >
-              <option value="">请选择教材版本</option>
-              {versions.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {mode === 'edit' ? (
-            <label className="form-field">
-              <span>年级顺序</span>
-              <input
-                value={form.status}
-                onChange={(event) => onChange('status', event.target.value)}
-                placeholder="可选，数字"
-              />
-            </label>
-          ) : null}
-          <FileUploadField
-            label="封面图地址"
-            value={form.icon}
-            onValueChange={(value) => onChange('icon', value)}
-            onUpload={onUpload}
-            uploadState={uploadState}
-            accept="image/*"
-            placeholder="可直接粘贴图片 URL，或使用下方文件上传"
-            uploadHint="支持上传教材封面"
-            previewAlt="教材封面"
-            fullWidth
-          />
-        </div>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
-}
-
-function ResourceModal({ title, label, form, submitting, onClose, onChange, onSubmit }) {
-  return (
-    <AppModal
-      title={title}
-      description="维护基础资源，供教材管理和后续业务页使用。"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-          <label className="form-field form-field--full">
-            <span>{label}</span>
-            <input
-              value={form.name}
-              onChange={(event) => onChange('name', event.target.value)}
-              placeholder={`请输入${label}`}
-            />
-          </label>
-          <label className="form-field">
-            <span>排序字段</span>
-            <input
-              value={form.sortValue}
-              onChange={(event) => onChange('sortValue', event.target.value)}
-              placeholder="可选，数字"
-            />
-          </label>
-        </div>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
+  return {
+    id: Number(item.id),
+    name: type === 'grade' ? item.gradeName || '' : item.name || '',
+    sortValue:
+      type === 'grade' && item.status !== undefined && item.status !== null ? Number(item.status) : undefined,
+  };
 }
 
 export function BookManagementPage() {
+  const { message } = App.useApp();
   const [activeTab, setActiveTab] = useState('book');
-  const [filters, setFilters] = useState({
-    startTime: '',
-    endTime: '',
-    gradeId: '',
-    bookVersionId: '',
-  });
-  const [query, setQuery] = useState({
-    startTime: '',
-    endTime: '',
-    gradeId: '',
-    bookVersionId: '',
-    pageNum: 1,
-    pageSize: 10,
-  });
-  const [books, setBooks] = useState([]);
+  const [searchForm] = Form.useForm();
+  const [bookForm] = Form.useForm();
+  const [resourceForm] = Form.useForm();
   const [grades, setGrades] = useState([]);
   const [versions, setVersions] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [resourceType, setResourceType] = useState('');
-  const { feedback, showError, showSuccess } = useFeedbackState();
-  const { uploadState, upload, resetUploadState } = useFileUpload({
-    uploadRequest: uploadAsset,
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [bookModalMode, setBookModalMode] = useState('create');
+  const [resourceModalOpen, setResourceModalOpen] = useState(false);
+  const [resourceType, setResourceType] = useState('grade');
+  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [uploadState, setUploadState] = useState({
+    uploading: false,
+    message: '',
   });
-  const { submitting: modalSubmitting, submit: submitModal } = useModalSubmit({
-    showSuccess,
-    showError,
-  });
-  const { submitting: actionSubmitting, runAction } = useConfirmAction({
-    showSuccess,
-    showError,
-  });
+  const iconValue = Form.useWatch('icon', bookForm);
+  const resourceId = Form.useWatch('id', resourceForm);
   const {
-    isOpen: bookModalOpen,
-    mode: bookModalMode,
-    form: bookForm,
-    updateForm: updateBookForm,
-    openCreate: openCreateBookModal,
-    openEdit: openEditBookModal,
-    close: closeBookModal,
-  } = useModalState({
-    createState: () => ({ ...BOOK_FORM_EMPTY }),
-    editState: (book) => ({
-      id: String(book.id),
-      name: book.name || '',
-      icon: book.icon || '',
-      gradeId: String(book.gradeId || ''),
-      bookVersionId: String(book.bookVersionId || ''),
-      status: String(book.status ?? ''),
-    }),
-    onOpenCreate: () => resetUploadState(),
-    onOpenEdit: () => resetUploadState(),
-  });
-  const {
-    isOpen: resourceModalOpen,
-    form: resourceForm,
-    updateForm: updateResourceForm,
-    openCreate: openCreateResourceState,
-    openEdit: openEditResourceState,
-    close: closeResourceModal,
-  } = useModalState({
-    createState: () => ({ ...RESOURCE_FORM_EMPTY }),
-    editState: ({ type, item }) => ({
-      id: String(item.id),
-      name: type === 'grade' ? item.gradeName || '' : item.name || '',
-      sortValue: item.status !== undefined && item.status !== null ? String(item.status) : '',
-    }),
-    onClose: () => setResourceType(''),
+    query,
+    data: books,
+    totalCount,
+    loading,
+    applyFilters,
+    setPageNum,
+    setPageSize,
+    reload,
+  } = useRemoteTable({
+    initialQuery: {
+      startTime: '',
+      endTime: '',
+      gradeId: '',
+      bookVersionId: '',
+      pageNum: 1,
+      pageSize: 10,
+    },
+    request: listBooks,
+    getItems: (result) => result?.data,
+    getTotalCount: (result) => result?.totalCount || 0,
+    onError: (errorMessage) => message.error(errorMessage || '教材列表加载失败'),
   });
 
-  async function loadGrades() {
+  async function loadGradesData() {
     const data = await listGrades();
     setGrades(Array.isArray(data) ? data : []);
   }
 
-  async function loadVersions() {
+  async function loadVersionsData() {
     const data = await listVersions();
     setVersions(Array.isArray(data) ? data : []);
   }
 
-  async function loadBooks(nextQuery = query) {
-    setLoading(true);
-    try {
-      const data = await listBooks(nextQuery);
-      setBooks(Array.isArray(data?.data) ? data.data : []);
-      setTotalCount(data?.totalCount || 0);
-    } catch (error) {
-      showError(error?.message || '教材列表加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function refreshActiveTab() {
-    setLoading(true);
-    try {
-      if (activeTab === 'book') {
-        const [gradeData, versionData, bookData] = await Promise.all([
-          listGrades(),
-          listVersions(),
-          listBooks(query),
-        ]);
-        setGrades(Array.isArray(gradeData) ? gradeData : []);
-        setVersions(Array.isArray(versionData) ? versionData : []);
-        setBooks(Array.isArray(bookData?.data) ? bookData.data : []);
-        setTotalCount(bookData?.totalCount || 0);
-        return;
-      }
-
-      if (activeTab === 'grade') {
-        const data = await listGrades();
-        setGrades(Array.isArray(data) ? data : []);
-        return;
-      }
-
-      const data = await listVersions();
-      setVersions(Array.isArray(data) ? data : []);
-    } catch (error) {
-      showError(error?.message || '数据加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    refreshActiveTab();
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'book') {
-      loadBooks(query);
+    async function loadResources() {
+      setResourceLoading(true);
+      try {
+        await Promise.all([loadGradesData(), loadVersionsData()]);
+      } catch (error) {
+        message.error(error?.message || '基础资源加载失败');
+      } finally {
+        setResourceLoading(false);
+      }
     }
-  }, [activeTab, query.bookVersionId, query.endTime, query.gradeId, query.pageNum, query.pageSize, query.startTime]);
 
-  function openResourceModal(type, item = null) {
-    setResourceType(type);
-    if (item) {
-      openEditResourceState({ type, item });
-      return;
-    }
-    openCreateResourceState();
-  }
+    loadResources();
+  }, []);
 
-  async function handleUpload(file) {
-    try {
-      await upload(file, {
-        successMessage: '上传成功，已自动写入封面地址',
-        onSuccess: (url) => {
-          updateBookForm('icon', url);
-        },
-      });
-    } catch {}
-  }
-
-  function handleBookSearch(event) {
-    event.preventDefault();
-    startTransition(() => {
-      setQuery((current) => ({
-        ...current,
-        pageNum: 1,
-        startTime: toApiDateTime(filters.startTime),
-        endTime: toApiDateTime(filters.endTime),
-        gradeId: filters.gradeId,
-        bookVersionId: filters.bookVersionId,
-      }));
+  function resetUploadState() {
+    setUploadState({
+      uploading: false,
+      message: '',
     });
   }
 
-  async function handleBookSubmit(event) {
-    event.preventDefault();
+  function openCreateBookModal() {
+    setBookModalMode('create');
+    resetUploadState();
+    bookForm.setFieldsValue({ ...EMPTY_BOOK_FORM });
+    setBookModalOpen(true);
+  }
 
-    if (!bookForm.name.trim() || !bookForm.gradeId || !bookForm.bookVersionId) {
-      showError('请填写教材名称并选择年级、教材版本');
+  function openEditBookModal(book) {
+    setBookModalMode('edit');
+    resetUploadState();
+    bookForm.setFieldsValue(normalizeBookFormValues(book));
+    setBookModalOpen(true);
+  }
+
+  function closeBookModal() {
+    if (submitting) {
+      return;
+    }
+
+    setBookModalOpen(false);
+  }
+
+  function openResourceModal(type, item) {
+    setResourceType(type);
+    resourceForm.setFieldsValue(normalizeResourceFormValues(type, item));
+    setResourceModalOpen(true);
+  }
+
+  function closeResourceModal() {
+    if (submitting) {
+      return;
+    }
+
+    setResourceModalOpen(false);
+  }
+
+  function handleBookSearch(values) {
+    applyFilters({
+      startTime: toApiDateTime(values.startTime),
+      endTime: toApiDateTime(values.endTime),
+      gradeId: values.gradeId || '',
+      bookVersionId: values.bookVersionId || '',
+    });
+  }
+
+  function handleBookReset() {
+    searchForm.resetFields();
+    applyFilters({
+      startTime: '',
+      endTime: '',
+      gradeId: '',
+      bookVersionId: '',
+      pageNum: 1,
+      pageSize: query.pageSize,
+    });
+  }
+
+  async function refreshActiveTab() {
+    try {
+      if (activeTab === 'book') {
+        setResourceLoading(true);
+        await Promise.all([
+          reload().catch(() => {}),
+          loadGradesData(),
+          loadVersionsData(),
+        ]);
+        setResourceLoading(false);
+        return;
+      }
+
+      setResourceLoading(true);
+      if (activeTab === 'grade') {
+        await loadGradesData();
+        setResourceLoading(false);
+        return;
+      }
+
+      await loadVersionsData();
+      setResourceLoading(false);
+    } catch (error) {
+      message.error(error?.message || '数据加载失败');
+      setResourceLoading(false);
+    }
+  }
+
+  async function handleUpload({ file, onError, onSuccess }) {
+    setUploadState({
+      uploading: true,
+      message: `${file.name} 上传中...`,
+    });
+
+    try {
+      const url = await uploadAsset(file);
+      bookForm.setFieldValue('icon', url);
+      setUploadState({
+        uploading: false,
+        message: '上传成功，已自动写入封面地址',
+      });
+      onSuccess?.({ url });
+    } catch (error) {
+      const errorMessage = error?.message || '上传失败';
+      setUploadState({
+        uploading: false,
+        message: errorMessage,
+      });
+      message.error(errorMessage);
+      onError?.(error);
+    }
+  }
+
+  async function handleBookSubmit(values) {
+    if (!values.name?.trim() || !values.gradeId || !values.bookVersionId) {
+      message.error('请填写教材名称并选择年级、教材版本');
       return;
     }
 
     const payload = {
-      name: bookForm.name.trim(),
-      icon: bookForm.icon.trim(),
-      gradeId: Number(bookForm.gradeId),
-      bookVersionId: Number(bookForm.bookVersionId),
+      name: values.name.trim(),
+      icon: values.icon?.trim() || '',
+      gradeId: Number(values.gradeId),
+      bookVersionId: Number(values.bookVersionId),
     };
 
-    await submitModal({
-      action: async () => {
-        if (bookModalMode === 'create') {
-          await createBook(payload);
-          return;
-        }
-
+    setSubmitting(true);
+    try {
+      if (bookModalMode === 'create') {
+        await createBook(payload);
+      } else {
         await updateBook({
           ...payload,
-          id: Number(bookForm.id),
-          status: bookForm.status !== '' ? Number(bookForm.status) : undefined,
+          id: Number(values.id),
+          status: values.status ?? undefined,
         });
-      },
-      successMessage: bookModalMode === 'create' ? '教材创建成功' : '教材更新成功',
-      errorMessage: '教材提交失败',
-      close: closeBookModal,
-      afterSuccess: () => loadBooks(),
-    });
+      }
+
+      message.success(bookModalMode === 'create' ? '教材创建成功' : '教材更新成功');
+      setBookModalOpen(false);
+      await Promise.all([
+        reload().catch(() => {}),
+        loadGradesData(),
+        loadVersionsData(),
+      ]);
+    } catch (error) {
+      message.error(error?.message || '教材提交失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  async function handleResourceSubmit(event) {
-    event.preventDefault();
-
-    if (!resourceForm.name.trim()) {
-      showError(`请输入${resourceType === 'grade' ? '年级' : '教材版本'}名称`);
+  async function handleResourceSubmit(values) {
+    if (!values.name?.trim()) {
+      message.error(`请输入${resourceType === 'grade' ? '年级' : '教材版本'}名称`);
       return;
     }
 
-    if (resourceForm.sortValue && !/^\d+$/.test(resourceForm.sortValue)) {
-      showError('排序字段必须为数字');
-      return;
-    }
-
-    await submitModal({
-      action: async () => {
-        if (resourceType === 'grade') {
-          if (resourceForm.id) {
-            await updateGrade({
-              id: Number(resourceForm.id),
-              gradeName: resourceForm.name.trim(),
-              status: resourceForm.sortValue ? Number(resourceForm.sortValue) : undefined,
-            });
-          } else {
-            await createGrade(resourceForm.name.trim());
-          }
-          await loadGrades();
-          return;
-        }
-
-        if (resourceForm.id) {
-          await updateVersion({
-            id: Number(resourceForm.id),
-            name: resourceForm.name.trim(),
+    setSubmitting(true);
+    try {
+      if (resourceType === 'grade') {
+        if (values.id) {
+          await updateGrade({
+            id: Number(values.id),
+            gradeName: values.name.trim(),
+            status: values.sortValue ?? undefined,
           });
         } else {
-          await createVersion(resourceForm.name.trim());
+          await createGrade(values.name.trim());
         }
-        await loadVersions();
-      },
-      successMessage:
+
+        await loadGradesData();
+      } else {
+        if (values.id) {
+          await updateVersion({
+            id: Number(values.id),
+            name: values.name.trim(),
+          });
+        } else {
+          await createVersion(values.name.trim());
+        }
+
+        await loadVersionsData();
+      }
+
+      message.success(
         resourceType === 'grade'
-          ? resourceForm.id
+          ? values.id
             ? '年级更新成功'
             : '年级创建成功'
-          : resourceForm.id
+          : values.id
             ? '教材版本更新成功'
             : '教材版本创建成功',
-      errorMessage: '资源提交失败',
-      close: closeResourceModal,
-    });
+      );
+      setResourceModalOpen(false);
+    } catch (error) {
+      message.error(error?.message || '资源提交失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleDeleteBook(book) {
-    await runAction({
-      confirmText: `确认删除教材 ${book.name || book.id} 吗？`,
-      action: () => removeBook(book.id),
-      successMessage: '教材已删除',
-      errorMessage: '教材删除失败',
-      afterSuccess: async () => {
-        const nextPage = books.length === 1 && query.pageNum > 1 ? query.pageNum - 1 : query.pageNum;
-        startTransition(() => {
-          setQuery((current) => ({
-            ...current,
-            pageNum: nextPage,
-          }));
-        });
-        if (nextPage === query.pageNum) {
-          await loadBooks();
-        }
-      },
-    });
+    setActionSubmitting(true);
+    try {
+      await removeBook(book.id);
+      message.success('教材已删除');
+      if (books.length === 1 && query.pageNum > 1) {
+        setPageNum(query.pageNum - 1);
+      } else {
+        await reload().catch(() => {});
+      }
+    } catch (error) {
+      message.error(error?.message || '教材删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
   async function handleToggleBookLock(book) {
-    await runAction({
-      action: () =>
-        lockBook({
-          textbookId: book.id,
-          canLock: book.canLock === 1 ? 2 : 1,
-        }),
-      successMessage: book.canLock === 1 ? '教材已锁定' : '教材已解锁',
-      errorMessage: '教材锁定状态更新失败',
-      afterSuccess: () => loadBooks(),
-    });
+    setActionSubmitting(true);
+    try {
+      await lockBook({
+        textbookId: book.id,
+        canLock: book.canLock === 1 ? 2 : 1,
+      });
+      message.success(book.canLock === 1 ? '教材已锁定' : '教材已解锁');
+      await reload().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '教材锁定状态更新失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
   async function handleDeleteResource(type, item) {
-    const label = type === 'grade' ? item.gradeName || item.id : item.name || item.id;
-    await runAction({
-      confirmText: `确认删除 ${label} 吗？`,
-      action: () => (type === 'grade' ? removeGrade(item.id) : removeVersion(item.id)),
-      successMessage: type === 'grade' ? '年级已删除' : '教材版本已删除',
-      errorMessage: '删除失败',
-      afterSuccess: () => (type === 'grade' ? loadGrades() : loadVersions()),
-    });
+    setActionSubmitting(true);
+    try {
+      if (type === 'grade') {
+        await removeGrade(item.id);
+        message.success('年级已删除');
+        await loadGradesData();
+      } else {
+        await removeVersion(item.id);
+        message.success('教材版本已删除');
+        await loadVersionsData();
+      }
+    } catch (error) {
+      message.error(error?.message || '删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / query.pageSize));
-  const submitting = modalSubmitting || actionSubmitting;
+  const bookColumns = useMemo(
+    () => [
+      { title: '教材名', dataIndex: 'name', render: (value) => value || '-' },
+      {
+        title: '封面',
+        dataIndex: 'icon',
+        render: (value, record) =>
+          value ? (
+            <Image
+              width={52}
+              height={52}
+              style={{ borderRadius: 16, objectFit: 'cover' }}
+              src={value}
+              alt={record.name || 'book'}
+            />
+          ) : (
+            <Typography.Text type="secondary">无</Typography.Text>
+          ),
+      },
+      { title: '年级', dataIndex: 'gradeName', render: (_, record) => record.gradeName || record.gradeId || '-' },
+      {
+        title: '教材版本',
+        dataIndex: 'bookVersionName',
+        render: (_, record) => record.bookVersionName || record.bookVersionId || '-',
+      },
+      { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
+      { title: '年级顺序', dataIndex: 'status', render: (value) => value ?? '-' },
+      {
+        title: '锁定状态',
+        dataIndex: 'canLock',
+        render: (value) => <Tag color={value === 1 ? 'success' : 'warning'}>{value === 1 ? '已解锁' : '已锁定'}</Tag>,
+      },
+      {
+        title: '详情',
+        key: 'details',
+        render: (_, book) => (
+          <Space size="small" wrap>
+            <Link to={`/units?textbookId=${book.id}`} className="ant-btn ant-btn-link">
+              查看单元
+            </Link>
+            <Link to={`/sessions?textbookId=${book.id}`} className="ant-btn ant-btn-link">
+              查看大关卡
+            </Link>
+            <Link to={`/custom-passes?textbookId=${book.id}`} className="ant-btn ant-btn-link">
+              查看小关卡
+            </Link>
+          </Space>
+        ),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_, book) => (
+          <Space size="small" wrap>
+            <Button type="link" onClick={() => openEditBookModal(book)} style={{ paddingInline: 0 }}>
+              编辑
+            </Button>
+            <Button
+              type="link"
+              onClick={() => handleToggleBookLock(book)}
+              disabled={submitting || actionSubmitting}
+              style={{ paddingInline: 0 }}
+            >
+              {book.canLock === 1 ? '锁定' : '解锁'}
+            </Button>
+            <Popconfirm
+              title={`确认删除教材 ${book.name || book.id} 吗？`}
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => handleDeleteBook(book)}
+              disabled={submitting || actionSubmitting}
+            >
+              <Button type="link" danger disabled={submitting || actionSubmitting} style={{ paddingInline: 0 }}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [actionSubmitting, submitting],
+  );
+
+  const resourceColumns = useMemo(
+    () => [
+      { title: 'ID', dataIndex: 'id' },
+      {
+        title: activeTab === 'grade' ? '年级名称' : '教材版本名称',
+        dataIndex: activeTab === 'grade' ? 'gradeName' : 'name',
+        render: (value) => value || '-',
+      },
+      {
+        title: activeTab === 'grade' ? '年级顺序' : '备注',
+        dataIndex: activeTab === 'grade' ? 'status' : 'memo',
+        render: (_, record) => (activeTab === 'grade' ? record.status ?? '-' : '版本资源'),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_, item) => (
+          <Space size="small" wrap>
+            <Button
+              type="link"
+              onClick={() => openResourceModal(activeTab, item)}
+              style={{ paddingInline: 0 }}
+            >
+              编辑
+            </Button>
+            <Popconfirm
+              title={`确认删除 ${activeTab === 'grade' ? item.gradeName || item.id : item.name || item.id} 吗？`}
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => handleDeleteResource(activeTab, item)}
+              disabled={submitting || actionSubmitting}
+            >
+              <Button type="link" danger disabled={submitting || actionSubmitting} style={{ paddingInline: 0 }}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [actionSubmitting, activeTab, submitting],
+  );
 
   return (
     <div className="page-stack">
-      <section className="page-stack__hero">
-        <div>
-          <span className="app-badge">Legacy Rewrite</span>
-          <h2 className="page-title">教材管理</h2>
-          <p className="page-copy">
-            这一页整合了旧版的教材、年级、教材版本三个 tab，并保留封面上传、锁定和资源维护能力。
-          </p>
-        </div>
-      </section>
-
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
-        <div className="tab-row">
-          <TabButton active={activeTab === 'book'} onClick={() => setActiveTab('book')}>
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
             教材管理
-          </TabButton>
-          <TabButton active={activeTab === 'grade'} onClick={() => setActiveTab('grade')}>
-            年级管理
-          </TabButton>
-          <TabButton active={activeTab === 'version'} onClick={() => setActiveTab('version')}>
-            教材版本
-          </TabButton>
-        </div>
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            这一页整合了旧版的教材、年级、教材版本三个 tab，并保留封面上传、锁定和资源维护能力。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
+
+      <Card>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { key: 'book', label: '教材管理' },
+            { key: 'grade', label: '年级管理' },
+            { key: 'version', label: '教材版本' },
+          ]}
+        />
 
         {activeTab === 'book' ? (
-          <form className="toolbar-grid toolbar-grid--books" onSubmit={handleBookSearch}>
-            <label className="form-field">
-              <span>开始时间</span>
-              <input
-                type="datetime-local"
-                value={filters.startTime}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, startTime: event.target.value }))
-                }
-              />
-            </label>
-            <label className="form-field">
-              <span>结束时间</span>
-              <input
-                type="datetime-local"
-                value={filters.endTime}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, endTime: event.target.value }))
-                }
-              />
-            </label>
-            <label className="form-field">
-              <span>年级</span>
-              <select
-                value={filters.gradeId}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, gradeId: event.target.value }))
-                }
-              >
-                <option value="">全部</option>
-                {grades.map((item) => (
-                  <option key={item.id} value={String(item.id)}>
-                    {item.gradeName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field">
-              <span>教材版本</span>
-              <select
-                value={filters.bookVersionId}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, bookVersionId: event.target.value }))
-                }
-              >
-                <option value="">全部</option>
-                {versions.map((item) => (
-                  <option key={item.id} value={String(item.id)}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="toolbar-actions">
-              <button type="submit" className="app-button app-button--primary">
-                搜索
-              </button>
-              <button type="button" className="app-button app-button--ghost" onClick={openCreateBookModal}>
-                添加教材
-              </button>
+          <Form form={searchForm} layout="vertical" onFinish={handleBookSearch}>
+            <div className="toolbar-grid toolbar-grid--books">
+              <Form.Item label="开始时间" name="startTime">
+                <DatePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item label="结束时间" name="endTime">
+                <DatePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item label="年级" name="gradeId">
+                <Select
+                  allowClear
+                  placeholder="全部"
+                  options={grades.map((item) => ({
+                    value: String(item.id),
+                    label: item.gradeName,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item label="教材版本" name="bookVersionId">
+                <Select
+                  allowClear
+                  placeholder="全部"
+                  options={versions.map((item) => ({
+                    value: String(item.id),
+                    label: item.name,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item label=" ">
+                <Space wrap>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    搜索
+                  </Button>
+                  <Button onClick={handleBookReset} disabled={loading}>
+                    重置
+                  </Button>
+                  <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateBookModal}>
+                    添加教材
+                  </Button>
+                </Space>
+              </Form.Item>
             </div>
-          </form>
+          </Form>
         ) : (
           <div className="toolbar-grid toolbar-grid--compact">
-            <div className="section-meta">
+            <Typography.Text type="secondary">
               {activeTab === 'grade'
                 ? '维护年级基础数据，供教材和课程配置引用。'
                 : '维护教材版本基础数据，供教材录入时选择。'}
-            </div>
-            <div className="toolbar-actions">
-              <button
-                type="button"
-                className="app-button app-button--primary"
-                onClick={() => openResourceModal(activeTab)}
-              >
-                {activeTab === 'grade' ? '添加年级' : '添加教材版本'}
-              </button>
-            </div>
+            </Typography.Text>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => openResourceModal(activeTab)}>
+              {activeTab === 'grade' ? '添加年级' : '添加教材版本'}
+            </Button>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="surface-card surface-card--table">
-        <div className="section-header">
-          <div>
-            <h3 className="section-title">
-              {activeTab === 'book' ? '教材列表' : activeTab === 'grade' ? '年级列表' : '教材版本列表'}
-            </h3>
-            <p className="section-meta">
+      <Card
+        title={activeTab === 'book' ? '教材列表' : activeTab === 'grade' ? '年级列表' : '教材版本列表'}
+        extra={
+          <Space>
+            <Typography.Text type="secondary">
               {activeTab === 'book'
                 ? `共 ${totalCount} 条教材记录`
                 : activeTab === 'grade'
                   ? `共 ${grades.length} 个年级`
                   : `共 ${versions.length} 个教材版本`}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="app-button app-button--ghost"
-            onClick={refreshActiveTab}
-            disabled={loading}
-          >
-            {loading ? '刷新中...' : '刷新'}
-          </button>
-        </div>
-
-        <div className="table-shell">
-          {activeTab === 'book' ? (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>教材名</th>
-                  <th>封面</th>
-                  <th>年级</th>
-                  <th>教材版本</th>
-                  <th>创建时间</th>
-                  <th>年级顺序</th>
-                  <th>锁定状态</th>
-                  <th>详情</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="table-empty">
-                      数据加载中...
-                    </td>
-                  </tr>
-                ) : null}
-                {!loading && !books.length ? (
-                  <tr>
-                    <td colSpan="9" className="table-empty">
-                      暂无数据
-                    </td>
-                  </tr>
-                ) : null}
-                {!loading
-                  ? books.map((book) => (
-                      <tr key={book.id}>
-                        <td>{book.name || '-'}</td>
-                        <td>
-                          {book.icon ? (
-                            <a href={book.icon} target="_blank" rel="noreferrer" className="avatar-link">
-                              <img src={book.icon} alt={book.name || 'book'} className="avatar-thumb" />
-                            </a>
-                          ) : (
-                            <span className="table-muted">无</span>
-                          )}
-                        </td>
-                        <td>{book.gradeName || book.gradeId || '-'}</td>
-                        <td>{book.bookVersionName || book.bookVersionId || '-'}</td>
-                        <td>{book.createdAt || '-'}</td>
-                        <td>{book.status ?? '-'}</td>
-                        <td>
-                          <span
-                            className={
-                              book.canLock === 1 ? 'status-pill status-pill--success' : 'status-pill status-pill--warning'
-                            }
-                          >
-                            {book.canLock === 1 ? '已解锁' : '已锁定'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <Link to={`/units?textbookId=${book.id}`} className="text-button">
-                              查看单元
-                            </Link>
-                            <Link to={`/sessions?textbookId=${book.id}`} className="text-button">
-                              查看大关卡
-                            </Link>
-                            <Link to={`/custom-passes?textbookId=${book.id}`} className="text-button">
-                              查看小关卡
-                            </Link>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button type="button" className="text-button" onClick={() => openEditBookModal(book)}>
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button"
-                              onClick={() => handleToggleBookLock(book)}
-                              disabled={submitting}
-                            >
-                              {book.canLock === 1 ? '锁定' : '解锁'}
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button text-button--danger"
-                              onClick={() => handleDeleteBook(book)}
-                              disabled={submitting}
-                            >
-                              删除
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  : null}
-              </tbody>
-            </table>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>{activeTab === 'grade' ? '年级名称' : '教材版本名称'}</th>
-                  <th>{activeTab === 'grade' ? '年级顺序' : '备注'}</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="4" className="table-empty">
-                      数据加载中...
-                    </td>
-                  </tr>
-                ) : null}
-                {!loading && !(activeTab === 'grade' ? grades.length : versions.length) ? (
-                  <tr>
-                    <td colSpan="4" className="table-empty">
-                      暂无数据
-                    </td>
-                  </tr>
-                ) : null}
-                {!loading
-                  ? (activeTab === 'grade' ? grades : versions).map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.id}</td>
-                        <td>{activeTab === 'grade' ? item.gradeName || '-' : item.name || '-'}</td>
-                        <td>{activeTab === 'grade' ? item.status ?? '-' : '版本资源'}</td>
-                        <td>
-                          <div className="table-actions">
-                            <button
-                              type="button"
-                              className="text-button"
-                              onClick={() => openResourceModal(activeTab, item)}
-                            >
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button text-button--danger"
-                              onClick={() => handleDeleteResource(activeTab, item)}
-                              disabled={submitting}
-                            >
-                              删除
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  : null}
-              </tbody>
-            </table>
-          )}
-        </div>
-
+            </Typography.Text>
+            <Button onClick={() => refreshActiveTab()} loading={activeTab === 'book' ? loading : resourceLoading}>
+              刷新
+            </Button>
+          </Space>
+        }
+      >
         {activeTab === 'book' ? (
-          <div className="pagination-bar">
-            <div className="section-meta">
-              第 {query.pageNum} / {totalPages} 页
-            </div>
-            <div className="pagination-controls">
-              <select
-                value={query.pageSize}
-                onChange={(event) => {
-                  const pageSize = Number(event.target.value);
-                  startTransition(() => {
-                    setQuery((current) => ({
-                      ...current,
-                      pageNum: 1,
-                      pageSize,
-                    }));
-                  });
-                }}
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    每页 {size} 条
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="app-button app-button--ghost"
-                disabled={query.pageNum <= 1 || loading}
-                onClick={() => {
-                  startTransition(() => {
-                    setQuery((current) => ({
-                      ...current,
-                      pageNum: current.pageNum - 1,
-                    }));
-                  });
-                }}
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                className="app-button app-button--ghost"
-                disabled={query.pageNum >= totalPages || loading}
-                onClick={() => {
-                  startTransition(() => {
-                    setQuery((current) => ({
-                      ...current,
-                      pageNum: current.pageNum + 1,
-                    }));
-                  });
-                }}
-              >
-                下一页
-              </button>
-            </div>
+          <Table
+            rowKey="id"
+            columns={bookColumns}
+            dataSource={books}
+            loading={loading}
+            scroll={{ x: 1460 }}
+            pagination={buildAntdTablePagination({
+              query,
+              totalCount,
+              pageSizeOptions: PAGE_SIZE_OPTIONS,
+              setPageNum,
+              setPageSize,
+            })}
+          />
+        ) : (
+          <Table
+            rowKey="id"
+            columns={resourceColumns}
+            dataSource={activeTab === 'grade' ? grades : versions}
+            loading={resourceLoading}
+            pagination={false}
+          />
+        )}
+      </Card>
+
+      <Modal
+        title={bookModalMode === 'create' ? '新增教材' : '编辑教材'}
+        open={bookModalOpen}
+        onCancel={closeBookModal}
+        onOk={() => bookForm.submit()}
+        okText={bookModalMode === 'create' ? '创建' : '保存'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={720}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          统一维护教材名称、封面、年级和教材版本。
+        </Typography.Paragraph>
+        <Form form={bookForm} layout="vertical" initialValues={EMPTY_BOOK_FORM} onFinish={handleBookSubmit}>
+          <div className="form-grid">
+            {bookModalMode === 'edit' ? (
+              <Form.Item label="教材 ID" name="id">
+                <InputNumber disabled style={{ width: '100%' }} />
+              </Form.Item>
+            ) : null}
+            <Form.Item label="教材名称" name="name" rules={[{ required: true, message: '请输入教材名称' }]}>
+              <Input placeholder="请输入教材名称" />
+            </Form.Item>
+            <Form.Item label="年级" name="gradeId" rules={[{ required: true, message: '请选择年级' }]}>
+              <Select
+                placeholder="请选择年级"
+                options={grades.map((item) => ({
+                  value: String(item.id),
+                  label: item.gradeName,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label="教材版本" name="bookVersionId" rules={[{ required: true, message: '请选择教材版本' }]}>
+              <Select
+                placeholder="请选择教材版本"
+                options={versions.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+              />
+            </Form.Item>
+            {bookModalMode === 'edit' ? (
+              <Form.Item label="年级顺序" name="status">
+                <InputNumber precision={0} style={{ width: '100%' }} placeholder="可选，数字" />
+              </Form.Item>
+            ) : null}
+            <Form.Item label="封面图地址" name="icon" className="form-field--full">
+              <Input placeholder="可直接粘贴图片 URL" />
+            </Form.Item>
+            <Form.Item label="上传封面" className="form-field--full">
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <Upload
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={handleUpload}
+                  disabled={uploadState.uploading}
+                >
+                  <Button icon={<UploadOutlined />} loading={uploadState.uploading}>
+                    上传教材封面
+                  </Button>
+                </Upload>
+                <Typography.Text type="secondary">
+                  {uploadState.uploading ? '上传中...' : uploadState.message || '支持上传教材封面'}
+                </Typography.Text>
+                {iconValue ? (
+                  <Image
+                    width={96}
+                    height={96}
+                    style={{ borderRadius: 20, objectFit: 'cover' }}
+                    src={iconValue}
+                    alt="教材封面"
+                  />
+                ) : null}
+              </Space>
+            </Form.Item>
           </div>
-        ) : null}
-      </section>
+        </Form>
+      </Modal>
 
-      {bookModalOpen ? (
-        <BookModal
-          mode={bookModalMode}
-          form={bookForm}
-          grades={grades}
-          versions={versions}
-          uploadState={uploadState}
-          submitting={modalSubmitting}
-          onClose={closeBookModal}
-          onChange={updateBookForm}
-          onSubmit={handleBookSubmit}
-          onUpload={handleUpload}
-        />
-      ) : null}
-
-      {resourceModalOpen ? (
-        <ResourceModal
-          title={
-            resourceType === 'grade'
-              ? resourceForm.id
-                ? '编辑年级'
-                : '新增年级'
-              : resourceForm.id
-                ? '编辑教材版本'
-                : '新增教材版本'
-          }
-          label={resourceType === 'grade' ? '年级名称' : '教材版本名称'}
-          form={resourceForm}
-          submitting={modalSubmitting}
-          onClose={closeResourceModal}
-          onChange={updateResourceForm}
-          onSubmit={handleResourceSubmit}
-        />
-      ) : null}
+      <Modal
+        title={
+          resourceType === 'grade'
+            ? resourceId
+              ? '编辑年级'
+              : '新增年级'
+            : resourceId
+              ? '编辑教材版本'
+              : '新增教材版本'
+        }
+        open={resourceModalOpen}
+        onCancel={closeResourceModal}
+        onOk={() => resourceForm.submit()}
+        okText={resourceId ? '保存' : '创建'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={600}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          维护基础资源，供教材管理和后续业务页使用。
+        </Typography.Paragraph>
+        <Form form={resourceForm} layout="vertical" initialValues={EMPTY_RESOURCE_FORM} onFinish={handleResourceSubmit}>
+          <div className="form-grid">
+            {resourceId ? (
+              <Form.Item label="资源 ID" name="id">
+                <InputNumber disabled style={{ width: '100%' }} />
+              </Form.Item>
+            ) : null}
+            <Form.Item
+              label={resourceType === 'grade' ? '年级名称' : '教材版本名称'}
+              name="name"
+              className="form-field--full"
+              rules={[{ required: true, message: `请输入${resourceType === 'grade' ? '年级' : '教材版本'}名称` }]}
+            >
+              <Input placeholder={`请输入${resourceType === 'grade' ? '年级' : '教材版本'}名称`} />
+            </Form.Item>
+            {resourceType === 'grade' ? (
+              <Form.Item label="排序字段" name="sortValue">
+                <InputNumber precision={0} style={{ width: '100%' }} placeholder="可选，数字" />
+              </Form.Item>
+            ) : null}
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

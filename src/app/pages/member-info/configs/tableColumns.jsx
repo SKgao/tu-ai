@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Image, Space, Typography } from 'antd';
 
 export function createMemberInfoColumns() {
   return [
@@ -10,11 +11,15 @@ export function createMemberInfoColumns() {
       dataIndex: 'icon',
       render: (value, record) =>
         value ? (
-          <a href={value} target="_blank" rel="noreferrer" className="avatar-link">
-            <img src={value} alt={record.realName || 'member'} className="avatar-thumb" />
-          </a>
+          <Image
+            width={52}
+            height={52}
+            style={{ borderRadius: 16, objectFit: 'cover' }}
+            src={value}
+            alt={record.realName || 'member'}
+          />
         ) : (
-          <span className="table-muted">无</span>
+          <Typography.Text type="secondary">无</Typography.Text>
         ),
     },
     { title: '会员等级', dataIndex: 'userLevelName', render: (value) => value || '-' },
@@ -31,13 +36,13 @@ export function createMemberInfoColumns() {
       key: 'actions',
       render: (_, member) =>
         member.hasBuyTextbook !== 0 ? (
-          <div className="table-actions">
-            <Link to={`/course-users?tutuNumber=${member.tutuNumber}`} className="text-button">
+          <Space size="small">
+            <Link to={`/course-users?tutuNumber=${member.tutuNumber}`} className="ant-btn ant-btn-link">
               查看已买课程
             </Link>
-          </div>
+          </Space>
         ) : (
-          <span className="table-muted">无</span>
+          <Typography.Text type="secondary">无</Typography.Text>
         ),
     },
   ];

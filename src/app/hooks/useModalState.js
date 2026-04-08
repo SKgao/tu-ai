@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 function resolveState(factory, payload) {
   return typeof factory === 'function' ? factory(payload) : factory;
@@ -16,33 +16,33 @@ export function useModalState({
   const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState(() => resolveState(createState));
 
-  function updateForm(key, value) {
+  const updateForm = useCallback((key, value) => {
     setForm((current) => ({
       ...current,
       [key]: value,
     }));
-  }
+  }, []);
 
-  function openCreate() {
+  const openCreate = useCallback(() => {
     const nextForm = resolveState(createState);
     setMode('create');
     setForm(nextForm);
     setIsOpen(true);
     onOpenCreate?.(nextForm);
-  }
+  }, [createState, onOpenCreate]);
 
-  function openEdit(payload) {
+  const openEdit = useCallback((payload) => {
     const nextForm = resolveState(editState, payload);
     setMode('edit');
     setForm(nextForm);
     setIsOpen(true);
     onOpenEdit?.(payload, nextForm);
-  }
+  }, [editState, onOpenEdit]);
 
-  function close() {
+  const close = useCallback(() => {
     setIsOpen(false);
     onClose?.();
-  }
+  }, [onClose]);
 
   return {
     isOpen,

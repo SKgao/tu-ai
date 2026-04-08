@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { App, Button, Card, Form, Input, Select, Space, Table, Typography } from 'antd';
 import { listCourseOrders } from '@/app/services/course-orders';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { PageTableCard } from '@/app/components/PageTableCard';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { createCourseOrderColumns } from './configs/tableColumns';
 import {
   selectCourseOptions,
@@ -13,13 +12,17 @@ import {
 const INITIAL_FILTERS = {
   tutuNumber: '',
   orderNo: '',
-  payType: '',
-  orderStatus: '',
-  textbookId: '',
+  payType: undefined,
+  orderStatus: undefined,
+  textbookId: undefined,
 };
 
 const INITIAL_QUERY = {
-  ...INITIAL_FILTERS,
+  tutuNumber: '',
+  orderNo: '',
+  payType: '',
+  orderStatus: '',
+  textbookId: '',
   pageNum: 1,
   pageSize: 10,
 };
@@ -27,22 +30,30 @@ const INITIAL_QUERY = {
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const PAY_TYPE_OPTIONS = [
-  { value: '', label: '全部' },
   { value: '1', label: '微信' },
   { value: '2', label: '支付宝' },
 ];
 
 const ORDER_STATUS_OPTIONS = [
-  { value: '', label: '全部' },
   { value: '1', label: '待支付' },
   { value: '2', label: '已支付' },
   { value: '3', label: '用户取消' },
   { value: '4', label: '超时关闭' },
 ];
 
+function normalizeSearchValues(values) {
+  return {
+    tutuNumber: values.tutuNumber?.trim() || '',
+    orderNo: values.orderNo?.trim() || '',
+    payType: values.payType || '',
+    orderStatus: values.orderStatus || '',
+    textbookId: values.textbookId || '',
+  };
+}
+
 export function CourseOrderManagementPage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const { feedback, showError } = useFeedbackState();
+  const { message } = App.useApp();
+  const [form] = Form.useForm();
   const courseOptions = useMemberCommerceOptionsStore(selectCourseOptions);
   const ensureCourseOptions = useMemberCommerceOptionsStore((state) => state.ensureCourseOptions);
   const columns = useMemo(() => createCourseOrderColumns(), []);
@@ -50,7 +61,6 @@ export function CourseOrderManagementPage() {
     query,
     data: orders,
     totalCount,
-    totalPages,
     loading,
     applyFilters,
     setPageNum,
@@ -61,132 +71,108 @@ export function CourseOrderManagementPage() {
     request: listCourseOrders,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
-    onError: (message) => showError(message || '精品课程订单列表加载失败'),
+    onError: (errorMessage) => message.error(errorMessage || '精品课程订单列表加载失败'),
   });
 
   useEffect(() => {
     ensureCourseOptions().catch((error) => {
-      showError(error?.message || '课程筛选项加载失败');
+      message.error(error?.message || '课程筛选项加载失败');
     });
-  }, []);
+  }, [ensureCourseOptions, message]);
 
-  function updateFilter(key, value) {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
+  function handleSearch(values) {
+    applyFilters(normalizeSearchValues(values));
   }
 
-  function handleSearch() {
+  function handleReset() {
+    form.resetFields();
     applyFilters({
-      ...filters,
-      tutuNumber: filters.tutuNumber.trim(),
-      orderNo: filters.orderNo.trim(),
+      ...INITIAL_QUERY,
+      pageNum: 1,
+      pageSize: query.pageSize,
     });
   }
 
   return (
     <div className="page-stack">
-      <section className="page-stack__hero">
-        <div>
-          <span className="app-badge">Legacy Rewrite</span>
-          <h2 className="page-title">精品课程订单</h2>
-          <p className="page-copy">
-            这一页对应旧版 `courseOrder` 模块，保留精品课程订单列表和核心筛选能力。
-          </p>
-        </div>
-      </section>
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            精品课程订单
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            这一页对应旧版 `courseOrder` 模块，先按新版 antd 组件重构筛选表单、表格与分页。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
-        <div className="toolbar-grid toolbar-grid--books">
-          <label className="form-field">
-            <span>图图号</span>
-            <input
-              value={filters.tutuNumber}
-              onChange={(event) => updateFilter('tutuNumber', event.target.value)}
-              placeholder="输入图图号"
-            />
-          </label>
-          <label className="form-field">
-            <span>订单号</span>
-            <input
-              value={filters.orderNo}
-              onChange={(event) => updateFilter('orderNo', event.target.value)}
-              placeholder="输入订单号"
-            />
-          </label>
-          <label className="form-field">
-            <span>支付类型</span>
-            <select value={filters.payType} onChange={(event) => updateFilter('payType', event.target.value)}>
-              {PAY_TYPE_OPTIONS.map((item) => (
-                <option key={item.value || 'all'} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>支付状态</span>
-            <select
-              value={filters.orderStatus}
-              onChange={(event) => updateFilter('orderStatus', event.target.value)}
-            >
-              {ORDER_STATUS_OPTIONS.map((item) => (
-                <option key={item.value || 'all'} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>精品课程</span>
-            <select
-              value={filters.textbookId}
-              onChange={(event) => updateFilter('textbookId', event.target.value)}
-            >
-              <option value="">全部</option>
-              {courseOptions.map((item) => (
-                <option key={item.textbookId} value={String(item.textbookId)}>
-                  {item.textbookName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="toolbar-actions">
-            <button type="button" className="app-button app-button--primary" onClick={handleSearch}>
-              搜索
-            </button>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              onClick={() => reload().catch(() => {})}
-              disabled={loading}
-            >
-              {loading ? '刷新中...' : '刷新'}
-            </button>
+      <Card>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={INITIAL_FILTERS}
+          onFinish={handleSearch}
+        >
+          <div className="toolbar-grid toolbar-grid--books">
+            <Form.Item label="图图号" name="tutuNumber">
+              <Input allowClear placeholder="输入图图号" />
+            </Form.Item>
+            <Form.Item label="订单号" name="orderNo">
+              <Input allowClear placeholder="输入订单号" />
+            </Form.Item>
+            <Form.Item label="支付类型" name="payType">
+              <Select allowClear placeholder="全部" options={PAY_TYPE_OPTIONS} />
+            </Form.Item>
+            <Form.Item label="支付状态" name="orderStatus">
+              <Select allowClear placeholder="全部" options={ORDER_STATUS_OPTIONS} />
+            </Form.Item>
+            <Form.Item label="精品课程" name="textbookId">
+              <Select
+                allowClear
+                placeholder="全部"
+                options={courseOptions.map((item) => ({
+                  value: String(item.textbookId),
+                  label: item.textbookName,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label=" ">
+              <Space wrap>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  搜索
+                </Button>
+                <Button onClick={handleReset} disabled={loading}>
+                  重置
+                </Button>
+                <Button onClick={() => reload().catch(() => {})} loading={loading}>
+                  刷新
+                </Button>
+              </Space>
+            </Form.Item>
           </div>
-        </div>
-      </section>
+        </Form>
+      </Card>
 
-      <PageTableCard
+      <Card
         title="精品课程订单列表"
-        totalCount={totalCount}
-        columns={columns}
-        data={orders}
-        rowKey={(row) => row.orderNo || row.id}
-        loading={loading}
-        minWidth={1480}
-        pagination={{
-          pageNum: query.pageNum,
-          pageSize: query.pageSize,
-          totalPages,
-          pageSizeOptions: PAGE_SIZE_OPTIONS,
-          onPageChange: setPageNum,
-          onPageSizeChange: setPageSize,
-        }}
-      />
+        extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}
+      >
+        <Table
+          rowKey={(row) => row.orderNo || row.id}
+          columns={columns}
+          dataSource={orders}
+          loading={loading}
+          scroll={{ x: 1480 }}
+          pagination={buildAntdTablePagination({
+            query,
+            totalCount,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            setPageNum,
+            setPageSize,
+          })}
+        />
+      </Card>
     </div>
   );
 }

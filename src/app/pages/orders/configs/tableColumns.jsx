@@ -1,6 +1,4 @@
-function formatCurrency(value) {
-  return `${(Number(value || 0) / 100).toFixed(2)} 元`;
-}
+import { formatCurrencyCent } from '@/app/lib/formatters';
 
 export function createOrderColumns() {
   return [
@@ -8,7 +6,7 @@ export function createOrderColumns() {
     { title: '真实姓名', dataIndex: 'realName', render: (value) => value || '无' },
     { title: '商品名称', dataIndex: 'itemName', render: (value) => value || '-' },
     { title: '订单号', dataIndex: 'orderNo', render: (value) => value || '-' },
-    { title: '订单金额', dataIndex: 'orderAmount', render: (value) => formatCurrency(value) },
+    { title: '订单金额', dataIndex: 'orderAmount', render: (value) => formatCurrencyCent(value, '0.00 元') },
     { title: '支付方式', dataIndex: 'payTypeName', render: (value) => value || '无' },
     { title: '支付状态', dataIndex: 'orderStatusDesc', render: (value) => value || '-' },
     { title: '支付时间', dataIndex: 'payTime', render: (value) => value || '-' },

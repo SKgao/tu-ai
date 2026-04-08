@@ -1,6 +1,6 @@
-import dayjs from 'dayjs';
 import { listMemberFeedback, listMembers } from '@/app/services/members';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { toApiDateTime } from '@/app/lib/dateTime';
 
 const INITIAL_MEMBER_QUERY = {
   pageNum: 1,
@@ -28,10 +28,6 @@ const INITIAL_FEEDBACK_QUERY = {
   tutuNumber: '',
   mobile: '',
 };
-
-function toApiDateTime(value) {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '';
-}
 
 export function useMemberManagementData({ activeTab, onError }) {
   const memberTable = useRemoteTable({

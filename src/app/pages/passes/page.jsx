@@ -1,9 +1,22 @@
-import React, { startTransition, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AppModal } from '@/app/components/AppModal';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { FileUploadField } from '@/app/components/FileUploadField';
-import { ModalActions } from '@/app/components/ModalActions';
+import {
+  App,
+  Button,
+  Card,
+  Form,
+  Image,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Typography,
+  Upload,
+} from 'antd';
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   createPass,
   listPasses,
@@ -12,466 +25,378 @@ import {
   updatePass,
   uploadAsset,
 } from '@/app/services/passes';
-import { useConfirmAction } from '@/app/hooks/useConfirmAction';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
-import { useFileUpload } from '@/app/hooks/useFileUpload';
-import { useModalState } from '@/app/hooks/useModalState';
-import { useModalSubmit } from '@/app/hooks/useModalSubmit';
-
-const EMPTY_PASS_FORM = {
-  id: '',
-  title: '',
-  icon: '',
-  partsId: '',
-  sort: '',
-  subject: '',
-};
+import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-function PassModal({
-  mode,
-  form,
-  subjects,
-  uploadState,
-  submitting,
-  onClose,
-  onChange,
-  onSubmit,
-  onUpload,
-}) {
-  return (
-    <AppModal
-      title={mode === 'create' ? '新增关卡' : '编辑关卡'}
-      description="维护关卡标题、图片、归属 part、排序和题型。"
-      size="lg"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-          <label className="form-field">
-            <span>关卡标题</span>
-            <input
-              value={form.title}
-              onChange={(event) => onChange('title', event.target.value)}
-              placeholder="请输入关卡标题"
-            />
-          </label>
-          <label className="form-field">
-            <span>Part ID</span>
-            <input
-              value={form.partsId}
-              onChange={(event) => onChange('partsId', event.target.value)}
-              placeholder="请输入 partsId"
-            />
-          </label>
-          <label className="form-field">
-            <span>关卡顺序</span>
-            <input
-              value={form.sort}
-              onChange={(event) => onChange('sort', event.target.value)}
-              placeholder="请输入关卡顺序"
-            />
-          </label>
-          <label className="form-field">
-            <span>题型</span>
-            <select
-              value={form.subject}
-              onChange={(event) => onChange('subject', event.target.value)}
-            >
-              <option value="">请选择题型</option>
-              {subjects.map((item) => (
-                <option key={item.id} value={String(item.id)}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <FileUploadField
-            label="关卡图片地址"
-            value={form.icon}
-            onValueChange={(value) => onChange('icon', value)}
-            onUpload={onUpload}
-            uploadState={uploadState}
-            accept="image/*"
-            uploadHint="支持上传关卡图片"
-            previewAlt="关卡图片"
-            fullWidth
-          />
-        </div>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
+const EMPTY_PASS_FORM = {
+  id: undefined,
+  title: '',
+  icon: '',
+  partsId: undefined,
+  sort: undefined,
+  subject: undefined,
+};
+
+function normalizePassFormValues(pass, partsId) {
+  if (!pass) {
+    return {
+      ...EMPTY_PASS_FORM,
+      partsId: partsId ? Number(partsId) : undefined,
+    };
+  }
+
+  return {
+    id: Number(pass.id),
+    title: pass.title || '',
+    icon: pass.icon || '',
+    partsId: pass.partsId !== undefined && pass.partsId !== null ? Number(pass.partsId) : undefined,
+    sort: pass.sort !== undefined && pass.sort !== null ? Number(pass.sort) : undefined,
+    subject: pass.subject !== undefined && pass.subject !== null ? String(pass.subject) : undefined,
+  };
 }
 
 export function PassManagementPage() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [form] = Form.useForm();
   const partsId = searchParams.get('partsId') || '';
   const textbookId = searchParams.get('textbookId') || '';
-  const [query, setQuery] = useState({
-    partsId,
-    pageNum: 1,
-    pageSize: 10,
-  });
-  const [passes, setPasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const { feedback, showError, showSuccess } = useFeedbackState();
-  const { uploadState, upload, resetUploadState } = useFileUpload({
-    uploadRequest: uploadAsset,
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [uploadState, setUploadState] = useState({
+    uploading: false,
+    message: '',
   });
-  const { submitting: modalSubmitting, submit: submitModal } = useModalSubmit({
-    showSuccess,
-    showError,
-  });
-  const { submitting: actionSubmitting, runAction } = useConfirmAction({
-    showSuccess,
-    showError,
-  });
+  const iconValue = Form.useWatch('icon', form);
   const {
-    isOpen: modalOpen,
-    mode: modalMode,
-    form: passForm,
-    updateForm: updatePassForm,
-    openCreate: openCreateModal,
-    openEdit: openEditModal,
-    close: closeModal,
-  } = useModalState({
-    createState: () => ({
-      ...EMPTY_PASS_FORM,
+    query,
+    data: passes,
+    totalCount,
+    loading,
+    setPageNum,
+    setPageSize,
+    reload,
+  } = useRemoteTable({
+    initialQuery: {
       partsId,
-    }),
-    editState: (pass) => ({
-      id: String(pass.id),
-      title: pass.title || '',
-      icon: pass.icon || '',
-      partsId: String(pass.partsId || partsId || ''),
-      sort: pass.sort !== undefined && pass.sort !== null ? String(pass.sort) : '',
-      subject: pass.subject !== undefined && pass.subject !== null ? String(pass.subject) : '',
-    }),
-    onOpenCreate: () => resetUploadState(),
-    onOpenEdit: () => resetUploadState(),
+      pageNum: 1,
+      pageSize: 10,
+    },
+    request: listPasses,
+    getItems: (result) => result?.data,
+    getTotalCount: (result) => result?.totalCount || 0,
+    onError: (errorMessage) => message.error(errorMessage || '关卡列表加载失败'),
   });
 
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(totalCount / query.pageSize)),
-    [totalCount, query.pageSize],
-  );
-
-  async function loadPasses(nextQuery = query) {
-    setLoading(true);
-    try {
-      const data = await listPasses(nextQuery);
-      setPasses(data?.data || []);
-      setTotalCount(data?.totalCount || 0);
-    } catch (error) {
-      showError(error?.message || '关卡列表加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadSubjects() {
-    try {
-      const data = await listSubjects();
-      setSubjects(Array.isArray(data) ? data : []);
-    } catch (error) {
-      showError(error?.message || '题型列表加载失败');
-    }
-  }
-
   useEffect(() => {
-    loadPasses(query);
-  }, [query.partsId, query.pageNum, query.pageSize]);
+    async function loadSubjectOptions() {
+      try {
+        const data = await listSubjects();
+        setSubjects(Array.isArray(data) ? data : []);
+      } catch (error) {
+        message.error(error?.message || '题型列表加载失败');
+      }
+    }
 
-  useEffect(() => {
-    loadSubjects();
+    loadSubjectOptions();
   }, []);
 
-  async function handleUpload(file) {
-    try {
-      await upload(file, {
-        successMessage: '上传成功，已自动写入图片地址',
-        onSuccess: (url) => {
-          updatePassForm('icon', url);
-        },
-      });
-    } catch {}
+  function resetUploadState() {
+    setUploadState({
+      uploading: false,
+      message: '',
+    });
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  function openCreateModal() {
+    setModalMode('create');
+    resetUploadState();
+    form.setFieldsValue(normalizePassFormValues(null, partsId));
+    setModalOpen(true);
+  }
 
-    if (!passForm.title.trim() || !passForm.partsId || !passForm.subject) {
-      showError('请填写关卡标题、part ID 并选择题型');
+  function openEditModal(pass) {
+    setModalMode('edit');
+    resetUploadState();
+    form.setFieldsValue(normalizePassFormValues(pass, partsId));
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    if (submitting) {
       return;
     }
 
-    if (!/^\d+$/.test(passForm.partsId) || (passForm.sort && !/^\d+$/.test(passForm.sort))) {
-      showError('part ID 和关卡顺序必须为数字');
+    setModalOpen(false);
+  }
+
+  async function handleUpload({ file, onError, onSuccess }) {
+    setUploadState({
+      uploading: true,
+      message: `${file.name} 上传中...`,
+    });
+
+    try {
+      const url = await uploadAsset(file);
+      form.setFieldValue('icon', url);
+      setUploadState({
+        uploading: false,
+        message: '上传成功，已自动写入图片地址',
+      });
+      onSuccess?.({ url });
+    } catch (error) {
+      const errorMessage = error?.message || '上传失败';
+      setUploadState({
+        uploading: false,
+        message: errorMessage,
+      });
+      message.error(errorMessage);
+      onError?.(error);
+    }
+  }
+
+  async function handleSubmit(values) {
+    if (!values.title?.trim() || values.partsId === undefined || !values.subject) {
+      message.error('请填写关卡标题、Part ID 并选择题型');
       return;
     }
 
     const payload = {
-      title: passForm.title.trim(),
-      icon: passForm.icon.trim(),
-      partsId: Number(passForm.partsId),
-      sort: passForm.sort ? Number(passForm.sort) : undefined,
-      subject: Number(passForm.subject),
+      title: values.title.trim(),
+      icon: values.icon?.trim() || '',
+      partsId: Number(values.partsId),
+      sort: values.sort ?? undefined,
+      subject: Number(values.subject),
     };
 
-    await submitModal({
-      action: async () => {
-        if (modalMode === 'create') {
-          await createPass(payload);
-          return;
-        }
-
+    setSubmitting(true);
+    try {
+      if (modalMode === 'create') {
+        await createPass(payload);
+      } else {
         await updatePass({
           ...payload,
-          id: Number(passForm.id),
+          id: Number(values.id),
         });
-      },
-      successMessage: modalMode === 'create' ? '关卡创建成功' : '关卡更新成功',
-      errorMessage: '关卡提交失败',
-      close: closeModal,
-      afterSuccess: () => loadPasses(),
-    });
+      }
+
+      message.success(modalMode === 'create' ? '关卡创建成功' : '关卡更新成功');
+      setModalOpen(false);
+      await reload().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '关卡提交失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleDelete(pass) {
-    await runAction({
-      confirmText: `确认删除关卡 ${pass.title || pass.id} 吗？`,
-      action: () => removePass(pass.id),
-      successMessage: '关卡已删除',
-      errorMessage: '关卡删除失败',
-      afterSuccess: async () => {
-        const nextPage =
-          passes.length === 1 && query.pageNum > 1 ? query.pageNum - 1 : query.pageNum;
-        startTransition(() => {
-          setQuery((current) => ({
-            ...current,
-            pageNum: nextPage,
-          }));
-        });
-        if (nextPage === query.pageNum) {
-          await loadPasses();
-        }
-      },
-    });
+    setActionSubmitting(true);
+    try {
+      await removePass(pass.id);
+      message.success('关卡已删除');
+      if (passes.length === 1 && query.pageNum > 1) {
+        setPageNum(query.pageNum - 1);
+      } else {
+        await reload().catch(() => {});
+      }
+    } catch (error) {
+      message.error(error?.message || '关卡删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
+
+  const columns = useMemo(
+    () => [
+      { title: '关卡标题', dataIndex: 'title', render: (value) => value || '-' },
+      {
+        title: '图片',
+        dataIndex: 'icon',
+        render: (value, record) =>
+          value ? (
+            <Image
+              width={52}
+              height={52}
+              style={{ borderRadius: 16, objectFit: 'cover' }}
+              src={value}
+              alt={record.title || 'pass'}
+            />
+          ) : (
+            <Typography.Text type="secondary">无</Typography.Text>
+          ),
+      },
+      { title: '闯关人数', dataIndex: 'customerNumber', render: (value) => value ?? '-' },
+      { title: '关卡顺序', dataIndex: 'sort', render: (value) => value ?? '-' },
+      { title: '平均分', dataIndex: 'totalScore', render: (value) => value ?? '-' },
+      { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
+      {
+        title: '详情',
+        key: 'details',
+        render: (_, pass) =>
+          pass.id ? (
+            <Link to={`/subjects?customsPassId=${pass.id}`} className="ant-btn ant-btn-link">
+              查看题目
+            </Link>
+          ) : (
+            <Typography.Text type="secondary">无</Typography.Text>
+          ),
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_, pass) => (
+          <Space size="small" wrap>
+            <Button type="link" onClick={() => openEditModal(pass)} style={{ paddingInline: 0 }}>
+              编辑
+            </Button>
+            <Popconfirm
+              title={`确认删除关卡 ${pass.title || pass.id} 吗？`}
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => handleDelete(pass)}
+              disabled={submitting || actionSubmitting}
+            >
+              <Button type="link" danger disabled={submitting || actionSubmitting} style={{ paddingInline: 0 }}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [actionSubmitting, submitting],
+  );
 
   return (
     <div className="page-stack">
-      <section className="page-stack__hero">
-        <div>
-          <span className="app-badge">Legacy Rewrite</span>
-          <h2 className="page-title">关卡管理</h2>
-          <p className="page-copy">
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            关卡管理
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             这一页对应旧版关卡管理模块，保留分页、增改删、图片上传和题型选择能力。
-          </p>
-        </div>
-      </section>
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
+      <Card>
         <div className="toolbar-grid toolbar-grid--compact">
-          <div className="section-meta">
+          <Typography.Text type="secondary">
             当前 Part ID: {query.partsId || '-'}，教材 ID: {textbookId || '-'}
-          </div>
-          <div className="toolbar-actions">
-            <button type="button" className="app-button app-button--primary" onClick={openCreateModal}>
+          </Typography.Text>
+          <Space wrap>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
               添加关卡
-            </button>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              onClick={() =>
-                navigate(textbookId ? `/parts?textBookId=${textbookId}&unitId=` : '/parts')
-              }
-            >
+            </Button>
+            <Button onClick={() => navigate(textbookId ? `/parts?textBookId=${textbookId}&unitId=` : '/parts')}>
               返回 Part
-            </button>
-          </div>
+            </Button>
+            <Button onClick={() => reload().catch(() => {})} loading={loading}>
+              刷新
+            </Button>
+          </Space>
         </div>
-      </section>
+      </Card>
 
-      <section className="surface-card surface-card--table">
-        <div className="section-header">
-          <div>
-            <h3 className="section-title">关卡列表</h3>
-            <p className="section-meta">共 {totalCount} 条记录</p>
-          </div>
-          <button
-            type="button"
-            className="app-button app-button--ghost"
-            onClick={() => loadPasses()}
-            disabled={loading}
-          >
-            {loading ? '刷新中...' : '刷新'}
-          </button>
-        </div>
-
-        <div className="table-shell">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>关卡标题</th>
-                <th>图片</th>
-                <th>闯关人数</th>
-                <th>关卡顺序</th>
-                <th>平均分</th>
-                <th>创建时间</th>
-                <th>详情</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="table-empty">
-                    数据加载中...
-                  </td>
-                </tr>
-              ) : null}
-              {!loading && !passes.length ? (
-                <tr>
-                  <td colSpan="8" className="table-empty">
-                    暂无数据
-                  </td>
-                </tr>
-              ) : null}
-              {!loading
-                ? passes.map((pass) => (
-                    <tr key={pass.id}>
-                      <td>{pass.title || '-'}</td>
-                      <td>
-                        {pass.icon ? (
-                          <a href={pass.icon} target="_blank" rel="noreferrer" className="avatar-link">
-                            <img src={pass.icon} alt={pass.title || 'pass'} className="avatar-thumb" />
-                          </a>
-                        ) : (
-                          <span className="table-muted">无</span>
-                        )}
-                      </td>
-                      <td>{pass.customerNumber ?? '-'}</td>
-                      <td>{pass.sort ?? '-'}</td>
-                      <td>{pass.totalScore ?? '-'}</td>
-                      <td>{pass.createdAt || '-'}</td>
-                      <td>
-                        <div className="table-actions">
-                          {pass.id ? (
-                            <Link to={`/subjects?customsPassId=${pass.id}`} className="text-button">
-                              查看题目
-                            </Link>
-                          ) : (
-                            <span className="table-muted">无可用题目</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="table-actions">
-                          <button type="button" className="text-button" onClick={() => openEditModal(pass)}>
-                            编辑
-                          </button>
-                          {pass.id ? (
-                            <Link to={`/subjects?customsPassId=${pass.id}`} className="text-button">
-                              查看题目
-                            </Link>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="text-button text-button--danger"
-                            onClick={() => handleDelete(pass)}
-                            disabled={modalSubmitting || actionSubmitting}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                : null}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination-bar">
-          <div className="section-meta">
-            第 {query.pageNum} / {totalPages} 页
-          </div>
-          <div className="pagination-controls">
-            <select
-              value={query.pageSize}
-              onChange={(event) => {
-                const pageSize = Number(event.target.value);
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: 1,
-                    pageSize,
-                  }));
-                });
-              }}
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  每页 {size} 条
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              disabled={query.pageNum <= 1 || loading}
-              onClick={() => {
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: current.pageNum - 1,
-                  }));
-                });
-              }}
-            >
-              上一页
-            </button>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              disabled={query.pageNum >= totalPages || loading}
-              onClick={() => {
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: current.pageNum + 1,
-                  }));
-                });
-              }}
-            >
-              下一页
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {modalOpen ? (
-        <PassModal
-          mode={modalMode}
-          form={passForm}
-          subjects={subjects}
-          uploadState={uploadState}
-          submitting={modalSubmitting}
-          onClose={closeModal}
-          onChange={updatePassForm}
-          onSubmit={handleSubmit}
-          onUpload={handleUpload}
+      <Card title="关卡列表" extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={passes}
+          loading={loading}
+          scroll={{ x: 1120 }}
+          pagination={buildAntdTablePagination({
+            query,
+            totalCount,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            setPageNum,
+            setPageSize,
+          })}
         />
-      ) : null}
+      </Card>
+
+      <Modal
+        title={modalMode === 'create' ? '新增关卡' : '编辑关卡'}
+        open={modalOpen}
+        onCancel={closeModal}
+        onOk={() => form.submit()}
+        okText={modalMode === 'create' ? '创建' : '保存'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={700}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          维护关卡标题、图片、归属 part、排序和题型。
+        </Typography.Paragraph>
+        <Form form={form} layout="vertical" initialValues={EMPTY_PASS_FORM} onFinish={handleSubmit}>
+          <div className="form-grid">
+            {modalMode === 'edit' ? (
+              <Form.Item label="关卡 ID" name="id">
+                <InputNumber disabled style={{ width: '100%' }} />
+              </Form.Item>
+            ) : null}
+            <Form.Item label="关卡标题" name="title" rules={[{ required: true, message: '请输入关卡标题' }]}>
+              <Input placeholder="请输入关卡标题" />
+            </Form.Item>
+            <Form.Item label="Part ID" name="partsId" rules={[{ required: true, message: '请输入 Part ID' }]}>
+              <InputNumber precision={0} style={{ width: '100%' }} placeholder="请输入 Part ID" />
+            </Form.Item>
+            <Form.Item label="关卡顺序" name="sort">
+              <InputNumber precision={0} style={{ width: '100%' }} placeholder="请输入关卡顺序" />
+            </Form.Item>
+            <Form.Item label="题型" name="subject" rules={[{ required: true, message: '请选择题型' }]}>
+              <Select
+                placeholder="请选择题型"
+                options={subjects.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label="关卡图片地址" name="icon" className="form-field--full">
+              <Input placeholder="可直接粘贴图片 URL" />
+            </Form.Item>
+            <Form.Item label="上传关卡图片" className="form-field--full">
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <Upload
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={handleUpload}
+                  disabled={uploadState.uploading}
+                >
+                  <Button icon={<UploadOutlined />} loading={uploadState.uploading}>
+                    上传关卡图片
+                  </Button>
+                </Upload>
+                <Typography.Text type="secondary">
+                  {uploadState.uploading ? '上传中...' : uploadState.message || '支持上传关卡图片'}
+                </Typography.Text>
+                {iconValue ? (
+                  <Image
+                    width={96}
+                    height={96}
+                    style={{ borderRadius: 20, objectFit: 'cover' }}
+                    src={iconValue}
+                    alt="关卡图片"
+                  />
+                ) : null}
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

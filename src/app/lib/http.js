@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getStoredAuthToken } from '@/app/stores/auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '//test.api.admin.tutukids.com/';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/';
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -11,7 +12,7 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = getStoredAuthToken();
 
   if (token) {
     config.headers.token = token;
@@ -25,9 +26,6 @@ http.interceptors.response.use(
     const { code, message: msg } = response.data || {};
 
     if (code === 45 || code === 46) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user_profile');
-      window.location.href = '/login';
       return Promise.reject(new Error(msg || '登录已失效'));
     }
 

@@ -1,8 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AppModal } from '@/app/components/AppModal';
-import { FileUploadField } from '@/app/components/FileUploadField';
+import {
+  App,
+  Button,
+  Card,
+  DatePicker,
+  Form,
+  Image,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Typography,
+  Upload,
+} from 'antd';
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   createSpecialCourse,
   downSpecialCourse,
@@ -14,31 +29,24 @@ import {
   updateSpecialCourse,
   upSpecialCourse,
 } from '@/app/services/special-courses';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { ModalActions } from '@/app/components/ModalActions';
-import { PageHero } from '@/app/components/PageHero';
-import { PageTableCard } from '@/app/components/PageTableCard';
-import { useConfirmAction } from '@/app/hooks/useConfirmAction';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
-import { useFileUpload } from '@/app/hooks/useFileUpload';
-import { useModalState } from '@/app/hooks/useModalState';
-import { useModalSubmit } from '@/app/hooks/useModalSubmit';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { fromApiDateTime, toApiDateTime } from '@/app/lib/dateTime';
 import { createSpecialCourseColumns } from './configs/tableColumns';
 import { useMemberCommerceOptionsStore } from '@/app/stores/memberCommerceOptions';
 
 const EMPTY_FORM = {
-  textbookId: '',
+  textbookId: undefined,
   textbookName: '',
   teacher: '',
-  saleBeginAt: '',
-  saleEndAt: '',
+  saleBeginAt: undefined,
+  saleEndAt: undefined,
   type: '1',
-  beginAt: '',
-  endAt: '',
-  orgAmt: '',
-  amt: '',
-  num: '',
+  beginAt: undefined,
+  endAt: undefined,
+  orgAmt: undefined,
+  amt: undefined,
+  num: undefined,
   chatNo: '',
   iconDetail: '',
   iconTicket: '',
@@ -46,49 +54,42 @@ const EMPTY_FORM = {
 };
 
 const INITIAL_FILTERS = {
-  startTime: '',
-  endTime: '',
+  startTime: undefined,
+  endTime: undefined,
 };
 
 const INITIAL_QUERY = {
-  ...INITIAL_FILTERS,
+  startTime: '',
+  endTime: '',
   pageNum: 1,
   pageSize: 20,
 };
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
-function toApiDateTime(value) {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '';
-}
-
-function fromApiDateTime(value) {
-  return value ? String(value).replace(' ', 'T').slice(0, 19) : '';
-}
-
-function buildPayload(form, { allowTextbookIdEdit }) {
+function buildPayload(values, { allowTextbookIdEdit }) {
   const payload = {
-    textbookName: form.textbookName.trim(),
-    teacher: form.teacher.trim(),
-    saleBeginAt: toApiDateTime(form.saleBeginAt),
-    saleEndAt: toApiDateTime(form.saleEndAt),
-    type: Number(form.type),
-    orgAmt: Math.round(Number(form.orgAmt) * 100),
-    amt: Math.round(Number(form.amt) * 100),
-    num: Number(form.num),
-    chatNo: form.chatNo.trim(),
-    iconDetail: form.iconDetail.trim(),
-    iconTicket: form.iconTicket.trim(),
-    status: Number(form.status),
+    textbookName: values.textbookName.trim(),
+    teacher: values.teacher.trim(),
+    saleBeginAt: toApiDateTime(values.saleBeginAt),
+    saleEndAt: toApiDateTime(values.saleEndAt),
+    type: Number(values.type),
+    orgAmt: Math.round(Number(values.orgAmt) * 100),
+    amt: Math.round(Number(values.amt) * 100),
+    num: Number(values.num),
+    chatNo: values.chatNo?.trim() || '',
+    iconDetail: values.iconDetail?.trim() || '',
+    iconTicket: values.iconTicket?.trim() || '',
+    status: Number(values.status),
   };
 
   if (allowTextbookIdEdit) {
-    payload.textbookId = Number(form.textbookId);
+    payload.textbookId = Number(values.textbookId);
   }
 
-  if (Number(form.type) === 1) {
-    payload.beginAt = toApiDateTime(form.beginAt);
-    payload.endAt = toApiDateTime(form.endAt);
+  if (Number(values.type) === 1) {
+    payload.beginAt = toApiDateTime(values.beginAt);
+    payload.endAt = toApiDateTime(values.endAt);
   } else {
     payload.beginAt = '';
     payload.endAt = '';
@@ -97,50 +98,34 @@ function buildPayload(form, { allowTextbookIdEdit }) {
   return payload;
 }
 
-function validateForm(form) {
+function validateForm(values) {
   if (
-    !form.textbookId ||
-    !form.textbookName.trim() ||
-    !form.teacher.trim() ||
-    !form.saleBeginAt ||
-    !form.saleEndAt ||
-    form.orgAmt === '' ||
-    form.amt === '' ||
-    form.num === ''
+    !values.textbookId ||
+    !values.textbookName?.trim() ||
+    !values.teacher?.trim() ||
+    !values.saleBeginAt ||
+    !values.saleEndAt ||
+    values.orgAmt === undefined ||
+    values.amt === undefined ||
+    values.num === undefined
   ) {
     return '请完整填写课程、教师、预售时间、金额和数量';
   }
 
-  if (Number.isNaN(Number(form.orgAmt)) || Number.isNaN(Number(form.amt))) {
-    return '金额必须为数字';
-  }
-
-  if (!/^\d+$/.test(String(form.num))) {
-    return '课程数量必须为整数';
-  }
-
-  const saleBeginAt = dayjs(form.saleBeginAt);
-  const saleEndAt = dayjs(form.saleEndAt);
-
-  if (!saleBeginAt.isValid() || !saleEndAt.isValid()) {
-    return '预售时间格式不正确';
-  }
+  const saleBeginAt = dayjs(values.saleBeginAt);
+  const saleEndAt = dayjs(values.saleEndAt);
 
   if (saleBeginAt.isAfter(saleEndAt)) {
     return '预售开始时间不能大于预售结束时间';
   }
 
-  if (Number(form.type) === 1) {
-    if (!form.beginAt || !form.endAt) {
+  if (Number(values.type) === 1) {
+    if (!values.beginAt || !values.endAt) {
       return '统一开课模式必须填写开课和结课时间';
     }
 
-    const beginAt = dayjs(form.beginAt);
-    const endAt = dayjs(form.endAt);
-
-    if (!beginAt.isValid() || !endAt.isValid()) {
-      return '开课时间格式不正确';
-    }
+    const beginAt = dayjs(values.beginAt);
+    const endAt = dayjs(values.endAt);
 
     if (beginAt.isAfter(endAt)) {
       return '开课时间不能大于结课时间';
@@ -150,238 +135,60 @@ function validateForm(form) {
   return '';
 }
 
-function SpecialCourseModal({
-  mode,
-  form,
-  books,
-  detailUploadState,
-  ticketUploadState,
-  submitting,
-  onClose,
-  onChange,
-  onSubmit,
-  onUpload,
-}) {
-  const isEdit = mode === 'edit';
+function normalizeFormValues(course) {
+  if (!course) {
+    return { ...EMPTY_FORM };
+  }
 
-  return (
-    <AppModal
-      title={isEdit ? '编辑精品课程' : '新增精品课程'}
-      description="保留旧版 `specialCourse` 的课程配置、上下架和已购课程查看能力。"
-      size="lg"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-            <label className="form-field">
-              <span>课程 ID</span>
-              <select
-                value={form.textbookId}
-                onChange={(event) => onChange('textbookId', event.target.value)}
-                disabled={isEdit}
-              >
-                <option value="">请选择课程</option>
-                {books.map((item) => (
-                  <option key={item.id} value={String(item.id)}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field">
-              <span>课程名称</span>
-              <input
-                value={form.textbookName}
-                onChange={(event) => onChange('textbookName', event.target.value)}
-                placeholder="请输入课程名称"
-              />
-            </label>
-            <label className="form-field">
-              <span>辅导老师</span>
-              <input
-                value={form.teacher}
-                onChange={(event) => onChange('teacher', event.target.value)}
-                placeholder="请输入辅导老师"
-              />
-            </label>
-            <label className="form-field">
-              <span>课程状态</span>
-              <select value={form.status} onChange={(event) => onChange('status', event.target.value)}>
-                <option value="1">正常</option>
-                <option value="2">下架</option>
-              </select>
-            </label>
-            <label className="form-field">
-              <span>预售开始时间</span>
-              <input
-                type="datetime-local"
-                value={form.saleBeginAt}
-                onChange={(event) => onChange('saleBeginAt', event.target.value)}
-              />
-            </label>
-            <label className="form-field">
-              <span>预售结束时间</span>
-              <input
-                type="datetime-local"
-                value={form.saleEndAt}
-                onChange={(event) => onChange('saleEndAt', event.target.value)}
-              />
-            </label>
-            <label className="form-field">
-              <span>开课方式</span>
-              <select value={form.type} onChange={(event) => onChange('type', event.target.value)}>
-                <option value="1">统一开课</option>
-                <option value="2">购买生效</option>
-              </select>
-            </label>
-            {Number(form.type) === 1 ? (
-              <>
-                <label className="form-field">
-                  <span>开课时间</span>
-                  <input
-                    type="datetime-local"
-                    value={form.beginAt}
-                    onChange={(event) => onChange('beginAt', event.target.value)}
-                  />
-                </label>
-                <label className="form-field">
-                  <span>结课时间</span>
-                  <input
-                    type="datetime-local"
-                    value={form.endAt}
-                    onChange={(event) => onChange('endAt', event.target.value)}
-                  />
-                </label>
-              </>
-            ) : null}
-            <label className="form-field">
-              <span>原始金额</span>
-              <input
-                value={form.orgAmt}
-                onChange={(event) => onChange('orgAmt', event.target.value)}
-                placeholder="单位元"
-              />
-            </label>
-            <label className="form-field">
-              <span>实际金额</span>
-              <input
-                value={form.amt}
-                onChange={(event) => onChange('amt', event.target.value)}
-                placeholder="单位元"
-              />
-            </label>
-            <label className="form-field">
-              <span>课程数量</span>
-              <input
-                value={form.num}
-                onChange={(event) => onChange('num', event.target.value)}
-                placeholder="请输入课程数量"
-              />
-            </label>
-            <label className="form-field">
-              <span>微信号</span>
-              <input
-                value={form.chatNo}
-                onChange={(event) => onChange('chatNo', event.target.value)}
-                placeholder="可选"
-              />
-            </label>
-            <FileUploadField
-              label="详情图片"
-              value={form.iconDetail}
-              uploadState={detailUploadState}
-              onValueChange={(value) => onChange('iconDetail', value)}
-              onUpload={(file) => onUpload('iconDetail', file)}
-              accept="image/*"
-              uploadHint="支持上传图片"
-              previewAlt="详情图片"
-            />
-            <FileUploadField
-              label="优惠券图"
-              value={form.iconTicket}
-              uploadState={ticketUploadState}
-              onValueChange={(value) => onChange('iconTicket', value)}
-              onUpload={(file) => onUpload('iconTicket', file)}
-              accept="image/*"
-              uploadHint="支持上传图片"
-              previewAlt="优惠券图"
-            />
-        </div>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
+  return {
+    textbookId: String(course.textbookId || ''),
+    textbookName: course.textbookName || '',
+    teacher: course.teacher || '',
+    saleBeginAt: course.saleBeginAt ? dayjs(fromApiDateTime(course.saleBeginAt)) : undefined,
+    saleEndAt: course.saleEndAt ? dayjs(fromApiDateTime(course.saleEndAt)) : undefined,
+    type: String(course.type ?? '1'),
+    beginAt: course.beginAt ? dayjs(fromApiDateTime(course.beginAt)) : undefined,
+    endAt: course.endAt ? dayjs(fromApiDateTime(course.endAt)) : undefined,
+    orgAmt:
+      course.orgAmt !== undefined && course.orgAmt !== null
+        ? Number((Number(course.orgAmt) / 100).toFixed(2))
+        : undefined,
+    amt:
+      course.amt !== undefined && course.amt !== null
+        ? Number((Number(course.amt) / 100).toFixed(2))
+        : undefined,
+    num: course.num !== undefined && course.num !== null ? Number(course.num) : undefined,
+    chatNo: course.chatNo || '',
+    iconDetail: course.iconDetail || '',
+    iconTicket: course.iconTicket || '',
+    status: String(course.status ?? '1'),
+  };
 }
 
 export function SpecialCourseManagementPage() {
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const userId = searchParams.get('userId') || '';
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const [searchForm] = Form.useForm();
+  const [modalForm] = Form.useForm();
   const [books, setBooks] = useState([]);
-  const detailUploader = useFileUpload({
-    uploadRequest: uploadAsset,
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [uploadState, setUploadState] = useState({
+    iconDetail: { uploading: false, message: '' },
+    iconTicket: { uploading: false, message: '' },
   });
-  const ticketUploader = useFileUpload({
-    uploadRequest: uploadAsset,
-  });
-  const { uploadState: detailUploadState, upload: uploadDetailAsset, resetUploadState: resetDetailUploadState } = detailUploader;
-  const { uploadState: ticketUploadState, upload: uploadTicketAsset, resetUploadState: resetTicketUploadState } = ticketUploader;
-  const { feedback, showError, showSuccess } = useFeedbackState();
-  const { submitting: modalSubmitting, submit: submitModal } = useModalSubmit({
-    showSuccess,
-    showError,
-  });
-  const { submitting: actionSubmitting, runAction } = useConfirmAction({
-    showSuccess,
-    showError,
-  });
+  const userId = searchParams.get('userId') || '';
   const refreshCourseOptions = useMemberCommerceOptionsStore((state) => state.refreshCourseOptions);
-  const {
-    isOpen: modalOpen,
-    mode: modalMode,
-    form,
-    updateForm,
-    openCreate: openCreateModal,
-    openEdit: openEditModal,
-    close: closeModal,
-  } = useModalState({
-    createState: () => ({ ...EMPTY_FORM }),
-    editState: (course) => ({
-      textbookId: String(course.textbookId || ''),
-      textbookName: course.textbookName || '',
-      teacher: course.teacher || '',
-      saleBeginAt: fromApiDateTime(course.saleBeginAt),
-      saleEndAt: fromApiDateTime(course.saleEndAt),
-      type: String(course.type ?? '1'),
-      beginAt: fromApiDateTime(course.beginAt),
-      endAt: fromApiDateTime(course.endAt),
-      orgAmt:
-        course.orgAmt !== undefined && course.orgAmt !== null
-          ? (Number(course.orgAmt) / 100).toFixed(2)
-          : '',
-      amt: course.amt !== undefined && course.amt !== null ? (Number(course.amt) / 100).toFixed(2) : '',
-      num: course.num !== undefined && course.num !== null ? String(course.num) : '',
-      chatNo: course.chatNo || '',
-      iconDetail: course.iconDetail || '',
-      iconTicket: course.iconTicket || '',
-      status: String(course.status ?? '1'),
-    }),
-    onOpenCreate: () => {
-      resetDetailUploadState();
-      resetTicketUploadState();
-    },
-    onOpenEdit: () => {
-      resetDetailUploadState();
-      resetTicketUploadState();
-    },
-  });
+  const courseType = Form.useWatch('type', modalForm) || '1';
+  const detailValue = Form.useWatch('iconDetail', modalForm);
+  const ticketValue = Form.useWatch('iconTicket', modalForm);
   const {
     query,
     data: courses,
     totalCount,
-    totalPages,
     loading,
     applyFilters,
     setPageNum,
@@ -403,19 +210,8 @@ export function SpecialCourseManagementPage() {
     },
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
-    onError: (message) => showError(message || '精品课程列表加载失败'),
+    onError: (errorMessage) => message.error(errorMessage || '精品课程列表加载失败'),
   });
-
-  const columns = useMemo(
-    () =>
-      createSpecialCourseColumns({
-        onEdit: openEditModal,
-        onToggleStatus: handleStatusChange,
-        onDelete: handleDelete,
-        submitting: modalSubmitting || actionSubmitting,
-      }),
-    [actionSubmitting, modalSubmitting],
-  );
 
   useEffect(() => {
     async function loadBooksData() {
@@ -426,199 +222,391 @@ export function SpecialCourseManagementPage() {
         });
         setBooks(Array.isArray(data?.data) ? data.data : []);
       } catch (error) {
-        showError(error?.message || '课程教材列表加载失败');
+        message.error(error?.message || '课程教材列表加载失败');
       }
     }
 
     loadBooksData();
-  }, []);
+  }, [message]);
 
-  async function handleUpload(field, file) {
-    const uploadFile = field === 'iconDetail' ? uploadDetailAsset : uploadTicketAsset;
-
-    try {
-      await uploadFile(file, {
-        successMessage: '上传成功，已自动写入地址',
-        onSuccess: (url) => {
-          updateForm(field, url);
-        },
-      });
-    } catch {}
+  function resetUploadState() {
+    setUploadState({
+      iconDetail: { uploading: false, message: '' },
+      iconTicket: { uploading: false, message: '' },
+    });
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  function openCreateModal() {
+    setModalMode('create');
+    resetUploadState();
+    modalForm.setFieldsValue(EMPTY_FORM);
+    setModalOpen(true);
+  }
 
-    const errorMessage = validateForm(form);
-    if (errorMessage) {
-      showError(errorMessage);
+  function openEditModal(course) {
+    setModalMode('edit');
+    resetUploadState();
+    modalForm.setFieldsValue(normalizeFormValues(course));
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    if (submitting) {
       return;
     }
 
-    await submitModal({
-      action: async () => {
-        const payload = buildPayload(form, {
-          allowTextbookIdEdit: modalMode === 'create',
-        });
+    setModalOpen(false);
+  }
 
-        if (modalMode === 'create') {
-          await createSpecialCourse(payload);
-          return;
-        }
+  function handleSearch(values) {
+    applyFilters({
+      startTime: toApiDateTime(values.startTime),
+      endTime: toApiDateTime(values.endTime),
+    });
+  }
 
+  function handleReset() {
+    searchForm.resetFields();
+    applyFilters({
+      ...INITIAL_QUERY,
+      pageNum: 1,
+      pageSize: query.pageSize,
+    });
+  }
+
+  async function handleUpload(field, { file, onError, onSuccess }) {
+    setUploadState((current) => ({
+      ...current,
+      [field]: {
+        uploading: true,
+        message: `${file.name} 上传中...`,
+      },
+    }));
+
+    try {
+      const url = await uploadAsset(file);
+      modalForm.setFieldValue(field, url);
+      setUploadState((current) => ({
+        ...current,
+        [field]: {
+          uploading: false,
+          message: '上传成功，已自动写入地址',
+        },
+      }));
+      onSuccess?.({ url });
+    } catch (error) {
+      const errorMessage = error?.message || '上传失败';
+      setUploadState((current) => ({
+        ...current,
+        [field]: {
+          uploading: false,
+          message: errorMessage,
+        },
+      }));
+      message.error(errorMessage);
+      onError?.(error);
+    }
+  }
+
+  async function handleSubmit(values) {
+    const errorMessage = validateForm(values);
+    if (errorMessage) {
+      message.error(errorMessage);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = buildPayload(values, {
+        allowTextbookIdEdit: modalMode === 'create',
+      });
+
+      if (modalMode === 'create') {
+        await createSpecialCourse(payload);
+      } else {
         await updateSpecialCourse({
           ...payload,
-          textbookId: Number(form.textbookId),
+          textbookId: Number(values.textbookId),
         });
-      },
-      successMessage: modalMode === 'create' ? '精品课程创建成功' : '精品课程更新成功',
-      errorMessage: '精品课程提交失败',
-      close: closeModal,
-      afterSuccess: async () => {
-        await reload().catch(() => {});
-        await refreshCourseOptions().catch(() => {});
-      },
-    });
+      }
+
+      message.success(modalMode === 'create' ? '精品课程创建成功' : '精品课程更新成功');
+      setModalOpen(false);
+      await reload().catch(() => {});
+      await refreshCourseOptions().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '精品课程提交失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleDelete(course) {
-    await runAction({
-      confirmText: `确认删除精品课程 ${course.textbookName || course.textbookId} 吗？`,
-      action: () => removeSpecialCourse(course.textbookId),
-      successMessage: '精品课程已删除',
-      errorMessage: '精品课程删除失败',
-      afterSuccess: async () => {
-        await reload().catch(() => {});
-        await refreshCourseOptions().catch(() => {});
-      },
-    });
+    setActionSubmitting(true);
+    try {
+      await removeSpecialCourse(course.textbookId);
+      message.success('精品课程已删除');
+      await reload().catch(() => {});
+      await refreshCourseOptions().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '精品课程删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
   async function handleStatusChange(course) {
-    await runAction({
-      action: () =>
-        Number(course.status) === 1
-          ? downSpecialCourse(course.textbookId)
-          : upSpecialCourse(course.textbookId),
-      successMessage: '课程状态更新成功',
-      errorMessage: '课程状态更新失败',
-      afterSuccess: async () => {
-        await reload().catch(() => {});
-        await refreshCourseOptions().catch(() => {});
-      },
-    });
+    setActionSubmitting(true);
+    try {
+      if (Number(course.status) === 1) {
+        await downSpecialCourse(course.textbookId);
+      } else {
+        await upSpecialCourse(course.textbookId);
+      }
+      message.success('课程状态更新成功');
+      await reload().catch(() => {});
+      await refreshCourseOptions().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '课程状态更新失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
+
+  const columns = useMemo(
+    () =>
+      createSpecialCourseColumns({
+        onEdit: openEditModal,
+        onToggleStatus: handleStatusChange,
+        onDelete: handleDelete,
+        submitting: submitting || actionSubmitting,
+      }),
+    [actionSubmitting, submitting],
+  );
 
   return (
     <div className="page-stack">
-      <PageHero
-        title="精品课程"
-        copy="对应旧版 `specialCourse`。保留课程配置、预售时间、上下架，以及按用户查看已买课程。"
-      />
-
-      <FeedbackBanner feedback={feedback} />
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            精品课程
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            对应旧版 `specialCourse`。先按新版 antd 组件重构课程筛选、列表、上下架和课程配置弹窗。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
       {!userId ? (
-        <section className="surface-card">
-          <div className="toolbar-grid toolbar-grid--books">
-            <label className="form-field">
-              <span>预售开始时间</span>
-              <input
-                type="datetime-local"
-                value={filters.startTime}
-                onChange={(event) => setFilters((current) => ({ ...current, startTime: event.target.value }))}
-              />
-            </label>
-            <label className="form-field">
-              <span>预售结束时间</span>
-              <input
-                type="datetime-local"
-                value={filters.endTime}
-                onChange={(event) => setFilters((current) => ({ ...current, endTime: event.target.value }))}
-              />
-            </label>
-            <div className="toolbar-actions">
-              <button
-                type="button"
-                className="app-button app-button--primary"
-                onClick={() =>
-                  applyFilters({
-                    startTime: toApiDateTime(filters.startTime),
-                    endTime: toApiDateTime(filters.endTime),
-                  })
-                }
-              >
-                搜索
-              </button>
-              <button type="button" className="app-button app-button--ghost" onClick={openCreateModal}>
-                添加精品课程
-              </button>
-              <button
-                type="button"
-                className="app-button app-button--ghost"
-                onClick={() => reload().catch(() => {})}
-                disabled={loading}
-              >
-                {loading ? '刷新中...' : '刷新'}
-              </button>
+        <Card>
+          <Form form={searchForm} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={handleSearch}>
+            <div className="toolbar-grid toolbar-grid--books">
+              <Form.Item label="预售开始时间" name="startTime">
+                <DatePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item label="预售结束时间" name="endTime">
+                <DatePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item label=" ">
+                <Space wrap>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    搜索
+                  </Button>
+                  <Button onClick={handleReset} disabled={loading}>
+                    重置
+                  </Button>
+                  <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
+                    添加精品课程
+                  </Button>
+                  <Button onClick={() => reload().catch(() => {})} loading={loading}>
+                    刷新
+                  </Button>
+                </Space>
+              </Form.Item>
             </div>
-          </div>
-        </section>
+          </Form>
+        </Card>
       ) : (
-        <section className="surface-card">
-          <div className="section-header">
-            <div>
-              <h3 className="section-title">已买课程视图</h3>
-              <p className="section-meta">当前用户 ID: {userId}</p>
-            </div>
-            <div className="toolbar-actions">
-              <button type="button" className="app-button app-button--ghost" onClick={() => navigate(-1)}>
-                返回上一页
-              </button>
-              <button type="button" className="app-button app-button--primary" onClick={openCreateModal}>
+        <Card
+          title="已买课程视图"
+          extra={
+            <Space wrap>
+              <Typography.Text type="secondary">当前用户 ID: {userId}</Typography.Text>
+              <Button onClick={() => navigate(-1)}>返回上一页</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
                 添加精品课程
-              </button>
-            </div>
-          </div>
-        </section>
+              </Button>
+            </Space>
+          }
+        />
       )}
 
-      <PageTableCard
+      <Card
         title="课程列表"
-        totalCount={totalCount}
-        columns={columns}
-        data={courses}
-        rowKey={(row) => `${row.textbookId}-${row.id || row.textbookName || ''}`}
-        loading={loading}
-        minWidth={1680}
-        pagination={
-          !userId
-            ? {
-                pageNum: query.pageNum,
-                pageSize: query.pageSize,
-                totalPages,
-                pageSizeOptions: PAGE_SIZE_OPTIONS,
-                onPageChange: setPageNum,
-                onPageSizeChange: setPageSize,
-              }
-            : null
-        }
-      />
-
-      {modalOpen ? (
-        <SpecialCourseModal
-          mode={modalMode}
-          form={form}
-          books={books}
-          detailUploadState={detailUploadState}
-          ticketUploadState={ticketUploadState}
-          submitting={modalSubmitting}
-          onClose={closeModal}
-          onChange={updateForm}
-          onSubmit={handleSubmit}
-          onUpload={handleUpload}
+        extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}
+      >
+        <Table
+          rowKey={(row) => `${row.textbookId}-${row.id || row.textbookName || ''}`}
+          columns={columns}
+          dataSource={courses}
+          loading={loading}
+          scroll={{ x: 1680 }}
+          pagination={
+            !userId
+              ? buildAntdTablePagination({
+                  query,
+                  totalCount,
+                  pageSizeOptions: PAGE_SIZE_OPTIONS,
+                  setPageNum,
+                  setPageSize,
+                })
+              : false
+          }
         />
-      ) : null}
+      </Card>
+
+      <Modal
+        title={modalMode === 'create' ? '新增精品课程' : '编辑精品课程'}
+        open={modalOpen}
+        onCancel={closeModal}
+        onOk={() => modalForm.submit()}
+        okText={modalMode === 'create' ? '创建' : '保存'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={860}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          保留旧版 `specialCourse` 的课程配置、上下架和已购课程查看能力。
+        </Typography.Paragraph>
+        <Form form={modalForm} layout="vertical" initialValues={EMPTY_FORM} onFinish={handleSubmit}>
+          <div className="form-grid">
+            <Form.Item label="课程 ID" name="textbookId" rules={[{ required: true, message: '请选择课程' }]}>
+              <Select
+                disabled={modalMode === 'edit'}
+                placeholder="请选择课程"
+                options={books.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label="课程名称" name="textbookName" rules={[{ required: true, message: '请输入课程名称' }]}>
+              <Input placeholder="请输入课程名称" />
+            </Form.Item>
+            <Form.Item label="辅导老师" name="teacher" rules={[{ required: true, message: '请输入辅导老师' }]}>
+              <Input placeholder="请输入辅导老师" />
+            </Form.Item>
+            <Form.Item label="课程状态" name="status" rules={[{ required: true, message: '请选择课程状态' }]}>
+              <Select
+                options={[
+                  { value: '1', label: '正常' },
+                  { value: '2', label: '下架' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item label="预售开始时间" name="saleBeginAt" rules={[{ required: true, message: '请选择预售开始时间' }]}>
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="预售结束时间" name="saleEndAt" rules={[{ required: true, message: '请选择预售结束时间' }]}>
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="开课方式" name="type" rules={[{ required: true, message: '请选择开课方式' }]}>
+              <Select
+                options={[
+                  { value: '1', label: '统一开课' },
+                  { value: '2', label: '购买生效' },
+                ]}
+              />
+            </Form.Item>
+            {Number(courseType) === 1 ? (
+              <>
+                <Form.Item label="开课时间" name="beginAt" rules={[{ required: true, message: '请选择开课时间' }]}>
+                  <DatePicker showTime style={{ width: '100%' }} />
+                </Form.Item>
+                <Form.Item label="结课时间" name="endAt" rules={[{ required: true, message: '请选择结课时间' }]}>
+                  <DatePicker showTime style={{ width: '100%' }} />
+                </Form.Item>
+              </>
+            ) : null}
+            <Form.Item label="原始金额" name="orgAmt" rules={[{ required: true, message: '请输入原始金额' }]}>
+              <Space.Compact block>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="单位元" />
+                <div className="compact-addon">元</div>
+              </Space.Compact>
+            </Form.Item>
+            <Form.Item label="实际金额" name="amt" rules={[{ required: true, message: '请输入实际金额' }]}>
+              <Space.Compact block>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="单位元" />
+                <div className="compact-addon">元</div>
+              </Space.Compact>
+            </Form.Item>
+            <Form.Item label="课程数量" name="num" rules={[{ required: true, message: '请输入课程数量' }]}>
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="请输入课程数量" />
+            </Form.Item>
+            <Form.Item label="微信号" name="chatNo">
+              <Input placeholder="可选" />
+            </Form.Item>
+
+            <Form.Item label="详情图片地址" name="iconDetail">
+              <Input placeholder="可直接粘贴图片 URL" />
+            </Form.Item>
+            <Form.Item label="优惠券图地址" name="iconTicket">
+              <Input placeholder="可直接粘贴图片 URL" />
+            </Form.Item>
+
+            <Form.Item label="上传详情图片" className="form-field--full">
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <Upload
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={(options) => handleUpload('iconDetail', options)}
+                  disabled={uploadState.iconDetail.uploading}
+                >
+                  <Button icon={<UploadOutlined />} loading={uploadState.iconDetail.uploading}>
+                    上传详情图片
+                  </Button>
+                </Upload>
+                <Typography.Text type="secondary">
+                  {uploadState.iconDetail.uploading
+                    ? '上传中...'
+                    : uploadState.iconDetail.message || '支持上传图片'}
+                </Typography.Text>
+                {detailValue ? (
+                  <Image width={96} height={96} style={{ borderRadius: 20, objectFit: 'cover' }} src={detailValue} alt="详情图片" />
+                ) : null}
+              </Space>
+            </Form.Item>
+
+            <Form.Item label="上传优惠券图" className="form-field--full">
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <Upload
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={(options) => handleUpload('iconTicket', options)}
+                  disabled={uploadState.iconTicket.uploading}
+                >
+                  <Button icon={<UploadOutlined />} loading={uploadState.iconTicket.uploading}>
+                    上传优惠券图
+                  </Button>
+                </Upload>
+                <Typography.Text type="secondary">
+                  {uploadState.iconTicket.uploading
+                    ? '上传中...'
+                    : uploadState.iconTicket.message || '支持上传图片'}
+                </Typography.Text>
+                {ticketValue ? (
+                  <Image width={96} height={96} style={{ borderRadius: 20, objectFit: 'cover' }} src={ticketValue} alt="优惠券图" />
+                ) : null}
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -2,10 +2,15 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "dev:api": "npm --prefix backend run start:dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:api": "npm --prefix backend run build",
+    "preview": "vite preview",
+    "start:api": "npm --prefix backend run start"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
+    "antd": "^6.3.5",
     "axios": "^1.7.9",
     "dayjs": "^1.11.18",
     "react": "^18.3.1",

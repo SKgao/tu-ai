@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import dayjs from 'dayjs';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { App, Button, Card, DatePicker, Form, Input, Select, Space, Table, Typography } from 'antd';
 import { listMemberInfos } from '@/app/services/member-info';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { PageTableCard } from '@/app/components/PageTableCard';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { toApiDateTime } from '@/app/lib/dateTime';
 import { createMemberInfoColumns } from './configs/tableColumns';
 import {
   selectMemberLevelOptions,
@@ -14,12 +13,12 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const INITIAL_FILTERS = {
-  registerStartTime: '',
-  registerEndTime: '',
-  payStartTime: '',
-  payEndTime: '',
-  expireStartTime: '',
-  expireEndTime: '',
+  registerStartTime: undefined,
+  registerEndTime: undefined,
+  payStartTime: undefined,
+  payEndTime: undefined,
+  expireStartTime: undefined,
+  expireEndTime: undefined,
   userLevelIds: [],
   tutuNumber: '',
   mobile: '',
@@ -39,14 +38,24 @@ const INITIAL_QUERY = {
   mobile: '',
 };
 
-function toApiDateTime(value) {
-  return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '';
+function normalizeSearchValues(values) {
+  return {
+    userLevelIds: (values.userLevelIds || []).map((item) => Number(item)),
+    expireStartTime: toApiDateTime(values.expireStartTime),
+    expireEndTime: toApiDateTime(values.expireEndTime),
+    payStartTime: toApiDateTime(values.payStartTime),
+    payEndTime: toApiDateTime(values.payEndTime),
+    registerStartTime: toApiDateTime(values.registerStartTime),
+    registerEndTime: toApiDateTime(values.registerEndTime),
+    tutuNumber: values.tutuNumber?.trim() || '',
+    mobile: values.mobile?.trim() || '',
+  };
 }
 
 export function MemberInfoManagementPage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const { message } = App.useApp();
+  const [form] = Form.useForm();
   const didInitLevelsRef = useRef(false);
-  const { feedback, showError } = useFeedbackState();
   const memberLevelOptions = useMemberCommerceOptionsStore(selectMemberLevelOptions);
   const ensureMemberLevelOptions = useMemberCommerceOptionsStore(
     (state) => state.ensureMemberLevelOptions,
@@ -56,7 +65,6 @@ export function MemberInfoManagementPage() {
     query,
     data: members,
     totalCount,
-    totalPages,
     loading,
     applyFilters,
     patchQuery,
@@ -68,16 +76,16 @@ export function MemberInfoManagementPage() {
     request: listMemberInfos,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
-    onError: (message) => showError(message || '会员信息列表加载失败'),
+    onError: (errorMessage) => message.error(errorMessage || '会员信息列表加载失败'),
   });
 
   const levelOptions = memberLevelOptions.filter((item) => item.levelName !== '普通用户');
 
   useEffect(() => {
     ensureMemberLevelOptions().catch((error) => {
-      showError(error?.message || '会员等级列表加载失败');
+      message.error(error?.message || '会员等级列表加载失败');
     });
-  }, []);
+  }, [ensureMemberLevelOptions, message]);
 
   useEffect(() => {
     if (didInitLevelsRef.current || !levelOptions.length) {
@@ -85,171 +93,122 @@ export function MemberInfoManagementPage() {
     }
 
     const selectedLevelIds = levelOptions.map((item) => String(item.userLevel));
-
-    setFilters((current) => ({
-      ...current,
+    form.setFieldsValue({
       userLevelIds: selectedLevelIds,
-    }));
+    });
     patchQuery({
       userLevelIds: levelOptions.map((item) => Number(item.userLevel)),
     });
     didInitLevelsRef.current = true;
-  }, [levelOptions, patchQuery]);
+  }, [form, levelOptions, patchQuery]);
 
-  function updateFilter(key, value) {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
+  function handleSearch(values) {
+    applyFilters(normalizeSearchValues(values));
   }
 
-  function handleSearch() {
+  function handleReset() {
+    const selectedLevelIds = levelOptions.map((item) => String(item.userLevel));
+    form.setFieldsValue({
+      ...INITIAL_FILTERS,
+      userLevelIds: selectedLevelIds,
+    });
     applyFilters({
-      userLevelIds: filters.userLevelIds.map((item) => Number(item)),
-      expireStartTime: toApiDateTime(filters.expireStartTime),
-      expireEndTime: toApiDateTime(filters.expireEndTime),
-      payStartTime: toApiDateTime(filters.payStartTime),
-      payEndTime: toApiDateTime(filters.payEndTime),
-      registerStartTime: toApiDateTime(filters.registerStartTime),
-      registerEndTime: toApiDateTime(filters.registerEndTime),
-      tutuNumber: filters.tutuNumber.trim(),
-      mobile: filters.mobile.trim(),
+      ...INITIAL_QUERY,
+      userLevelIds: selectedLevelIds.map((item) => Number(item)),
+      pageNum: 1,
+      pageSize: query.pageSize,
     });
   }
 
   return (
     <div className="page-stack">
-      <section className="page-stack__hero">
-        <div>
-          <span className="app-badge">Legacy Rewrite</span>
-          <h2 className="page-title">会员信息</h2>
-          <p className="page-copy">
-            这一页对应旧版 `memberInfo` 模块，聚焦会员用户列表和已买课程相关筛选。
-          </p>
-        </div>
-      </section>
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            会员信息
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            这一页对应旧版 `memberInfo` 模块，先按新版 antd 组件重构多时间筛选、多选等级和数据表格。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
-        <div className="toolbar-grid toolbar-grid--books">
-          <label className="form-field">
-            <span>注册开始时间</span>
-            <input
-              type="datetime-local"
-              value={filters.registerStartTime}
-              onChange={(event) => updateFilter('registerStartTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>注册结束时间</span>
-            <input
-              type="datetime-local"
-              value={filters.registerEndTime}
-              onChange={(event) => updateFilter('registerEndTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>会员开始时间</span>
-            <input
-              type="datetime-local"
-              value={filters.payStartTime}
-              onChange={(event) => updateFilter('payStartTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>会员结束时间</span>
-            <input
-              type="datetime-local"
-              value={filters.payEndTime}
-              onChange={(event) => updateFilter('payEndTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>到期开始时间</span>
-            <input
-              type="datetime-local"
-              value={filters.expireStartTime}
-              onChange={(event) => updateFilter('expireStartTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>到期结束时间</span>
-            <input
-              type="datetime-local"
-              value={filters.expireEndTime}
-              onChange={(event) => updateFilter('expireEndTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>会员等级</span>
-            <select
-              multiple
-              className="app-multiselect"
-              value={filters.userLevelIds}
-              onChange={(event) =>
-                updateFilter(
-                  'userLevelIds',
-                  Array.from(event.target.selectedOptions).map((option) => option.value),
-                )
-              }
-            >
-              {levelOptions.map((item) => (
-                <option key={item.userLevel} value={String(item.userLevel)}>
-                  {item.levelName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>图图号</span>
-            <input
-              value={filters.tutuNumber}
-              onChange={(event) => updateFilter('tutuNumber', event.target.value)}
-              placeholder="输入图图号"
-            />
-          </label>
-          <label className="form-field">
-            <span>手机号</span>
-            <input
-              value={filters.mobile}
-              onChange={(event) => updateFilter('mobile', event.target.value)}
-              placeholder="输入手机号"
-            />
-          </label>
-          <div className="toolbar-actions">
-            <button type="button" className="app-button app-button--primary" onClick={handleSearch}>
-              搜索
-            </button>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              onClick={() => reload().catch(() => {})}
-              disabled={loading}
-            >
-              {loading ? '刷新中...' : '刷新'}
-            </button>
+      <Card>
+        <Form form={form} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={handleSearch}>
+          <div className="toolbar-grid toolbar-grid--books">
+            <Form.Item label="注册开始时间" name="registerStartTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="注册结束时间" name="registerEndTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="会员开始时间" name="payStartTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="会员结束时间" name="payEndTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="到期开始时间" name="expireStartTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="到期结束时间" name="expireEndTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="会员等级" name="userLevelIds">
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="请选择会员等级"
+                maxTagCount="responsive"
+                options={levelOptions.map((item) => ({
+                  value: String(item.userLevel),
+                  label: item.levelName,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label="图图号" name="tutuNumber">
+              <Input allowClear placeholder="输入图图号" />
+            </Form.Item>
+            <Form.Item label="手机号" name="mobile">
+              <Input allowClear placeholder="输入手机号" />
+            </Form.Item>
+            <Form.Item label=" ">
+              <Space wrap>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  搜索
+                </Button>
+                <Button onClick={handleReset} disabled={loading}>
+                  重置
+                </Button>
+                <Button onClick={() => reload().catch(() => {})} loading={loading}>
+                  刷新
+                </Button>
+              </Space>
+            </Form.Item>
           </div>
-        </div>
-      </section>
+        </Form>
+      </Card>
 
-      <PageTableCard
+      <Card
         title="会员信息列表"
-        totalCount={totalCount}
-        columns={columns}
-        data={members}
-        rowKey={(row) => row.userId || row.tutuNumber}
-        loading={loading}
-        minWidth={1280}
-        pagination={{
-          pageNum: query.pageNum,
-          pageSize: query.pageSize,
-          totalPages,
-          pageSizeOptions: PAGE_SIZE_OPTIONS,
-          onPageChange: setPageNum,
-          onPageSizeChange: setPageSize,
-        }}
-      />
+        extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}
+      >
+        <Table
+          rowKey={(row) => row.userId || row.tutuNumber}
+          columns={columns}
+          dataSource={members}
+          loading={loading}
+          scroll={{ x: 1280 }}
+          pagination={buildAntdTablePagination({
+            query,
+            totalCount,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            setPageNum,
+            setPageSize,
+          })}
+        />
+      </Card>
     </div>
   );
 }

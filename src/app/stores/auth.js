@@ -37,6 +37,24 @@ function clearLegacyAuthStorage() {
   localStorage.removeItem(USER_KEY);
 }
 
+function writeLegacyAuthStorage(token, user = null) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(USER_KEY);
+  }
+}
+
 function readLegacyAuth() {
   return {
     token: readStorageValue(TOKEN_KEY),
@@ -49,9 +67,42 @@ const initialAuthState = {
   user: null,
 };
 
+function readPersistedAuth() {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.state || {};
+  } catch {
+    return {};
+  }
+}
+
+export function getStoredAuthToken() {
+  const storeToken = useAuthStore.getState().token;
+  if (storeToken) {
+    return storeToken;
+  }
+
+  const persistedToken = readPersistedAuth().token;
+  if (persistedToken) {
+    return persistedToken;
+  }
+
+  return readStorageValue(TOKEN_KEY);
+}
+
 export const selectAuthToken = (state) => state.token;
 export const selectAuthUser = (state) => state.user;
 export const selectIsAuthenticated = (state) => Boolean(state.token);
+export const selectAuthHydrated = (state) => state.hydrated;
 export const selectAuthLogin = (state) => state.login;
 export const selectAuthLogout = (state) => state.logout;
 
@@ -60,16 +111,24 @@ export const useAuthStore = create(
     (set) => ({
       ...initialAuthState,
       ...readLegacyAuth(),
+      hydrated: false,
+      markHydrated() {
+        set({ hydrated: true });
+      },
       login(token, user = null) {
-        clearLegacyAuthStorage();
+        writeLegacyAuthStorage(token, user);
         set({
           token,
           user,
+          hydrated: true,
         });
       },
       logout() {
         clearLegacyAuthStorage();
-        set(initialAuthState);
+        set({
+          ...initialAuthState,
+          hydrated: true,
+        });
       },
     }),
     {
@@ -79,6 +138,9 @@ export const useAuthStore = create(
         token: state.token,
         user: state.user,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.markHydrated?.();
+      },
       merge: (persistedState, currentState) => {
         const persisted = persistedState || {};
         const legacy = readLegacyAuth();

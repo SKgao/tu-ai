@@ -4,11 +4,7 @@ import qs from 'qs';
 import { message } from 'antd';
 
 const DEFAULT_TIMEOUT = 60000;
-// 正式接口
-// const BASIC_URL = '//new.api.admin.tutukids.com/'
-// 测试接口
-const BASIC_URL = '//test.api.admin.tutukids.com/'
-//const BASIC_URL = '//124.160.63.242:9003/'
+const BASIC_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/';
 
 axios.defaults.baseURL = BASIC_URL;
 //axios.defaults.withCredentials = true;
@@ -45,7 +41,7 @@ axios.interceptors.response.use(res => {
 // }
 
 // 是否为正式环境
-export const isPro = BASIC_URL === '//new.api.admin.tutukids.com/'
+export const isPro = false;
 
 /**
  * jsonp方法

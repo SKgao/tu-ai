@@ -1,13 +1,25 @@
-import React, { startTransition, useEffect, useState } from 'react';
-import { AppModal } from '@/app/components/AppModal';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { FileUploadField } from '@/app/components/FileUploadField';
-import { ModalActions } from '@/app/components/ModalActions';
-import { useConfirmAction } from '@/app/hooks/useConfirmAction';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
-import { useFileUpload } from '@/app/hooks/useFileUpload';
-import { useModalState } from '@/app/hooks/useModalState';
-import { useModalSubmit } from '@/app/hooks/useModalSubmit';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  App,
+  Button,
+  Card,
+  DatePicker,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  Upload,
+} from 'antd';
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { toApiDateTime } from '@/app/lib/dateTime';
+import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import {
   createUser,
   deleteUser,
@@ -19,11 +31,7 @@ import {
   uploadFile,
 } from '@/app/services/users';
 
-const EMPTY_FILTERS = {
-  account: '',
-  startTime: '',
-  endTime: '',
-};
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const EMPTY_CREATE_FORM = {
   account: '',
@@ -33,764 +41,621 @@ const EMPTY_CREATE_FORM = {
   phone: '',
   avatar: '',
   status: '1',
-  roleid: '',
+  roleid: undefined,
 };
 
 const EMPTY_EDIT_FORM = {
-  id: '',
+  id: undefined,
   phone: '',
   email: '',
   name: '',
-  sex: '',
-  roleid: '',
-  status: '',
+  sex: undefined,
+  roleid: undefined,
+  status: '1',
   avatar: '',
 };
 
 const EMPTY_PASSWORD_FORM = {
-  id: '',
+  id: undefined,
   password: '',
   confirmPassword: '',
 };
 
-const STATUS_META = {
-  1: { text: '正常', className: 'status-pill status-pill--success' },
-  2: { text: '冻结', className: 'status-pill status-pill--warning' },
-  3: { text: '已删除', className: 'status-pill status-pill--danger' },
-};
-
-const SEX_OPTIONS = [
-  { value: '1', label: '男' },
-  { value: '2', label: '女' },
-];
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-function toApiDateTime(value) {
-  return value ? `${value.replace('T', ' ')}:00` : '';
-}
-
 function getStatusMeta(status) {
-  return STATUS_META[status] || { text: '未知', className: 'status-pill' };
+  if (status === 1) {
+    return { text: '正常', color: 'success' };
+  }
+
+  if (status === 2) {
+    return { text: '冻结', color: 'warning' };
+  }
+
+  if (status === 3) {
+    return { text: '已删除', color: 'error' };
+  }
+
+  return { text: '未知', color: 'default' };
 }
 
 function normalizeRoleId(user) {
   const roleId = user.roleid ?? user.roleId ?? '';
-  return roleId === null || roleId === undefined ? '' : String(roleId);
+  return roleId === null || roleId === undefined || roleId === '' ? undefined : String(roleId);
 }
 
-function AvatarCell({ src, alt }) {
-  if (!src || src === 'string') {
-    return <span className="table-muted">无</span>;
+function normalizeEditFormValues(user) {
+  if (!user) {
+    return { ...EMPTY_EDIT_FORM };
   }
 
-  return (
-    <a href={src} target="_blank" rel="noreferrer" className="avatar-link">
-      <img src={src} alt={alt} className="avatar-thumb" />
-    </a>
-  );
-}
-
-function UserModal({
-  title,
-  mode,
-  form,
-  roles,
-  submitting,
-  uploadState,
-  onClose,
-  onSubmit,
-  onChange,
-  onUpload,
-}) {
-  return (
-    <AppModal
-      title={title}
-      description={mode === 'create' ? '创建后台用户并分配角色。' : '更新用户基础资料与状态。'}
-      size="lg"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-          {mode === 'create' ? (
-            <>
-              <label className="form-field">
-                <span>用户名</span>
-                <input
-                  value={form.account}
-                  onChange={(event) => onChange('account', event.target.value)}
-                  placeholder="请输入用户名"
-                />
-              </label>
-              <label className="form-field">
-                <span>状态</span>
-                <select value={form.status} onChange={(event) => onChange('status', event.target.value)}>
-                  <option value="1">启用</option>
-                  <option value="2">冻结</option>
-                  <option value="3">删除</option>
-                </select>
-              </label>
-              <label className="form-field">
-                <span>密码</span>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(event) => onChange('password', event.target.value)}
-                  placeholder="请输入密码"
-                />
-              </label>
-              <label className="form-field">
-                <span>确认密码</span>
-                <input
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(event) => onChange('confirmPassword', event.target.value)}
-                  placeholder="请再次输入密码"
-                />
-              </label>
-            </>
-          ) : null}
-
-          {mode === 'edit' ? (
-            <>
-              <label className="form-field">
-                <span>手机号</span>
-                <input
-                  value={form.phone}
-                  onChange={(event) => onChange('phone', event.target.value)}
-                  placeholder="请输入手机号"
-                />
-              </label>
-              <label className="form-field">
-                <span>邮箱</span>
-                <input
-                  value={form.email}
-                  onChange={(event) => onChange('email', event.target.value)}
-                  placeholder="请输入邮箱"
-                />
-              </label>
-              <label className="form-field">
-                <span>姓名</span>
-                <input
-                  value={form.name}
-                  onChange={(event) => onChange('name', event.target.value)}
-                  placeholder="请输入姓名"
-                />
-              </label>
-              <label className="form-field">
-                <span>性别</span>
-                <select value={form.sex} onChange={(event) => onChange('sex', event.target.value)}>
-                  <option value="">未知</option>
-                  {SEX_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="form-field">
-                <span>状态</span>
-                <select value={String(form.status || '')} onChange={(event) => onChange('status', event.target.value)}>
-                  <option value="1">正常</option>
-                  <option value="2">冻结</option>
-                  <option value="3">已删除</option>
-                </select>
-              </label>
-            </>
-          ) : null}
-
-          <label className="form-field">
-            <span>角色</span>
-            <select value={form.roleid} onChange={(event) => onChange('roleid', event.target.value)}>
-              <option value="">请选择角色</option>
-              {roles.map((role) => (
-                <option key={role.id} value={String(role.id)}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <FileUploadField
-            label="头像地址"
-            value={form.avatar}
-            onValueChange={(value) => onChange('avatar', value)}
-            onUpload={onUpload}
-            uploadState={uploadState}
-            accept="image/*"
-            placeholder="可直接粘贴图片 URL，或使用下方文件上传"
-            uploadHint="支持直接上传图片文件"
-            previewAlt="头像预览"
-            fullWidth
-          />
-
-          {mode === 'create' ? (
-            <>
-              <label className="form-field">
-                <span>邮箱</span>
-                <input
-                  value={form.email}
-                  onChange={(event) => onChange('email', event.target.value)}
-                  placeholder="请输入邮箱"
-                />
-              </label>
-              <label className="form-field">
-                <span>手机号</span>
-                <input
-                  value={form.phone}
-                  onChange={(event) => onChange('phone', event.target.value)}
-                  placeholder="请输入手机号"
-                />
-              </label>
-            </>
-          ) : null}
-        </div>
-
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
-}
-
-function PasswordModal({ form, submitting, onClose, onSubmit, onChange }) {
-  return (
-    <AppModal
-      title="修改密码"
-      description="为当前选中用户设置新的登录密码。"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <label className="form-field">
-          <span>新密码</span>
-          <input
-            type="password"
-            value={form.password}
-            onChange={(event) => onChange('password', event.target.value)}
-            placeholder="请输入新密码"
-          />
-        </label>
-        <label className="form-field">
-          <span>确认密码</span>
-          <input
-            type="password"
-            value={form.confirmPassword}
-            onChange={(event) => onChange('confirmPassword', event.target.value)}
-            placeholder="请再次输入新密码"
-          />
-        </label>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
+  return {
+    id: Number(user.id),
+    phone: user.phone || '',
+    email: user.email || '',
+    name: user.name || '',
+    sex: user.sex ? String(user.sex) : undefined,
+    roleid: normalizeRoleId(user),
+    status: user.status ? String(user.status) : '1',
+    avatar: user.avatar && user.avatar !== 'string' ? user.avatar : '',
+  };
 }
 
 export function UserManagementPage() {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [query, setQuery] = useState({
-    pageNum: 1,
-    pageSize: 10,
-    ...EMPTY_FILTERS,
-  });
-  const [users, setUsers] = useState([]);
+  const { message } = App.useApp();
+  const [searchForm] = Form.useForm();
+  const [userForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
   const [roles, setRoles] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(false);
-  const { feedback, showError, showSuccess } = useFeedbackState();
-  const { uploadState, upload, resetUploadState } = useFileUpload({
-    uploadRequest: uploadFile,
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userModalMode, setUserModalMode] = useState('create');
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [uploadState, setUploadState] = useState({
+    uploading: false,
+    message: '',
   });
-  const { submitting: modalSubmitting, submit: submitModal } = useModalSubmit({
-    showSuccess,
-    showError,
-  });
-  const { submitting: actionSubmitting, runAction } = useConfirmAction({
-    showSuccess,
-    showError,
-  });
+  const avatarValue = Form.useWatch('avatar', userForm);
   const {
-    isOpen: userModalOpen,
-    mode: userModalMode,
-    form: userForm,
-    updateForm: updateUserForm,
-    openCreate: openCreateModal,
-    openEdit: openEditModal,
-    close: closeUserModal,
-  } = useModalState({
-    createState: () => ({ ...EMPTY_CREATE_FORM }),
-    editState: (user) => ({
-      ...EMPTY_EDIT_FORM,
-      id: String(user.id),
-      phone: user.phone || '',
-      email: user.email || '',
-      name: user.name || '',
-      sex: user.sex ? String(user.sex) : '',
-      roleid: normalizeRoleId(user),
-      status: user.status ? String(user.status) : '1',
-      avatar: user.avatar && user.avatar !== 'string' ? user.avatar : '',
-    }),
-    onOpenCreate: async () => {
-      resetUploadState();
-      await loadRoles();
+    query,
+    data: users,
+    totalCount,
+    loading,
+    applyFilters,
+    setPageNum,
+    setPageSize,
+    reload,
+  } = useRemoteTable({
+    initialQuery: {
+      pageNum: 1,
+      pageSize: 10,
+      account: '',
+      startTime: '',
+      endTime: '',
     },
-    onOpenEdit: async () => {
-      resetUploadState();
-      await loadRoles();
-    },
+    request: listUsers,
+    getItems: (result) => result?.data,
+    getTotalCount: (result) => result?.totalCount || 0,
+    onError: (errorMessage) => message.error(errorMessage || '用户列表加载失败'),
   });
-  const {
-    isOpen: passwordModalOpen,
-    form: passwordForm,
-    updateForm: updatePasswordForm,
-    openEdit: openPasswordModal,
-    close: closePasswordModal,
-  } = useModalState({
-    createState: () => ({ ...EMPTY_PASSWORD_FORM }),
-    editState: (user) => ({
-      id: String(user.id),
-      password: '',
-      confirmPassword: '',
-    }),
-  });
-
-  async function loadUsers(nextQuery = query) {
-    setLoading(true);
-    try {
-      const data = await listUsers(nextQuery);
-      setUsers(Array.isArray(data?.data) ? data.data : []);
-      setTotalCount(data?.totalCount || 0);
-    } catch (error) {
-      showError(error?.message || '用户列表加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadRoles() {
-    if (roles.length || rolesLoading) {
-      return;
-    }
-
-    setRolesLoading(true);
-    try {
-      const data = await listRoles();
-      setRoles(Array.isArray(data) ? data : []);
-    } catch (error) {
-      showError(error?.message || '角色列表加载失败');
-    } finally {
-      setRolesLoading(false);
-    }
-  }
 
   useEffect(() => {
-    loadRoles();
+    async function loadRoleList() {
+      setRolesLoading(true);
+      try {
+        const data = await listRoles();
+        setRoles(Array.isArray(data) ? data : []);
+      } catch (error) {
+        message.error(error?.message || '角色列表加载失败');
+      } finally {
+        setRolesLoading(false);
+      }
+    }
+
+    loadRoleList();
   }, []);
 
-  useEffect(() => {
-    loadUsers(query);
-  }, [query.account, query.endTime, query.pageNum, query.pageSize, query.startTime]);
-
-  function updateFilters(key, value) {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  }
-
-  function handleSearch(event) {
-    event.preventDefault();
-    startTransition(() => {
-      setQuery({
-        pageNum: 1,
-        pageSize: query.pageSize,
-        account: filters.account.trim(),
-        startTime: toApiDateTime(filters.startTime),
-        endTime: toApiDateTime(filters.endTime),
-      });
+  function resetUploadState() {
+    setUploadState({
+      uploading: false,
+      message: '',
     });
   }
 
-  async function handleAvatarUpload(file) {
+  function openCreateModal() {
+    setUserModalMode('create');
+    resetUploadState();
+    userForm.setFieldsValue({ ...EMPTY_CREATE_FORM });
+    setUserModalOpen(true);
+  }
+
+  function openEditModal(user) {
+    setUserModalMode('edit');
+    resetUploadState();
+    userForm.setFieldsValue(normalizeEditFormValues(user));
+    setUserModalOpen(true);
+  }
+
+  function closeUserModal() {
+    if (submitting) {
+      return;
+    }
+
+    setUserModalOpen(false);
+  }
+
+  function openPasswordModal(user) {
+    passwordForm.setFieldsValue({
+      ...EMPTY_PASSWORD_FORM,
+      id: Number(user.id),
+    });
+    setPasswordModalOpen(true);
+  }
+
+  function closePasswordModal() {
+    if (submitting) {
+      return;
+    }
+
+    setPasswordModalOpen(false);
+  }
+
+  function handleSearch(values) {
+    applyFilters({
+      account: values.account?.trim() || '',
+      startTime: toApiDateTime(values.startTime),
+      endTime: toApiDateTime(values.endTime),
+    });
+  }
+
+  function handleReset() {
+    searchForm.resetFields();
+    applyFilters({
+      account: '',
+      startTime: '',
+      endTime: '',
+      pageNum: 1,
+      pageSize: query.pageSize,
+    });
+  }
+
+  async function handleAvatarUpload({ file, onError, onSuccess }) {
+    setUploadState({
+      uploading: true,
+      message: `${file.name} 上传中...`,
+    });
+
     try {
-      await upload(file, {
-        successMessage: '上传成功，已自动写入头像地址',
-        errorMessage: '上传失败',
-        onSuccess: (url) => {
-          updateUserForm('avatar', url);
-        },
+      const url = await uploadFile(file);
+      userForm.setFieldValue('avatar', url);
+      setUploadState({
+        uploading: false,
+        message: '上传成功，已自动写入头像地址',
       });
-    } catch {}
+      onSuccess?.({ url });
+    } catch (error) {
+      const errorMessage = error?.message || '上传失败';
+      setUploadState({
+        uploading: false,
+        message: errorMessage,
+      });
+      message.error(errorMessage);
+      onError?.(error);
+    }
   }
 
-  async function handleUserSubmit(event) {
-    event.preventDefault();
-
+  async function handleUserSubmit(values) {
     if (userModalMode === 'create') {
-      if (!userForm.account || !userForm.password || !userForm.confirmPassword) {
-        showError('请填写用户名和密码');
+      if (!values.account?.trim() || !values.password || !values.confirmPassword) {
+        message.error('请填写用户名和密码');
         return;
       }
 
-      if (userForm.password !== userForm.confirmPassword) {
-        showError('两次输入密码不一致');
+      if (values.password !== values.confirmPassword) {
+        message.error('两次输入密码不一致');
         return;
       }
     }
 
-    if (userForm.phone && !/^1[0-9]{10}$/.test(userForm.phone)) {
-      showError('手机号格式不正确');
+    if (values.phone && !/^1[0-9]{10}$/.test(values.phone)) {
+      message.error('手机号格式不正确');
       return;
     }
 
-    await submitModal({
-      action: async () => {
-        if (userModalMode === 'create') {
-          await createUser({
-            account: userForm.account.trim(),
-            password: userForm.password,
-            email: userForm.email.trim(),
-            phone: userForm.phone.trim(),
-            avatar: userForm.avatar.trim(),
-            status: userForm.status,
-            roleid: userForm.roleid ? Number(userForm.roleid) : undefined,
-          });
-          return;
-        }
-
-        await updateUser({
-          id: Number(userForm.id),
-          phone: userForm.phone.trim(),
-          email: userForm.email.trim(),
-          name: userForm.name.trim(),
-          sex: userForm.sex ? Number(userForm.sex) : undefined,
-          roleid: userForm.roleid ? Number(userForm.roleid) : undefined,
-          status: userForm.status ? Number(userForm.status) : undefined,
-          avatar: userForm.avatar.trim(),
+    setSubmitting(true);
+    try {
+      if (userModalMode === 'create') {
+        await createUser({
+          account: values.account.trim(),
+          password: values.password,
+          email: values.email?.trim() || '',
+          phone: values.phone?.trim() || '',
+          avatar: values.avatar?.trim() || '',
+          status: values.status,
+          roleid: values.roleid ? Number(values.roleid) : undefined,
         });
-      },
-      successMessage: userModalMode === 'create' ? '用户创建成功' : '用户信息已更新',
-      errorMessage: userModalMode === 'create' ? '用户创建失败' : '用户更新失败',
-      close: closeUserModal,
-      afterSuccess: async () => {
-        if (userModalMode === 'create') {
-          startTransition(() => {
-            setQuery((current) => ({
-              ...current,
-              pageNum: 1,
-            }));
-          });
-          await loadUsers({
-            ...query,
-            pageNum: 1,
-          });
-          return;
-        }
+      } else {
+        await updateUser({
+          id: Number(values.id),
+          phone: values.phone?.trim() || '',
+          email: values.email?.trim() || '',
+          name: values.name?.trim() || '',
+          sex: values.sex ? Number(values.sex) : undefined,
+          roleid: values.roleid ? Number(values.roleid) : undefined,
+          status: values.status ? Number(values.status) : undefined,
+          avatar: values.avatar?.trim() || '',
+        });
+      }
 
-        await loadUsers();
-      },
-    });
+      message.success(userModalMode === 'create' ? '用户创建成功' : '用户信息已更新');
+      setUserModalOpen(false);
+      if (userModalMode === 'create') {
+        applyFilters((current) => ({
+          ...current,
+          pageNum: 1,
+        }));
+      } else {
+        await reload().catch(() => {});
+      }
+    } catch (error) {
+      message.error(error?.message || (userModalMode === 'create' ? '用户创建失败' : '用户更新失败'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  async function handlePasswordSubmit(event) {
-    event.preventDefault();
-
-    if (!passwordForm.password || !passwordForm.confirmPassword) {
-      showError('请填写完整的新密码');
+  async function handlePasswordSubmit(values) {
+    if (!values.password || !values.confirmPassword) {
+      message.error('请填写完整的新密码');
       return;
     }
 
-    if (passwordForm.password !== passwordForm.confirmPassword) {
-      showError('两次输入密码不一致');
+    if (values.password !== values.confirmPassword) {
+      message.error('两次输入密码不一致');
       return;
     }
 
-    await submitModal({
-      action: () =>
-        updateUser({
-          id: Number(passwordForm.id),
-          password: passwordForm.password,
-        }),
-      successMessage: '密码修改成功',
-      errorMessage: '密码修改失败',
-      close: closePasswordModal,
-    });
+    setSubmitting(true);
+    try {
+      await updateUser({
+        id: Number(values.id),
+        password: values.password,
+      });
+      message.success('密码修改成功');
+      setPasswordModalOpen(false);
+    } catch (error) {
+      message.error(error?.message || '密码修改失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleStatusChange(user) {
-    await runAction({
-      action: () => (user.status === 1 ? forbidUser(user.id) : enableUser(user.id)),
-      successMessage: user.status === 1 ? '用户已禁用' : user.status === 2 ? '用户已启用' : '用户已恢复',
-      errorMessage: '状态更新失败',
-      afterSuccess: () => loadUsers(),
-    });
+    setActionSubmitting(true);
+    try {
+      if (user.status === 1) {
+        await forbidUser(user.id);
+      } else {
+        await enableUser(user.id);
+      }
+
+      message.success(user.status === 1 ? '用户已禁用' : user.status === 2 ? '用户已启用' : '用户已恢复');
+      await reload().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '状态更新失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
   async function handleDelete(user) {
-    await runAction({
-      confirmText: `确认删除用户 ${user.account || user.id} 吗？`,
-      action: () => deleteUser(user.id),
-      successMessage: '用户已删除',
-      errorMessage: '删除失败',
-      afterSuccess: async () => {
-        const nextPage = users.length === 1 && query.pageNum > 1 ? query.pageNum - 1 : query.pageNum;
-        startTransition(() => {
-          setQuery((current) => ({
-            ...current,
-            pageNum: nextPage,
-          }));
-        });
-        if (nextPage === query.pageNum) {
-          await loadUsers();
-        }
-      },
-    });
+    setActionSubmitting(true);
+    try {
+      await deleteUser(user.id);
+      message.success('用户已删除');
+      if (users.length === 1 && query.pageNum > 1) {
+        setPageNum(query.pageNum - 1);
+      } else {
+        await reload().catch(() => {});
+      }
+    } catch (error) {
+      message.error(error?.message || '删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / query.pageSize));
-  const submitting = modalSubmitting || actionSubmitting;
+  const columns = useMemo(
+    () => [
+      { title: '用户名', dataIndex: 'account', render: (value) => value || '-' },
+      {
+        title: '头像',
+        dataIndex: 'avatar',
+        render: (value, record) =>
+          value && value !== 'string' ? (
+            <Image
+              width={52}
+              height={52}
+              style={{ borderRadius: 16, objectFit: 'cover' }}
+              src={value}
+              alt={record.account || 'avatar'}
+            />
+          ) : (
+            <Typography.Text type="secondary">无</Typography.Text>
+          ),
+      },
+      { title: '手机号', dataIndex: 'phone', render: (value) => value || '无' },
+      { title: '邮箱', dataIndex: 'email', render: (value) => value || '无' },
+      { title: '姓名', dataIndex: 'name', render: (value) => value || '无' },
+      { title: '性别', dataIndex: 'sex', render: (value) => (value === 1 ? '男' : value === 2 ? '女' : '未知') },
+      { title: '角色', dataIndex: 'roleName', render: (_, user) => user.roleName || user.roleid || user.roleId || '-' },
+      { title: '创建时间', dataIndex: 'createtime', render: (value) => value || '-' },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value) => {
+          const status = getStatusMeta(value);
+          return <Tag color={status.color}>{status.text}</Tag>;
+        },
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_, user) => (
+          <Space size="small" wrap>
+            <Button type="link" onClick={() => openEditModal(user)} style={{ paddingInline: 0 }}>
+              编辑
+            </Button>
+            <Button
+              type="link"
+              onClick={() => handleStatusChange(user)}
+              disabled={submitting || actionSubmitting}
+              style={{ paddingInline: 0 }}
+            >
+              {user.status === 1 ? '禁用' : user.status === 2 ? '启用' : '恢复'}
+            </Button>
+            <Button type="link" onClick={() => openPasswordModal(user)} style={{ paddingInline: 0 }}>
+              改密
+            </Button>
+            <Popconfirm
+              title={`确认删除用户 ${user.account || user.id} 吗？`}
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => handleDelete(user)}
+              disabled={submitting || actionSubmitting}
+            >
+              <Button type="link" danger disabled={submitting || actionSubmitting} style={{ paddingInline: 0 }}>
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [actionSubmitting, submitting],
+  );
 
   return (
     <div className="page-stack">
-      <section className="page-stack__hero">
-        <div>
-          <span className="app-badge">Legacy Rewrite</span>
-          <h2 className="page-title">用户管理</h2>
-          <p className="page-copy">
-            这一页对应旧版的用户管理模块，现已迁到 React Router + hooks + 轻量 API 层。
-          </p>
-        </div>
-      </section>
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            用户管理
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            这一页对应旧版用户管理模块，保留查询、分页、创建、编辑、改密、状态切换和头像上传能力。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
-        <form className="toolbar-grid" onSubmit={handleSearch}>
-          <label className="form-field">
-            <span>用户名</span>
-            <input
-              value={filters.account}
-              onChange={(event) => updateFilters('account', event.target.value)}
-              placeholder="输入用户名"
-            />
-          </label>
-          <label className="form-field">
-            <span>开始时间</span>
-            <input
-              type="datetime-local"
-              value={filters.startTime}
-              onChange={(event) => updateFilters('startTime', event.target.value)}
-            />
-          </label>
-          <label className="form-field">
-            <span>结束时间</span>
-            <input
-              type="datetime-local"
-              value={filters.endTime}
-              onChange={(event) => updateFilters('endTime', event.target.value)}
-            />
-          </label>
-          <div className="toolbar-actions">
-            <button type="submit" className="app-button app-button--primary">
-              搜索
-            </button>
-            <button type="button" className="app-button app-button--ghost" onClick={openCreateModal}>
-              添加用户
-            </button>
+      <Card>
+        <Form form={searchForm} layout="vertical" initialValues={{ account: '', startTime: undefined, endTime: undefined }} onFinish={handleSearch}>
+          <div className="toolbar-grid">
+            <Form.Item label="用户名" name="account">
+              <Input placeholder="输入用户名" />
+            </Form.Item>
+            <Form.Item label="开始时间" name="startTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label="结束时间" name="endTime">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+            <Form.Item label=" ">
+              <Space wrap>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  搜索
+                </Button>
+                <Button onClick={handleReset} disabled={loading}>
+                  重置
+                </Button>
+                <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
+                  添加用户
+                </Button>
+              </Space>
+            </Form.Item>
           </div>
-        </form>
-      </section>
+        </Form>
+      </Card>
 
-      <section className="surface-card surface-card--table">
-        <div className="section-header">
-          <div>
-            <h3 className="section-title">用户列表</h3>
-            <p className="section-meta">
-              共 {totalCount} 条记录，角色缓存 {rolesLoading ? '加载中' : `${roles.length} 个`}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="app-button app-button--ghost"
-            onClick={() => loadUsers()}
-            disabled={loading}
-          >
-            {loading ? '刷新中...' : '刷新'}
-          </button>
-        </div>
-
-        <div className="table-shell">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>用户名</th>
-                <th>头像</th>
-                <th>手机号</th>
-                <th>邮箱</th>
-                <th>姓名</th>
-                <th>性别</th>
-                <th>角色</th>
-                <th>创建时间</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="10" className="table-empty">
-                    数据加载中...
-                  </td>
-                </tr>
-              ) : null}
-
-              {!loading && !users.length ? (
-                <tr>
-                  <td colSpan="10" className="table-empty">
-                    暂无数据
-                  </td>
-                </tr>
-              ) : null}
-
-              {!loading
-                ? users.map((user) => {
-                    const status = getStatusMeta(user.status);
-                    return (
-                      <tr key={user.id}>
-                        <td>{user.account || '-'}</td>
-                        <td>
-                          <AvatarCell src={user.avatar} alt={user.account || 'avatar'} />
-                        </td>
-                        <td>{user.phone || <span className="table-muted">无</span>}</td>
-                        <td>{user.email || <span className="table-muted">无</span>}</td>
-                        <td>{user.name || <span className="table-muted">无</span>}</td>
-                        <td>{user.sex === 1 ? '男' : user.sex === 2 ? '女' : '未知'}</td>
-                        <td>{user.roleName || user.roleid || user.roleId || '-'}</td>
-                        <td>{user.createtime || '-'}</td>
-                        <td>
-                          <span className={status.className}>{status.text}</span>
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button type="button" className="text-button" onClick={() => openEditModal(user)}>
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button"
-                              onClick={() => handleStatusChange(user)}
-                              disabled={submitting}
-                            >
-                              {user.status === 1 ? '禁用' : user.status === 2 ? '启用' : '恢复'}
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button"
-                              onClick={() => openPasswordModal(user)}
-                            >
-                              改密
-                            </button>
-                            <button
-                              type="button"
-                              className="text-button text-button--danger"
-                              onClick={() => handleDelete(user)}
-                              disabled={submitting}
-                            >
-                              删除
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                : null}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pagination-bar">
-          <div className="section-meta">
-            第 {query.pageNum} / {totalPages} 页
-          </div>
-          <div className="pagination-controls">
-            <select
-              value={query.pageSize}
-              onChange={(event) => {
-                const pageSize = Number(event.target.value);
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: 1,
-                    pageSize,
-                  }));
-                });
-              }}
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  每页 {size} 条
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              disabled={query.pageNum <= 1 || loading}
-              onClick={() => {
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: current.pageNum - 1,
-                  }));
-                });
-              }}
-            >
-              上一页
-            </button>
-            <button
-              type="button"
-              className="app-button app-button--ghost"
-              disabled={query.pageNum >= totalPages || loading}
-              onClick={() => {
-                startTransition(() => {
-                  setQuery((current) => ({
-                    ...current,
-                    pageNum: current.pageNum + 1,
-                  }));
-                });
-              }}
-            >
-              下一页
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {userModalOpen ? (
-        <UserModal
-          title={userModalMode === 'create' ? '新增用户' : '编辑用户'}
-          mode={userModalMode}
-          form={userForm}
-          roles={roles}
-          submitting={modalSubmitting}
-          uploadState={uploadState}
-          onClose={closeUserModal}
-          onSubmit={handleUserSubmit}
-          onChange={updateUserForm}
-          onUpload={handleAvatarUpload}
+      <Card
+        title="用户列表"
+        extra={<Typography.Text type="secondary">共 {totalCount} 条记录，角色缓存 {rolesLoading ? '加载中' : `${roles.length} 个`}</Typography.Text>}
+      >
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={users}
+          loading={loading}
+          scroll={{ x: 1340 }}
+          pagination={buildAntdTablePagination({
+            query,
+            totalCount,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            setPageNum,
+            setPageSize,
+          })}
         />
-      ) : null}
+      </Card>
 
-      {passwordModalOpen ? (
-        <PasswordModal
-          form={passwordForm}
-          submitting={modalSubmitting}
-          onClose={closePasswordModal}
-          onSubmit={handlePasswordSubmit}
-          onChange={updatePasswordForm}
-        />
-      ) : null}
+      <Modal
+        title={userModalMode === 'create' ? '新增用户' : '编辑用户'}
+        open={userModalOpen}
+        onCancel={closeUserModal}
+        onOk={() => userForm.submit()}
+        okText={userModalMode === 'create' ? '创建' : '保存'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={800}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          {userModalMode === 'create' ? '创建后台用户并分配角色。' : '更新用户基础资料与状态。'}
+        </Typography.Paragraph>
+        <Form form={userForm} layout="vertical" initialValues={EMPTY_CREATE_FORM} onFinish={handleUserSubmit}>
+          <div className="form-grid">
+            {userModalMode === 'create' ? (
+              <>
+                <Form.Item label="用户名" name="account" rules={[{ required: true, message: '请输入用户名' }]}>
+                  <Input placeholder="请输入用户名" />
+                </Form.Item>
+                <Form.Item label="状态" name="status">
+                  <Select
+                    options={[
+                      { value: '1', label: '启用' },
+                      { value: '2', label: '冻结' },
+                      { value: '3', label: '删除' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
+                  <Input.Password placeholder="请输入密码" />
+                </Form.Item>
+                <Form.Item label="确认密码" name="confirmPassword" rules={[{ required: true, message: '请再次输入密码' }]}>
+                  <Input.Password placeholder="请再次输入密码" />
+                </Form.Item>
+              </>
+            ) : (
+              <>
+                <Form.Item label="用户 ID" name="id">
+                  <Input disabled />
+                </Form.Item>
+                <Form.Item label="手机号" name="phone">
+                  <Input placeholder="请输入手机号" />
+                </Form.Item>
+                <Form.Item label="邮箱" name="email">
+                  <Input placeholder="请输入邮箱" />
+                </Form.Item>
+                <Form.Item label="姓名" name="name">
+                  <Input placeholder="请输入姓名" />
+                </Form.Item>
+                <Form.Item label="性别" name="sex">
+                  <Select
+                    allowClear
+                    placeholder="未知"
+                    options={[
+                      { value: '1', label: '男' },
+                      { value: '2', label: '女' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="状态" name="status">
+                  <Select
+                    options={[
+                      { value: '1', label: '正常' },
+                      { value: '2', label: '冻结' },
+                      { value: '3', label: '已删除' },
+                    ]}
+                  />
+                </Form.Item>
+              </>
+            )}
+
+            <Form.Item label="角色" name="roleid">
+              <Select
+                allowClear
+                placeholder="请选择角色"
+                loading={rolesLoading}
+                options={roles.map((role) => ({
+                  value: String(role.id),
+                  label: role.name,
+                }))}
+              />
+            </Form.Item>
+
+            <Form.Item label="头像地址" name="avatar" className="form-field--full">
+              <Input placeholder="可直接粘贴图片 URL" />
+            </Form.Item>
+
+            <Form.Item label="上传头像" className="form-field--full">
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <Upload
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={handleAvatarUpload}
+                  disabled={uploadState.uploading}
+                >
+                  <Button icon={<UploadOutlined />} loading={uploadState.uploading}>
+                    上传头像
+                  </Button>
+                </Upload>
+                <Typography.Text type="secondary">
+                  {uploadState.uploading ? '上传中...' : uploadState.message || '支持直接上传图片文件'}
+                </Typography.Text>
+                {avatarValue ? (
+                  <Image
+                    width={96}
+                    height={96}
+                    style={{ borderRadius: 20, objectFit: 'cover' }}
+                    src={avatarValue}
+                    alt="头像预览"
+                  />
+                ) : null}
+              </Space>
+            </Form.Item>
+
+            {userModalMode === 'create' ? (
+              <>
+                <Form.Item label="邮箱" name="email">
+                  <Input placeholder="请输入邮箱" />
+                </Form.Item>
+                <Form.Item label="手机号" name="phone">
+                  <Input placeholder="请输入手机号" />
+                </Form.Item>
+              </>
+            ) : null}
+          </div>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="修改密码"
+        open={passwordModalOpen}
+        onCancel={closePasswordModal}
+        onOk={() => passwordForm.submit()}
+        okText="保存"
+        cancelText="取消"
+        confirmLoading={submitting}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          为当前选中用户设置新的登录密码。
+        </Typography.Paragraph>
+        <Form form={passwordForm} layout="vertical" onFinish={handlePasswordSubmit}>
+          <Form.Item label="用户 ID" name="id">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item label="新密码" name="password" rules={[{ required: true, message: '请输入新密码' }]}>
+            <Input.Password placeholder="请输入新密码" />
+          </Form.Item>
+          <Form.Item label="确认密码" name="confirmPassword" rules={[{ required: true, message: '请再次输入新密码' }]}>
+            <Input.Password placeholder="请再次输入新密码" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

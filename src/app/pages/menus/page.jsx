@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
-import { AppModal } from '@/app/components/AppModal';
+import React, { useMemo, useState } from 'react';
+import {
+  App,
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Typography,
+} from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { createMenu, listMenus, removeMenu, updateMenu } from '@/app/services/menus';
-import { FeedbackBanner } from '@/app/components/FeedbackBanner';
-import { ModalActions } from '@/app/components/ModalActions';
-import { PageHero } from '@/app/components/PageHero';
-import { PageTableCard } from '@/app/components/PageTableCard';
-import { useConfirmAction } from '@/app/hooks/useConfirmAction';
-import { useFeedbackState } from '@/app/hooks/useFeedbackState';
-import { useModalState } from '@/app/hooks/useModalState';
-import { useModalSubmit } from '@/app/hooks/useModalSubmit';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { createMenuColumns } from './configs/tableColumns';
 
 const EMPTY_FORM = {
-  id: '',
+  id: undefined,
   menuName: '',
-  parentId: '0',
-  sortValue: '0',
+  parentId: 0,
+  sortValue: 0,
   path: '',
   icon: '',
   menuScope: '1',
@@ -29,7 +35,7 @@ const INITIAL_FILTERS = {
 };
 
 const INITIAL_QUERY = {
-  ...INITIAL_FILTERS,
+  menuName: '',
   pageNum: 1,
   pageSize: 10,
 };
@@ -48,140 +54,36 @@ const STATUS_OPTIONS = [
   { value: '3', label: '删除' },
 ];
 
-function MenuModal({ mode, form, submitting, onClose, onChange, onSubmit }) {
-  return (
-    <AppModal
-      title={mode === 'create' ? '新增菜单' : '编辑菜单'}
-      description={
-        mode === 'create' ? '新增权限菜单或按钮/接口定义。' : '统一修改菜单字段，替代旧页的单字段弹出编辑。'
-      }
-      size="lg"
-      onClose={onClose}
-      closeDisabled={submitting}
-    >
-      <form className="modal-form" onSubmit={onSubmit}>
-        <div className="form-grid">
-          <label className="form-field">
-            <span>菜单名称</span>
-            <input
-              value={form.menuName}
-              onChange={(event) => onChange('menuName', event.target.value)}
-              placeholder="请输入菜单名称"
-            />
-          </label>
-          <label className="form-field">
-            <span>父级 ID</span>
-            <input
-              value={form.parentId}
-              onChange={(event) => onChange('parentId', event.target.value)}
-              placeholder="一级菜单传 0"
-            />
-          </label>
-          <label className="form-field">
-            <span>排序字段</span>
-            <input
-              value={form.sortValue}
-              onChange={(event) => onChange('sortValue', event.target.value)}
-              placeholder="请输入排序数字"
-            />
-          </label>
-          <label className="form-field">
-            <span>作用</span>
-            <select
-              value={form.menuScope}
-              onChange={(event) => onChange('menuScope', event.target.value)}
-            >
-              {MENU_SCOPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>路径</span>
-            <input
-              value={form.path}
-              onChange={(event) => onChange('path', event.target.value)}
-              placeholder="请输入路径"
-            />
-          </label>
-          <label className="form-field">
-            <span>图标</span>
-            <input
-              value={form.icon}
-              onChange={(event) => onChange('icon', event.target.value)}
-              placeholder="请输入 icon 类名"
-            />
-          </label>
-          <label className="form-field form-field--full">
-            <span>接口地址</span>
-            <input
-              value={form.url}
-              onChange={(event) => onChange('url', event.target.value)}
-              placeholder="请输入接口地址"
-            />
-          </label>
-          {mode === 'edit' ? (
-            <label className="form-field">
-              <span>状态</span>
-              <select
-                value={form.status}
-                onChange={(event) => onChange('status', event.target.value)}
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </div>
-        <ModalActions onCancel={onClose} submitting={submitting} />
-      </form>
-    </AppModal>
-  );
+function normalizeMenuFormValues(menu) {
+  if (!menu) {
+    return { ...EMPTY_FORM };
+  }
+
+  return {
+    id: Number(menu.id),
+    menuName: menu.menuName || '',
+    parentId: Number(menu.parentId ?? 0),
+    sortValue: Number(menu.sortValue ?? 0),
+    path: menu.path || '',
+    icon: menu.icon || '',
+    menuScope: String(menu.menuScope ?? 1),
+    url: menu.url || '',
+    status: String(menu.status ?? 1),
+  };
 }
 
 export function MenuManagementPage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const { feedback, showError, showSuccess } = useFeedbackState();
-  const { submitting: modalSubmitting, submit: submitModal } = useModalSubmit({
-    showSuccess,
-    showError,
-  });
-  const { submitting: actionSubmitting, runAction } = useConfirmAction({
-    showSuccess,
-    showError,
-  });
-  const {
-    mode: modalMode,
-    isOpen: modalOpen,
-    form,
-    updateForm,
-    openCreate: openCreateModal,
-    openEdit: openEditModal,
-    close: closeModal,
-  } = useModalState({
-    createState: () => ({ ...EMPTY_FORM }),
-    editState: (menu) => ({
-      id: String(menu.id),
-      menuName: menu.menuName || '',
-      parentId: String(menu.parentId ?? 0),
-      sortValue: String(menu.sortValue ?? 0),
-      path: menu.path || '',
-      icon: menu.icon || '',
-      menuScope: String(menu.menuScope ?? 1),
-      url: menu.url || '',
-      status: String(menu.status ?? 1),
-    }),
-  });
+  const { message } = App.useApp();
+  const [searchForm] = Form.useForm();
+  const [modalForm] = Form.useForm();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [submitting, setSubmitting] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
   const {
     query,
     data: menus,
     totalCount,
-    totalPages,
     loading,
     applyFilters,
     setPageNum,
@@ -192,167 +94,227 @@ export function MenuManagementPage() {
     request: listMenus,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
-    onError: (message) => showError(message || '菜单列表加载失败'),
+    onError: (errorMessage) => message.error(errorMessage || '菜单列表加载失败'),
   });
 
-  const columns = createMenuColumns({
-    onEdit: openEditModal,
-    onDelete: handleDelete,
-    submitting: modalSubmitting || actionSubmitting,
-  });
-
-  function updateFilter(key, value) {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
+  function openCreateModal() {
+    setModalMode('create');
+    modalForm.setFieldsValue(EMPTY_FORM);
+    setModalOpen(true);
   }
 
-  function handleSearch(event) {
-    event.preventDefault();
+  function openEditModal(menu) {
+    setModalMode('edit');
+    modalForm.setFieldsValue(normalizeMenuFormValues(menu));
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    if (submitting) {
+      return;
+    }
+
+    setModalOpen(false);
+  }
+
+  function handleSearch(values) {
     applyFilters({
-      menuName: filters.menuName.trim(),
+      menuName: values.menuName?.trim() || '',
     });
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  function handleReset() {
+    searchForm.resetFields();
+    applyFilters({
+      ...INITIAL_QUERY,
+      pageNum: 1,
+      pageSize: query.pageSize,
+    });
+  }
 
-    if (!form.menuName.trim()) {
-      showError('请输入菜单名称');
-      return;
-    }
-
-    if (!/^\d+$/.test(form.parentId) || !/^\d+$/.test(form.sortValue)) {
-      showError('父级 ID 和排序字段必须为数字');
-      return;
-    }
-
-    if (!form.path.trim()) {
-      showError('请输入路径');
-      return;
-    }
-
-    if (!form.icon.trim()) {
-      showError('请输入图标标识');
-      return;
-    }
-
+  async function handleSubmit(values) {
     const payload = {
-      menuName: form.menuName.trim(),
-      parentId: Number(form.parentId),
-      sortValue: Number(form.sortValue),
-      path: form.path.trim(),
-      icon: form.icon.trim(),
-      menuScope: Number(form.menuScope),
-      url: form.url.trim(),
+      menuName: values.menuName.trim(),
+      parentId: Number(values.parentId),
+      sortValue: Number(values.sortValue),
+      path: values.path.trim(),
+      icon: values.icon.trim(),
+      menuScope: Number(values.menuScope),
+      url: values.url?.trim() || '',
     };
 
-    await submitModal({
-      action: async () => {
-        if (modalMode === 'create') {
-          await createMenu(payload);
-          return;
-        }
-
+    setSubmitting(true);
+    try {
+      if (modalMode === 'create') {
+        await createMenu(payload);
+      } else {
         await updateMenu({
           ...payload,
-          id: Number(form.id),
-          status: Number(form.status),
+          id: Number(values.id),
+          status: Number(values.status),
         });
-      },
-      successMessage: modalMode === 'create' ? '菜单创建成功' : '菜单更新成功',
-      errorMessage: '菜单提交失败',
-      close: closeModal,
-      afterSuccess: reload,
-    });
+      }
+
+      message.success(modalMode === 'create' ? '菜单创建成功' : '菜单更新成功');
+      setModalOpen(false);
+      await reload().catch(() => {});
+    } catch (error) {
+      message.error(error?.message || '菜单提交失败');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleDelete(menu) {
-    await runAction({
-      confirmText: `确认删除菜单 ${menu.menuName || menu.id} 吗？`,
-      action: () => removeMenu(menu.id),
-      successMessage: '菜单已删除',
-      errorMessage: '菜单删除失败',
-      afterSuccess: async () => {
-        const nextPage = menus.length === 1 && query.pageNum > 1 ? query.pageNum - 1 : query.pageNum;
-        if (nextPage === query.pageNum) {
-          await reload();
-          return;
-        }
+    setActionSubmitting(true);
+    try {
+      await removeMenu(menu.id);
+      message.success('菜单已删除');
+      const nextPage = menus.length === 1 && query.pageNum > 1 ? query.pageNum - 1 : query.pageNum;
+      if (nextPage === query.pageNum) {
+        await reload().catch(() => {});
+      } else {
         setPageNum(nextPage);
-      },
-    });
+      }
+    } catch (error) {
+      message.error(error?.message || '菜单删除失败');
+    } finally {
+      setActionSubmitting(false);
+    }
   }
+
+  const columns = useMemo(
+    () =>
+      createMenuColumns({
+        onEdit: openEditModal,
+        onDelete: handleDelete,
+        submitting: submitting || actionSubmitting,
+      }),
+    [actionSubmitting, submitting],
+  );
 
   return (
     <div className="page-stack">
-      <PageHero
-        title="菜单管理"
-        copy="这一页作为页面抽象 demo：列表请求、反馈、分页和列配置都收敛到统一基建层。"
-      />
+      <Card>
+        <Space orientation="vertical" size={8}>
+          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            菜单管理
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            这一页作为 antd 化的页面抽象 demo：列表请求、筛选、分页和弹窗表单都直接对齐官方组件。
+          </Typography.Paragraph>
+        </Space>
+      </Card>
 
-      <FeedbackBanner feedback={feedback} />
-
-      <section className="surface-card">
-        <form className="toolbar-grid toolbar-grid--compact" onSubmit={handleSearch}>
-          <label className="form-field">
-            <span>菜单名</span>
-            <input
-              value={filters.menuName}
-              onChange={(event) => updateFilter('menuName', event.target.value)}
-              placeholder="输入菜单名"
-            />
-          </label>
-          <div className="toolbar-actions">
-            <button type="submit" className="app-button app-button--primary">
-              搜索
-            </button>
-            <button type="button" className="app-button app-button--ghost" onClick={openCreateModal}>
-              添加菜单
-            </button>
+      <Card>
+        <Form form={searchForm} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={handleSearch}>
+          <div className="toolbar-grid toolbar-grid--compact">
+            <Form.Item label="菜单名" name="menuName">
+              <Input allowClear placeholder="输入菜单名" />
+            </Form.Item>
+            <Form.Item label=" ">
+              <Space wrap>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  搜索
+                </Button>
+                <Button onClick={handleReset} disabled={loading}>
+                  重置
+                </Button>
+                <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
+                  添加菜单
+                </Button>
+              </Space>
+            </Form.Item>
           </div>
-        </form>
-      </section>
+        </Form>
+      </Card>
 
-      <PageTableCard
+      <Card
         title="菜单列表"
-        totalCount={totalCount}
-        columns={columns}
-        data={menus}
-        rowKey="id"
-        loading={loading}
-        minWidth={1320}
-        headerActions={
-          <button
-            type="button"
-            className="app-button app-button--ghost"
-            onClick={() => reload().catch(() => {})}
-            disabled={loading}
-          >
-            {loading ? '刷新中...' : '刷新'}
-          </button>
+        extra={
+          <Space>
+            <Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>
+            <Button onClick={() => reload().catch(() => {})} loading={loading}>
+              刷新
+            </Button>
+          </Space>
         }
-        pagination={{
-          pageNum: query.pageNum,
-          pageSize: query.pageSize,
-          totalPages,
-          pageSizeOptions: PAGE_SIZE_OPTIONS,
-          onPageChange: setPageNum,
-          onPageSizeChange: setPageSize,
-        }}
-      />
-
-      {modalOpen ? (
-        <MenuModal
-          mode={modalMode}
-          form={form}
-          submitting={modalSubmitting}
-          onClose={closeModal}
-          onChange={updateForm}
-          onSubmit={handleSubmit}
+      >
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={menus}
+          loading={loading}
+          scroll={{ x: 1320 }}
+          pagination={buildAntdTablePagination({
+            query,
+            totalCount,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            setPageNum,
+            setPageSize,
+          })}
         />
-      ) : null}
+      </Card>
+
+      <Modal
+        title={modalMode === 'create' ? '新增菜单' : '编辑菜单'}
+        open={modalOpen}
+        onCancel={closeModal}
+        onOk={() => modalForm.submit()}
+        okText={modalMode === 'create' ? '创建' : '保存'}
+        cancelText="取消"
+        confirmLoading={submitting}
+        width={800}
+        mask={{ closable: !submitting }}
+        keyboard={!submitting}
+      >
+        <Typography.Paragraph type="secondary">
+          {modalMode === 'create' ? '新增权限菜单或按钮/接口定义。' : '统一修改菜单字段。'}
+        </Typography.Paragraph>
+        <Form form={modalForm} layout="vertical" initialValues={EMPTY_FORM} onFinish={handleSubmit}>
+          <div className="form-grid">
+            <Form.Item
+              label="菜单名称"
+              name="menuName"
+              rules={[{ required: true, message: '请输入菜单名称' }]}
+            >
+              <Input placeholder="请输入菜单名称" />
+            </Form.Item>
+            <Form.Item
+              label="父级 ID"
+              name="parentId"
+              rules={[{ required: true, message: '请输入父级 ID' }]}
+            >
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="一级菜单传 0" />
+            </Form.Item>
+            <Form.Item
+              label="排序字段"
+              name="sortValue"
+              rules={[{ required: true, message: '请输入排序字段' }]}
+            >
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="请输入排序数字" />
+            </Form.Item>
+            <Form.Item label="作用" name="menuScope" rules={[{ required: true, message: '请选择作用' }]}>
+              <Select options={MENU_SCOPE_OPTIONS} />
+            </Form.Item>
+            <Form.Item label="路径" name="path" rules={[{ required: true, message: '请输入路径' }]}>
+              <Input placeholder="请输入路径" />
+            </Form.Item>
+            <Form.Item label="图标" name="icon" rules={[{ required: true, message: '请输入图标标识' }]}>
+              <Input placeholder="请输入 icon 类名" />
+            </Form.Item>
+            <Form.Item label="接口地址" name="url" className="form-field--full">
+              <Input placeholder="请输入接口地址" />
+            </Form.Item>
+            {modalMode === 'edit' ? (
+              <Form.Item label="状态" name="status">
+                <Select options={STATUS_OPTIONS} />
+              </Form.Item>
+            ) : null}
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

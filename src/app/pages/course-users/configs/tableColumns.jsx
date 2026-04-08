@@ -1,6 +1,4 @@
-function formatCurrency(value) {
-  return `${(Number(value || 0) / 100).toFixed(2)} 元`;
-}
+import { formatCurrencyCent } from '@/app/lib/formatters';
 
 export function createCourseUserColumns() {
   return [
@@ -13,7 +11,7 @@ export function createCourseUserColumns() {
       dataIndex: 'sex',
       render: (value) => (value === 1 ? '男' : value === 2 ? '女' : '-'),
     },
-    { title: '付款金额', dataIndex: 'payAmt', render: (value) => formatCurrency(value) },
+    { title: '付款金额', dataIndex: 'payAmt', render: (value) => formatCurrencyCent(value, '0.00 元') },
     { title: '购买时间', dataIndex: 'buyAt', render: (value) => value || '-' },
     { title: '开课时间', dataIndex: 'beginAt', render: (value) => value || '-' },
     { title: '结课时间', dataIndex: 'endAt', render: (value) => value || '-' },

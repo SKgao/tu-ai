@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 const EMPTY_FEEDBACK = {
   type: '',
@@ -8,23 +8,23 @@ const EMPTY_FEEDBACK = {
 export function useFeedbackState(initialValue = EMPTY_FEEDBACK) {
   const [feedback, setFeedback] = useState(initialValue);
 
-  function showError(text) {
+  const showError = useCallback((text) => {
     setFeedback({
       type: 'error',
       text,
     });
-  }
+  }, []);
 
-  function showSuccess(text) {
+  const showSuccess = useCallback((text) => {
     setFeedback({
       type: 'success',
       text,
     });
-  }
+  }, []);
 
-  function clearFeedback() {
+  const clearFeedback = useCallback(() => {
     setFeedback(EMPTY_FEEDBACK);
-  }
+  }, []);
 
   return {
     feedback,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 function resolveInitialState(initialState) {
   return typeof initialState === 'function' ? initialState() : initialState;
@@ -7,27 +7,27 @@ function resolveInitialState(initialState) {
 export function useObjectState(initialState) {
   const [state, setState] = useState(() => resolveInitialState(initialState));
 
-  function update(key, value) {
+  const update = useCallback((key, value) => {
     setState((current) => ({
       ...current,
       [key]: value,
     }));
-  }
+  }, []);
 
-  function patch(partialState) {
+  const patch = useCallback((partialState) => {
     setState((current) => ({
       ...current,
       ...partialState,
     }));
-  }
+  }, []);
 
-  function replace(nextState) {
+  const replace = useCallback((nextState) => {
     setState(nextState);
-  }
+  }, []);
 
-  function reset() {
+  const reset = useCallback(() => {
     setState(resolveInitialState(initialState));
-  }
+  }, [initialState]);
 
   return {
     state,

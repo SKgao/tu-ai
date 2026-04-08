@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export function useModalSubmit({ showSuccess, showError }) {
   const [submitting, setSubmitting] = useState(false);
 
-  async function submit({
+  const submit = useCallback(async ({
     action,
     successMessage = '',
     errorMessage = '提交失败',
     close,
     afterSuccess,
-  }) {
+  }) => {
     setSubmitting(true);
     try {
       const result = await action();
@@ -27,7 +27,7 @@ export function useModalSubmit({ showSuccess, showError }) {
     } finally {
       setSubmitting(false);
     }
-  }
+  }, [showError, showSuccess]);
 
   return {
     submitting,

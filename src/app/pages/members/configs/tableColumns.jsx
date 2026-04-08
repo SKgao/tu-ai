@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TableActionBar, TableActionButton } from '@/app/components/TableActionBar';
-import { TableImageLink } from '@/app/components/TableImageLink';
+import { Button, Image, Space, Typography } from 'antd';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 
 export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
@@ -11,14 +10,25 @@ export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
     {
       title: '用户头像',
       dataIndex: 'icon',
-      render: (value, member) => <TableImageLink src={value} alt={member.realName || 'member'} />,
+      render: (value, member) =>
+        value ? (
+          <Image
+            width={52}
+            height={52}
+            style={{ borderRadius: 16, objectFit: 'cover' }}
+            src={value}
+            alt={member.realName || 'member'}
+          />
+        ) : (
+          <Typography.Text type="secondary">无</Typography.Text>
+        ),
     },
     {
       title: '邀请用户人数',
       dataIndex: 'inviteCount',
       render: (value, member) =>
         Number(value) > 0 ? (
-          <Link to={`/invite-count?userId=${member.tutuNumber}`} className="text-button">
+          <Link to={`/invite-count?userId=${member.tutuNumber}`} className="ant-btn ant-btn-link">
             {value}
           </Link>
         ) : (
@@ -59,31 +69,44 @@ export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
       title: '详情',
       key: 'details',
       render: (_, member) => (
-        <TableActionBar>
-          <Link to={`/learning-record?userId=${member.tutuNumber}`} className="text-button">
+        <Space size="small">
+          <Link to={`/learning-record?userId=${member.tutuNumber}`} className="ant-btn ant-btn-link">
             查看学习记录
           </Link>
           {member.hasBuyTextbook !== 0 ? (
-            <Link to={`/course-users?tutuNumber=${member.tutuNumber}`} className="text-button">
+            <Link to={`/course-users?tutuNumber=${member.tutuNumber}`} className="ant-btn ant-btn-link">
               查看已买课程
             </Link>
           ) : null}
-        </TableActionBar>
+        </Space>
       ),
     },
     {
       title: '操作',
       key: 'actions',
       render: (_, member) => (
-        <TableActionBar>
-          <TableActionButton onClick={() => onOpenVip(member)}>开通会员</TableActionButton>
-          <TableActionButton onClick={() => onMemberStatus(member, 'enable')} disabled={submitting}>
+        <Space size="small">
+          <Button type="link" onClick={() => onOpenVip(member)} style={{ paddingInline: 0 }}>
+            开通会员
+          </Button>
+          <Button
+            type="link"
+            onClick={() => onMemberStatus(member, 'enable')}
+            disabled={submitting}
+            style={{ paddingInline: 0 }}
+          >
             启用
-          </TableActionButton>
-          <TableActionButton danger onClick={() => onMemberStatus(member, 'disable')} disabled={submitting}>
+          </Button>
+          <Button
+            type="link"
+            danger
+            onClick={() => onMemberStatus(member, 'disable')}
+            disabled={submitting}
+            style={{ paddingInline: 0 }}
+          >
             禁用
-          </TableActionButton>
-        </TableActionBar>
+          </Button>
+        </Space>
       ),
     },
   ];

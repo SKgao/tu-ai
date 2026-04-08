@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TableActionBar, TableActionButton } from '@/app/components/TableActionBar';
-import { TableImageLink } from '@/app/components/TableImageLink';
+import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 
 export function createCourseBagColumns({ onEdit, onToggleStatus, onDelete, submitting }) {
   return [
@@ -10,19 +9,26 @@ export function createCourseBagColumns({ onEdit, onToggleStatus, onDelete, submi
     {
       title: '图标',
       dataIndex: 'icon',
-      render: (value, row) => <TableImageLink src={value} alt={row.title || 'bag'} />,
+      render: (value, row) =>
+        value ? (
+          <Image
+            width={52}
+            height={52}
+            style={{ borderRadius: 16, objectFit: 'cover' }}
+            src={value}
+            alt={row.title || 'course-bag'}
+          />
+        ) : (
+          <Typography.Text type="secondary">无</Typography.Text>
+        ),
     },
     {
       title: '状态',
       dataIndex: 'status',
       render: (value) => (
-        <span
-          className={
-            Number(value) === 1 ? 'status-pill status-pill--success' : 'status-pill status-pill--warning'
-          }
-        >
+        <Tag color={Number(value) === 1 ? 'success' : 'warning'}>
           {Number(value) === 1 ? '启用' : '禁用'}
-        </span>
+        </Tag>
       ),
     },
     { title: '排序', dataIndex: 'sort', render: (value) => value ?? '-' },
@@ -35,18 +41,33 @@ export function createCourseBagColumns({ onEdit, onToggleStatus, onDelete, submi
       title: '操作',
       key: 'actions',
       render: (_, bag) => (
-        <TableActionBar>
-          <TableActionButton onClick={() => onEdit(bag)}>编辑</TableActionButton>
-          <TableActionButton onClick={() => onToggleStatus(bag)} disabled={submitting}>
+        <Space size="small" wrap>
+          <Button type="link" onClick={() => onEdit(bag)} style={{ paddingInline: 0 }}>
+            编辑
+          </Button>
+          <Button
+            type="link"
+            onClick={() => onToggleStatus(bag)}
+            disabled={submitting}
+            style={{ paddingInline: 0 }}
+          >
             {Number(bag.status) === 1 ? '禁用' : '启用'}
-          </TableActionButton>
-          <TableActionButton danger onClick={() => onDelete(bag)} disabled={submitting}>
-            删除
-          </TableActionButton>
-          <Link to={`/course-bag-courses?id=${bag.id}&title=${encodeURIComponent(bag.title || '')}`}>
+          </Button>
+          <Popconfirm
+            title={`确认删除课程包 ${bag.title || bag.id} 吗？`}
+            okText="确认"
+            cancelText="取消"
+            onConfirm={() => onDelete(bag)}
+            disabled={submitting}
+          >
+            <Button type="link" danger disabled={submitting} style={{ paddingInline: 0 }}>
+              删除
+            </Button>
+          </Popconfirm>
+          <Link to={`/course-bag-courses?id=${bag.id}&title=${encodeURIComponent(bag.title || '')}`} className="ant-btn ant-btn-link">
             查看精品课程
           </Link>
-        </TableActionBar>
+        </Space>
       ),
     },
   ];

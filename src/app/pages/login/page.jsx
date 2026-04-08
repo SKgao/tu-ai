@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Alert, Button, Form, Input } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loginRequest } from '@/app/lib/http';
 import { selectAuthLogin, useAuthStore } from '@/app/stores/auth';
@@ -8,26 +9,16 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore(selectAuthLogin);
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formValues, setFormValues] = useState({
-    username: '',
-    password: '',
-  });
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (!formValues.username || !formValues.password) {
-      setError('请输入用户名和密码');
-      return;
-    }
-
+  async function handleSubmit(values) {
     setLoading(true);
     setError('');
 
     try {
-      const payload = await loginRequest(formValues);
+      const payload = await loginRequest(values);
       const result = payload?.data || {};
       const token =
         result.token ||
@@ -61,38 +52,39 @@ export function LoginPage() {
           </div>
         </div>
 
-        {error ? <div className="login-card__alert">{error}</div> : null}
+        {error ? <Alert className="login-card__alert" type="error" showIcon message={error} /> : null}
 
-        <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
-          <label className="form-field">
-            <span>用户名</span>
-            <input
-              value={formValues.username}
-              onChange={(event) =>
-                setFormValues((current) => ({ ...current, username: event.target.value }))
-              }
-              placeholder="请输入用户名"
-            />
-          </label>
-          <label className="form-field">
-            <span>密码</span>
-            <input
-              type="password"
-              value={formValues.password}
-              onChange={(event) =>
-                setFormValues((current) => ({ ...current, password: event.target.value }))
-              }
-              placeholder="请输入密码"
-            />
-          </label>
-          <button
-            type="submit"
-            className="app-button app-button--primary login-form__submit"
-            disabled={loading}
-          >
-            {loading ? '登录中...' : '登录'}
-          </button>
-        </form>
+        <Form
+          form={form}
+          className="login-form"
+          layout="horizontal"
+          autoComplete="off"
+          colon={false}
+          labelCol={{ flex: '68px' }}
+          wrapperCol={{ flex: '1 1 auto' }}
+          initialValues={{
+            username: '',
+            password: '',
+          }}
+          onValuesChange={() => {
+            if (error) {
+              setError('');
+            }
+          }}
+          onFinish={handleSubmit}
+        >
+          <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+            <Input placeholder="请输入用户名" allowClear />
+          </Form.Item>
+          <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password placeholder="请输入密码" />
+          </Form.Item>
+          <Form.Item label=" " className="login-form__submit-row">
+            <Button type="primary" htmlType="submit" loading={loading} block>
+              登录
+            </Button>
+          </Form.Item>
+        </Form>
       </div>
     </div>
   );
