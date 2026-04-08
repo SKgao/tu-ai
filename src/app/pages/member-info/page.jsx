@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Select, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { listMemberInfos } from '@/app/services/member-info';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -122,19 +124,12 @@ export function MemberInfoManagementPage() {
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            会员信息
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页对应旧版 `memberInfo` 模块，先按新版 antd 组件重构多时间筛选、多选等级和数据表格。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="会员信息"
+        description="这一页对应旧版 `memberInfo` 模块，先按新版 antd 组件重构多时间筛选、多选等级和数据表格。"
+      />
 
-      <Card>
+      <PageToolbarCard>
         <Form form={form} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={handleSearch}>
           <div className="toolbar-grid toolbar-grid--books">
             <Form.Item label="注册开始时间" name="registerStartTime">
@@ -188,7 +183,7 @@ export function MemberInfoManagementPage() {
             </Form.Item>
           </div>
         </Form>
-      </Card>
+      </PageToolbarCard>
 
       <Card
         title="会员信息列表"

@@ -1,60 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  App,
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Table,
-  Typography,
-} from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { App, Button, Card, Form, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { createCourseUser, listCourseUsers } from '@/app/services/course-users';
+import { useFormModal } from '@/app/hooks/useFormModal';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { createCourseUserColumns } from './configs/tableColumns';
+import { CourseUserGrantModal } from './components/CourseUserGrantModal';
+import { CourseUserSearchForm } from './components/CourseUserSearchForm';
 import {
   selectCourseOptions,
   useMemberCommerceOptionsStore,
 } from '@/app/stores/memberCommerceOptions';
-
-const EMPTY_FORM = {
-  realName: '',
-  mobile: '',
-  sex: '1',
-  payAmt: undefined,
-  textbookId: undefined,
-};
-
-const INITIAL_FILTERS = {
-  textbookId: undefined,
-  tutuNumber: '',
-  mobile: '',
-  realName: '',
-  sex: undefined,
-};
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-
-const SEX_OPTIONS = [
-  { value: '1', label: '男' },
-  { value: '2', label: '女' },
-];
-
-function normalizeSearchValues(values) {
-  return {
-    textbookId: values.textbookId || '',
-    tutuNumber: values.tutuNumber?.trim() || '',
-    mobile: values.mobile?.trim() || '',
-    realName: values.realName?.trim() || '',
-    sex: values.sex || '',
-  };
-}
+import {
+  buildCourseUserSearchFilters,
+  COURSE_USER_PAGE_SIZE_OPTIONS,
+  COURSE_USER_SEX_OPTIONS,
+  EMPTY_COURSE_USER_FORM,
+  INITIAL_COURSE_USER_FILTERS,
+} from './utils/forms';
 
 export function CourseUserManagementPage() {
   const { message } = App.useApp();
@@ -62,11 +28,16 @@ export function CourseUserManagementPage() {
   const [searchParams] = useSearchParams();
   const [searchForm] = Form.useForm();
   const [modalForm] = Form.useForm();
-  const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const routeTutuNumber = searchParams.get('tutuNumber') || '';
   const books = useMemberCommerceOptionsStore(selectCourseOptions);
   const ensureCourseOptions = useMemberCommerceOptionsStore((state) => state.ensureCourseOptions);
+  const grantModal = useFormModal({
+    submitting,
+    onOpenCreate: () => {
+      modalForm.setFieldsValue(EMPTY_COURSE_USER_FORM);
+    },
+  });
   const columns = useMemo(() => createCourseUserColumns(), []);
   const {
     query,
@@ -96,7 +67,7 @@ export function CourseUserManagementPage() {
 
   useEffect(() => {
     searchForm.setFieldsValue({
-      ...INITIAL_FILTERS,
+      ...INITIAL_COURSE_USER_FILTERS,
       tutuNumber: routeTutuNumber,
     });
     patchQuery({
@@ -111,26 +82,13 @@ export function CourseUserManagementPage() {
     });
   }, [ensureCourseOptions, message]);
 
-  function openCreateModal() {
-    modalForm.setFieldsValue(EMPTY_FORM);
-    setModalOpen(true);
-  }
-
-  function closeModal() {
-    if (submitting) {
-      return;
-    }
-
-    setModalOpen(false);
-  }
-
   function handleSearch(values) {
-    applyFilters(normalizeSearchValues(values));
+    applyFilters(buildCourseUserSearchFilters(values));
   }
 
   function handleReset() {
     searchForm.setFieldsValue({
-      ...INITIAL_FILTERS,
+      ...INITIAL_COURSE_USER_FILTERS,
       tutuNumber: routeTutuNumber,
     });
     applyFilters({
@@ -155,7 +113,7 @@ export function CourseUserManagementPage() {
         textbookId: Number(values.textbookId),
       });
       message.success('精品课程开通成功');
-      setModalOpen(false);
+      grantModal.setOpen(false);
       await reload().catch(() => {});
     } catch (error) {
       message.error(error?.message || '精品课程开通失败');
@@ -166,72 +124,28 @@ export function CourseUserManagementPage() {
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            已买课程
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页对应旧版 `courseUser` 模块，先按新版 antd 组件重构筛选、列表和开通课程弹窗。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="已买课程"
+        description="这一页对应旧版 `courseUser` 模块，先按新版 antd 组件重构筛选、列表和开通课程弹窗。"
+      />
 
-      <Card>
-        <Form
+      <PageToolbarCard>
+        <CourseUserSearchForm
           form={searchForm}
-          layout="vertical"
+          loading={loading}
+          routeTutuNumber={routeTutuNumber}
           initialValues={{
-            ...INITIAL_FILTERS,
+            ...INITIAL_COURSE_USER_FILTERS,
             tutuNumber: routeTutuNumber,
           }}
-          onFinish={handleSearch}
-        >
-          <div className="toolbar-grid toolbar-grid--books">
-            <Form.Item label="精品课程" name="textbookId">
-              <Select
-                allowClear
-                placeholder="全部"
-                options={books.map((item) => ({
-                  value: String(item.textbookId),
-                  label: item.textbookName,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item label="图图号" name="tutuNumber">
-              <Input allowClear placeholder="输入图图号" />
-            </Form.Item>
-            <Form.Item label="手机号" name="mobile">
-              <Input allowClear placeholder="输入手机号" />
-            </Form.Item>
-            <Form.Item label="用户名" name="realName">
-              <Input allowClear placeholder="输入用户名" />
-            </Form.Item>
-            <Form.Item label="性别" name="sex">
-              <Select allowClear placeholder="全部" options={SEX_OPTIONS} />
-            </Form.Item>
-            <Form.Item label=" ">
-              <Space wrap>
-                <Button type="primary" htmlType="submit" loading={loading}>
-                  搜索
-                </Button>
-                <Button onClick={handleReset} disabled={loading}>
-                  重置
-                </Button>
-                <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
-                  开通精品课程
-                </Button>
-                {routeTutuNumber ? (
-                  <Button onClick={() => navigate(-1)}>
-                    返回上一层
-                  </Button>
-                ) : null}
-              </Space>
-            </Form.Item>
-          </div>
-        </Form>
-      </Card>
+          books={books}
+          sexOptions={COURSE_USER_SEX_OPTIONS}
+          onSearch={handleSearch}
+          onReset={handleReset}
+          onCreate={grantModal.openCreate}
+          onBack={() => navigate(-1)}
+        />
+      </PageToolbarCard>
 
       <Card
         title="已买课程列表"
@@ -253,89 +167,22 @@ export function CourseUserManagementPage() {
           pagination={buildAntdTablePagination({
             query,
             totalCount,
-            pageSizeOptions: PAGE_SIZE_OPTIONS,
+            pageSizeOptions: COURSE_USER_PAGE_SIZE_OPTIONS,
             setPageNum,
             setPageSize,
           })}
         />
       </Card>
 
-      <Modal
-        title="开通精品课程"
-        open={modalOpen}
-        onCancel={closeModal}
-        onOk={() => modalForm.submit()}
-        okText="确认开通"
-        cancelText="取消"
-        confirmLoading={submitting}
-        mask={{ closable: !submitting }}
-        keyboard={!submitting}
-      >
-        <Typography.Paragraph type="secondary">
-          补齐旧版 `courseUser` 里的开通课程能力。
-        </Typography.Paragraph>
-        <Form
-          form={modalForm}
-          layout="vertical"
-          initialValues={EMPTY_FORM}
-          onFinish={handleSubmit}
-        >
-          <div className="form-grid">
-            <Form.Item
-              label="用户名"
-              name="realName"
-              rules={[{ required: true, message: '请输入用户名' }]}
-            >
-              <Input placeholder="请输入用户名" />
-            </Form.Item>
-            <Form.Item
-              label="手机号"
-              name="mobile"
-              rules={[
-                { required: true, message: '请输入手机号' },
-                { pattern: /^[1][0-9]{10}$/, message: '请输入合法手机号' },
-              ]}
-            >
-              <Input placeholder="请输入手机号" />
-            </Form.Item>
-            <Form.Item label="性别" name="sex" rules={[{ required: true, message: '请选择性别' }]}>
-              <Select options={SEX_OPTIONS} />
-            </Form.Item>
-            <Form.Item
-              label="付款金额"
-              name="payAmt"
-              rules={[
-                { required: true, message: '请输入付款金额' },
-                { type: 'number', min: 0, message: '付款金额必须为数字' },
-              ]}
-            >
-              <Space.Compact block>
-                <InputNumber
-                  min={0}
-                  precision={2}
-                  style={{ width: '100%' }}
-                  placeholder="请输入付款金额"
-                />
-                <div className="compact-addon">元</div>
-              </Space.Compact>
-            </Form.Item>
-            <Form.Item
-              label="精品课程"
-              name="textbookId"
-              className="form-field--full"
-              rules={[{ required: true, message: '请选择精品课程' }]}
-            >
-              <Select
-                placeholder="请选择精品课程"
-                options={books.map((item) => ({
-                  value: String(item.textbookId),
-                  label: item.textbookName,
-                }))}
-              />
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
+      <CourseUserGrantModal
+        open={grantModal.open}
+        form={modalForm}
+        books={books}
+        sexOptions={COURSE_USER_SEX_OPTIONS}
+        submitting={submitting}
+        onCancel={grantModal.close}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }

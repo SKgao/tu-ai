@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { App, Button, Card, Form, Input, Select, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { listCourseOrders } from '@/app/services/course-orders';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -95,19 +97,12 @@ export function CourseOrderManagementPage() {
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            精品课程订单
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页对应旧版 `courseOrder` 模块，先按新版 antd 组件重构筛选表单、表格与分页。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="精品课程订单"
+        description="这一页对应旧版 `courseOrder` 模块，先按新版 antd 组件重构筛选表单、表格与分页。"
+      />
 
-      <Card>
+      <PageToolbarCard>
         <Form
           form={form}
           layout="vertical"
@@ -152,7 +147,7 @@ export function CourseOrderManagementPage() {
             </Form.Item>
           </div>
         </Form>
-      </Card>
+      </PageToolbarCard>
 
       <Card
         title="精品课程订单列表"

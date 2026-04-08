@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
+import { contains } from '../../prisma/where';
 import { normalizePrimitivePayload } from './shared';
 
 type MenuListPayload = {
@@ -25,16 +27,10 @@ export class MenuService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listMenus(payload: MenuListPayload = {}) {
-    const menuName = String(payload.menuName ?? '').trim();
-    const pageNum = Math.max(1, Number(payload.pageNum || 1));
-    const pageSize = Math.max(1, Number(payload.pageSize || 10));
-    const where = menuName
-      ? {
-          menuName: {
-            contains: menuName,
-          },
-        }
-      : undefined;
+    const menuName = toOptionalString(payload.menuName);
+    const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
+    const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
+    const where = contains('menuName', menuName);
 
     const [totalCount, rows] = await this.prisma.$transaction([
       this.prisma.menu.count({ where }),
@@ -79,10 +75,7 @@ export class MenuService {
   }
 
   async updateMenu(payload: MenuMutationPayload) {
-    const id = Number(payload.id);
-    if (!id) {
-      throw new BadRequestException('缺少菜单 ID');
-    }
+    const id = requireNumber(payload.id, '缺少菜单 ID');
 
     const updates = this.normalizeMenuUpdatePayload(payload);
     const updated = await this.prisma.menu.updateMany({
@@ -105,10 +98,7 @@ export class MenuService {
 
   async deleteMenu(payload: unknown) {
     const parsed = normalizePrimitivePayload<{ id?: number }>(payload, 'id');
-    const id = Number(parsed.id);
-    if (!id) {
-      throw new BadRequestException('缺少菜单 ID');
-    }
+    const id = requireNumber(parsed.id, '缺少菜单 ID');
 
     const existing = await this.prisma.menu.findUnique({
       where: {
@@ -149,31 +139,19 @@ export class MenuService {
   }
 
   private normalizeMenuPayload(payload: MenuMutationPayload) {
-    const menuName = String(payload.menuName ?? '').trim();
-    const path = String(payload.path ?? '').trim();
-    const icon = String(payload.icon ?? '').trim();
-
-    if (!menuName) {
-      throw new BadRequestException('菜单名称不能为空');
-    }
-
-    if (!path) {
-      throw new BadRequestException('菜单路径不能为空');
-    }
-
-    if (!icon) {
-      throw new BadRequestException('菜单图标不能为空');
-    }
+    const menuName = requireText(payload.menuName, '菜单名称不能为空');
+    const path = requireText(payload.path, '菜单路径不能为空');
+    const icon = requireText(payload.icon, '菜单图标不能为空');
 
     return {
       menuName,
-      parentId: Number(payload.parentId ?? 0) || null,
-      sortValue: Number(payload.sortValue ?? 0),
+      parentId: toOptionalNumber(payload.parentId, 0) || null,
+      sortValue: toOptionalNumber(payload.sortValue, 0) ?? 0,
       path,
       icon,
-      menuScope: Number(payload.menuScope ?? 1),
-      url: String(payload.url ?? '').trim(),
-      status: Number(payload.status ?? 1),
+      menuScope: toOptionalNumber(payload.menuScope, 1) ?? 1,
+      url: toOptionalString(payload.url) || '',
+      status: toOptionalNumber(payload.status, 1) ?? 1,
     };
   }
 
@@ -181,28 +159,28 @@ export class MenuService {
     const updates: Record<string, string | number | null> = {};
 
     if (payload.menuName !== undefined) {
-      updates.menuName = String(payload.menuName).trim();
+      updates.menuName = toOptionalString(payload.menuName) || '';
     }
     if (payload.parentId !== undefined) {
-      updates.parentId = Number(payload.parentId) || null;
+      updates.parentId = toOptionalNumber(payload.parentId) || null;
     }
     if (payload.sortValue !== undefined) {
-      updates.sortValue = Number(payload.sortValue);
+      updates.sortValue = toOptionalNumber(payload.sortValue) ?? 0;
     }
     if (payload.path !== undefined) {
-      updates.path = String(payload.path).trim();
+      updates.path = toOptionalString(payload.path) || '';
     }
     if (payload.icon !== undefined) {
-      updates.icon = String(payload.icon).trim();
+      updates.icon = toOptionalString(payload.icon) || '';
     }
     if (payload.menuScope !== undefined) {
-      updates.menuScope = Number(payload.menuScope);
+      updates.menuScope = toOptionalNumber(payload.menuScope) ?? 1;
     }
     if (payload.url !== undefined) {
-      updates.url = String(payload.url).trim();
+      updates.url = toOptionalString(payload.url) || '';
     }
     if (payload.status !== undefined) {
-      updates.status = Number(payload.status);
+      updates.status = toOptionalNumber(payload.status) ?? 1;
     }
 
     return updates;

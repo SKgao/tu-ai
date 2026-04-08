@@ -14,10 +14,10 @@ export function MigrationPage() {
       <section className="surface-card">
         <div className="stack-sm">
           <span className="app-badge app-badge--gold">Staged Migration</span>
-          <h2 className="page-title page-title--sm">旧业务页保留，按模块分批迁移</h2>
+          <h2 className="page-title page-title--sm">迁移已完成，按模块持续整理</h2>
           <p className="page-copy">
-            旧的 `src/pages`、`src/components`、`src/configs` 代码仍然保留在仓库里，当前不再作为构建入口。
-            接下来每迁一个模块，就把它改造成 React Router 页面和独立数据请求。
+            旧目录和历史封装已经从仓库中移除，当前代码只保留新架构运行所需的页面、服务、状态和公共能力。
+            后续会继续按模块整理命名、样式和公共抽象，压缩维护成本。
           </p>
         </div>
       </section>

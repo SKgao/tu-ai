@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Button, Card, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { listLearningRecords } from '@/app/services/learning-record';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
@@ -46,24 +48,17 @@ export function LearningRecordPage() {
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            学习记录
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页对应旧版 `learningRecord` 模块，展示当前用户的学习轨迹。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="学习记录"
+        description="这一页对应旧版 `learningRecord` 模块，展示当前用户的学习轨迹。"
+      />
 
-      <Card>
+      <PageToolbarCard>
         <div className="toolbar-grid toolbar-grid--compact">
           <Typography.Text type="secondary">当前图图号: {userId || '-'}</Typography.Text>
           <Button onClick={() => navigate(-1)}>返回上一层</Button>
         </div>
-      </Card>
+      </PageToolbarCard>
 
       <Card title="学习记录列表" extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}>
         <Table

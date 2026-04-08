@@ -1,21 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import {
-  App,
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Table,
-  Typography,
-} from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { App, Button, Card, Form, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { createMenu, listMenus, removeMenu, updateMenu } from '@/app/services/menus';
+import { useFormModal } from '@/app/hooks/useFormModal';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { MenuModal } from './components/MenuModal';
+import { MenuSearchForm } from './components/MenuSearchForm';
 import { createMenuColumns } from './configs/tableColumns';
 
 const EMPTY_FORM = {
@@ -76,10 +68,17 @@ export function MenuManagementPage() {
   const { message } = App.useApp();
   const [searchForm] = Form.useForm();
   const [modalForm] = Form.useForm();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('create');
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const menuModal = useFormModal({
+    submitting,
+    onOpenCreate: () => {
+      modalForm.setFieldsValue(EMPTY_FORM);
+    },
+    onOpenEdit: (menu) => {
+      modalForm.setFieldsValue(normalizeMenuFormValues(menu));
+    },
+  });
   const {
     query,
     data: menus,
@@ -96,26 +95,6 @@ export function MenuManagementPage() {
     getTotalCount: (result) => result?.totalCount || 0,
     onError: (errorMessage) => message.error(errorMessage || '菜单列表加载失败'),
   });
-
-  function openCreateModal() {
-    setModalMode('create');
-    modalForm.setFieldsValue(EMPTY_FORM);
-    setModalOpen(true);
-  }
-
-  function openEditModal(menu) {
-    setModalMode('edit');
-    modalForm.setFieldsValue(normalizeMenuFormValues(menu));
-    setModalOpen(true);
-  }
-
-  function closeModal() {
-    if (submitting) {
-      return;
-    }
-
-    setModalOpen(false);
-  }
 
   function handleSearch(values) {
     applyFilters({
@@ -145,7 +124,7 @@ export function MenuManagementPage() {
 
     setSubmitting(true);
     try {
-      if (modalMode === 'create') {
+      if (menuModal.mode === 'create') {
         await createMenu(payload);
       } else {
         await updateMenu({
@@ -155,8 +134,8 @@ export function MenuManagementPage() {
         });
       }
 
-      message.success(modalMode === 'create' ? '菜单创建成功' : '菜单更新成功');
-      setModalOpen(false);
+      message.success(menuModal.mode === 'create' ? '菜单创建成功' : '菜单更新成功');
+      menuModal.setOpen(false);
       await reload().catch(() => {});
     } catch (error) {
       message.error(error?.message || '菜单提交失败');
@@ -186,49 +165,30 @@ export function MenuManagementPage() {
   const columns = useMemo(
     () =>
       createMenuColumns({
-        onEdit: openEditModal,
+        onEdit: menuModal.openEdit,
         onDelete: handleDelete,
         submitting: submitting || actionSubmitting,
       }),
-    [actionSubmitting, submitting],
+    [actionSubmitting, menuModal.openEdit, submitting],
   );
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            菜单管理
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页作为 antd 化的页面抽象 demo：列表请求、筛选、分页和弹窗表单都直接对齐官方组件。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="菜单管理"
+        description="这一页作为 antd 化的页面抽象 demo：列表请求、筛选、分页和弹窗表单都直接对齐官方组件。"
+      />
 
-      <Card>
-        <Form form={searchForm} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={handleSearch}>
-          <div className="toolbar-grid toolbar-grid--compact">
-            <Form.Item label="菜单名" name="menuName">
-              <Input allowClear placeholder="输入菜单名" />
-            </Form.Item>
-            <Form.Item label=" ">
-              <Space wrap>
-                <Button type="primary" htmlType="submit" loading={loading}>
-                  搜索
-                </Button>
-                <Button onClick={handleReset} disabled={loading}>
-                  重置
-                </Button>
-                <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
-                  添加菜单
-                </Button>
-              </Space>
-            </Form.Item>
-          </div>
-        </Form>
-      </Card>
+      <PageToolbarCard>
+        <MenuSearchForm
+          form={searchForm}
+          loading={loading}
+          initialValues={INITIAL_FILTERS}
+          onSearch={handleSearch}
+          onReset={handleReset}
+          onCreate={menuModal.openCreate}
+        />
+      </PageToolbarCard>
 
       <Card
         title="菜单列表"
@@ -257,64 +217,17 @@ export function MenuManagementPage() {
         />
       </Card>
 
-      <Modal
-        title={modalMode === 'create' ? '新增菜单' : '编辑菜单'}
-        open={modalOpen}
-        onCancel={closeModal}
-        onOk={() => modalForm.submit()}
-        okText={modalMode === 'create' ? '创建' : '保存'}
-        cancelText="取消"
-        confirmLoading={submitting}
-        width={800}
-        mask={{ closable: !submitting }}
-        keyboard={!submitting}
-      >
-        <Typography.Paragraph type="secondary">
-          {modalMode === 'create' ? '新增权限菜单或按钮/接口定义。' : '统一修改菜单字段。'}
-        </Typography.Paragraph>
-        <Form form={modalForm} layout="vertical" initialValues={EMPTY_FORM} onFinish={handleSubmit}>
-          <div className="form-grid">
-            <Form.Item
-              label="菜单名称"
-              name="menuName"
-              rules={[{ required: true, message: '请输入菜单名称' }]}
-            >
-              <Input placeholder="请输入菜单名称" />
-            </Form.Item>
-            <Form.Item
-              label="父级 ID"
-              name="parentId"
-              rules={[{ required: true, message: '请输入父级 ID' }]}
-            >
-              <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="一级菜单传 0" />
-            </Form.Item>
-            <Form.Item
-              label="排序字段"
-              name="sortValue"
-              rules={[{ required: true, message: '请输入排序字段' }]}
-            >
-              <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="请输入排序数字" />
-            </Form.Item>
-            <Form.Item label="作用" name="menuScope" rules={[{ required: true, message: '请选择作用' }]}>
-              <Select options={MENU_SCOPE_OPTIONS} />
-            </Form.Item>
-            <Form.Item label="路径" name="path" rules={[{ required: true, message: '请输入路径' }]}>
-              <Input placeholder="请输入路径" />
-            </Form.Item>
-            <Form.Item label="图标" name="icon" rules={[{ required: true, message: '请输入图标标识' }]}>
-              <Input placeholder="请输入 icon 类名" />
-            </Form.Item>
-            <Form.Item label="接口地址" name="url" className="form-field--full">
-              <Input placeholder="请输入接口地址" />
-            </Form.Item>
-            {modalMode === 'edit' ? (
-              <Form.Item label="状态" name="status">
-                <Select options={STATUS_OPTIONS} />
-              </Form.Item>
-            ) : null}
-          </div>
-        </Form>
-      </Modal>
+      <MenuModal
+        open={menuModal.open}
+        mode={menuModal.mode}
+        form={modalForm}
+        emptyForm={EMPTY_FORM}
+        menuScopeOptions={MENU_SCOPE_OPTIONS}
+        statusOptions={STATUS_OPTIONS}
+        submitting={submitting}
+        onCancel={menuModal.close}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
 }

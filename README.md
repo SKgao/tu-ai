@@ -1,80 +1,200 @@
-# TUTU-Admin
+# TUTU Admin
 
-图图教育。
+图图后台管理系统前端仓库。当前项目已经从旧版 `React + dva + roadhog + Ant Design 3` 迁移到新版 `React 18 + Vite + Ant Design 6 + Zustand`。
 
-[![React](https://img.shields.io/badge/react-^16.2.0-brightgreen.svg?style=flat-square)](https://github.com/facebook/react)
-[![Ant Design](https://img.shields.io/badge/ant--design-^3.2.2-yellowgreen.svg?style=flat-square)](https://github.com/ant-design/ant-design)
-[![dva](https://img.shields.io/badge/dva-^2.1.0-orange.svg?style=flat-square)](https://github.com/dvajs/dva)
+后端服务位于同仓库的 [backend](./backend) 目录，当前推荐以前后端一体仓方式开发。
 
-## 相关框架库
-- [react](https://github.com/facebook/react) facebook的开源js框架
-- react全家桶[redux](http://cn.redux.js.org/ ),[react-redux](https://cn.redux.js.org/docs/react-redux/),[redux-saga](https://redux-saga-in-chinese.js.org/docs/api/index.html),[react-router-^4.0.0](http://reacttraining.cn/),[Immutable](http://facebook.github.io/immutable-js/docs/)已集成至dva
-- [ant-design](http://design.alipay.com/develop/web/docs/introduce)蚂蚁金服开发和服务于企业级后台产品
-- [dva](https://github.com/dvajs/dva) 基于 redux、redux-saga 和 react-router 的轻量级前端框架[中文文档](https://github.com/dvajs/dva/blob/master/docs/API_zh-CN.md)
-- 使用[roadhog](https://github.com/sorrycc/roadhog)本地调试和构建，其中Mock功能实现脱离后端独立开发（依赖nodejs 6.5+）
+## 当前技术栈
 
+- `React 18`
+- `Vite 8`
+- `React Router 6`
+- `Ant Design 6`
+- `Zustand`
+- `Axios`
+- `Sass`
 
-### 实现功能
-- [x] 项目目录规划
-- [x] 命令行生成页面对应的model、view、service文件等
-- [x] 板块分目录、modal管理
-- [x] 自适应适配不同分辨率
-- [x] 引入echarts
-- [x] 路由分块加载
+## 项目特性
 
+- 页面按业务拆分到独立目录，页面相关组件、配置、表单转换逻辑就近放置
+- 基于 `antd` 官方组件体系重写页面、表单、表格和弹窗
+- 提供统一的列表页头部/工具条壳层组件
+- 提供统一的表格远程请求、弹窗状态、上传状态 hooks
+- Vite 手动拆包，按 `react`、`antd`、`data vendor` 等维度分 chunk
+- 支持与本仓库内 NestJS 后端直接联调
 
-## 开发构建
+## 仓库结构
 
-#### 目录结构
-```bash
-├── /dist/           # 项目输出目录
-├── /public/         # 公共文件,编译时copy至dist目录
-├── /src/            # 项目源码目录
-│ ├── /assets/       # 图片资源
-│ ├── /components/   # UI组件
-│ ├── /configs/      # 工具函数
-│ │ ├── layout.js    # 视图过滤配置,展示顶部或左侧等
-│ │ └── pages.js     # 整个项目的路由配置
-│ ├── /scss/         # 样式文件
-│ ├── /pages/        # 视图、接口、样式、模型等文件
-│ ├── /utils/        # 工具函数
-│ │ ├── request.js   # 异步请求封装
-│ │ └── jsonp.js     # jsonp服务
-│ │ └── global.js    # 全局通用js方法
-│ ├── index.js       # 入口文件
-│ └── model.js       # 主model文件
-│ └── router.js      # 路由入口
-│ └── App.js         # 主view文件
-├── package.json     # 项目信息
-├── .eslintrc        # Eslint配置
-└── .webpackrc       # 配置文件
-└── .renderFile.js   # 批量生成目录文件配置
-└── .webpack.config.js
+```text
+.
+├── backend/                  # NestJS + Prisma + PostgreSQL 后端
+├── public/                   # 静态资源
+├── src/
+│   ├── assets/               # 图片等资源
+│   ├── main.jsx              # 前端入口
+│   └── app/
+│       ├── components/       # 通用组件
+│       │   ├── forms/
+│       │   └── page/
+│       ├── hooks/            # 通用 hooks
+│       ├── layouts/          # 布局
+│       ├── lib/              # 工具函数/请求封装
+│       ├── pages/            # 页面目录
+│       │   └── <page>/
+│       │       ├── page.jsx
+│       │       ├── components/
+│       │       ├── configs/
+│       │       ├── hooks/
+│       │       └── utils/
+│       ├── routes/           # 路由守卫
+│       ├── router.jsx        # 路由定义
+│       ├── services/         # 页面对应接口请求
+│       ├── stores/           # Zustand 状态管理
+│       └── styles/           # 全局样式
+├── index.html
+├── package.json
+└── vite.config.js
 ```
 
-#### 目录说明
-- .webpackrc配置文件[参考配置](https://github.com/sorrycc/roadhog/blob/master/README_zh-cn.md)
-- .roadhogrc.mock.js 模拟接口数据文件
+## 前端目录约定
+
+- `src/app/lib` 只放通用能力和工具函数，不放业务页面请求
+- `src/app/services` 存放接口请求，并尽量与 `pages` 页面职责对齐
+- `src/app/pages/<page>/page.jsx` 只负责页面编排
+- `components/` 放页面内小组件、弹窗、搜索表单
+- `configs/` 放表格列、静态配置
+- `utils/` 放表单归一化、payload 构建、常量
+- `hooks/` 放页面内专用 hooks
+
+## 开发环境
+
+- Node.js: 建议 `18+`
+- npm: 建议 `9+`
+- 默认前端端口: `8888`
+- 默认后端端口: `3000`
+
+前端默认请求后端地址：
+
+```text
+http://localhost:3000/
+```
+
+如需覆盖，可在前端环境变量中设置：
+
+```env
+VITE_API_BASE_URL=http://localhost:3000/
+```
 
 ## 快速开始
 
-#### 安装依赖
+### 1. 安装前端依赖
+
 ```bash
-$ npm install
+npm install
 ```
 
-#### 项目启动
+### 2. 启动前端
+
 ```bash
-$ npm start
-打开 http://localhost:8888
+npm run dev
 ```
 
-#### 项目发布
-```bash
-$ npm build
+访问：
+
+```text
+http://localhost:8888
 ```
 
-#### 代码检测
+### 3. 启动后端开发服务
+
+在仓库根目录执行：
+
 ```bash
-npm run lint
+npm run dev:api
 ```
+
+后端详细说明见 [backend/README.md](./backend/README.md)。
+
+## 常用脚本
+
+### 前端
+
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+### 后端
+
+```bash
+npm run dev:api
+npm run build:api
+npm run start:api
+```
+
+## 构建
+
+前端生产构建：
+
+```bash
+npm run build
+```
+
+预览构建结果：
+
+```bash
+npm run preview
+```
+
+## 路由与页面说明
+
+当前路由定义位于 [src/app/router.jsx](./src/app/router.jsx)。
+
+主要页面包括：
+
+- 登录
+- 首页 Dashboard
+- 用户 / 角色 / 菜单
+- 会员 / 会员信息 / 会员等级 / 邀请明细 / 学习记录
+- 订单 / 精品课程订单
+- 教材 / 单元 / Part / 关卡 / 小关卡 / 大关卡 / 题目 / 素材
+- 活动 / 精品课程 / 课程包 / 课程包课程 / 课程包活动 / 课程用户
+
+项目同时保留了一部分旧地址别名路由，用于兼容旧后台跳转。
+
+## 请求与鉴权
+
+- 请求封装位于 [src/app/lib/http.js](./src/app/lib/http.js)
+- 默认通过请求头 `token` 传递登录态
+- 当后端返回业务码 `45` 或 `46` 时，会按登录失效处理并抛错
+
+## UI 规范
+
+- 全局 `antd` 组件默认尺寸统一为 `small`
+- 列表页优先复用：
+  - [PageHeaderCard.jsx](./src/app/components/page/PageHeaderCard.jsx)
+  - [PageToolbarCard.jsx](./src/app/components/page/PageToolbarCard.jsx)
+  - [SearchFormActions.jsx](./src/app/components/forms/SearchFormActions.jsx)
+- 表单、弹窗、上传、列表查询尽量走统一 hooks：
+  - `useRemoteTable`
+  - `useFormModal`
+  - `useUploadState`
+  - `useMultiUploadState`
+
+## 后端说明
+
+后端位于 [backend](./backend)，技术栈为：
+
+- `NestJS 11`
+- `Prisma`
+- `PostgreSQL`
+
+后端初始化、数据库和种子数据说明见：
+
+- [backend/README.md](./backend/README.md)
+- [backend/API.md](./backend/API.md)
+
+## 迁移说明
+
+仓库已经完成旧版目录的大规模清理，当前默认以 `src/app` 作为唯一有效前端实现目录。后续新功能与重构都应基于这套目录继续推进，不再回到旧的 `src/pages` / `dva model` 架构。

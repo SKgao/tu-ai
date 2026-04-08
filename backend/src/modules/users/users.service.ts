@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
+import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { hashPassword } from '../../common/password';
 import { PrismaService } from '../../prisma/prisma.service';
+import { composeWhere, contains, dateRange } from '../../prisma/where';
 import { normalizePrimitivePayload } from '../access/shared';
 
 type ListUsersPayload = {
@@ -38,29 +41,16 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listUsers(payload: ListUsersPayload = {}) {
-    const pageNum = Math.max(1, Number(payload.pageNum || 1));
-    const pageSize = Math.max(1, Number(payload.pageSize || 10));
-    const account = String(payload.account ?? '').trim();
-    const startTime = payload.startTime ? new Date(payload.startTime) : null;
-    const endTime = payload.endTime ? new Date(payload.endTime) : null;
+    const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
+    const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
+    const account = toOptionalString(payload.account);
+    const startTime = parseDate(payload.startTime);
+    const endTime = parseDate(payload.endTime);
 
-    const where: Prisma.UserWhereInput = {
-      ...(account
-        ? {
-            account: {
-              contains: account,
-            },
-          }
-        : {}),
-      ...(startTime || endTime
-        ? {
-            createdAt: {
-              ...(startTime ? { gte: startTime } : {}),
-              ...(endTime ? { lte: endTime } : {}),
-            },
-          }
-        : {}),
-    };
+    const where = composeWhere<Prisma.UserWhereInput>(
+      contains('account', account),
+      dateRange('createdAt', startTime, endTime),
+    );
 
     const [totalCount, rows] = await this.prisma.$transaction([
       this.prisma.user.count({ where }),
@@ -89,13 +79,9 @@ export class UsersService {
   }
 
   async createUser(payload: CreateUserPayload) {
-    const account = String(payload.account ?? '').trim();
-    const password = String(payload.password ?? '').trim();
-    const roleId = Number(payload.roleid || 1);
-
-    if (!account || !password) {
-      throw new BadRequestException('用户名和密码不能为空');
-    }
+    const account = requireText(payload.account, '用户名和密码不能为空');
+    const password = requireText(payload.password, '用户名和密码不能为空');
+    const roleId = toOptionalNumber(payload.roleid, 1) ?? 1;
 
     const existing = await this.prisma.user.findUnique({
       where: {
@@ -119,11 +105,11 @@ export class UsersService {
       data: {
         account,
         username: account,
-        passwordHash: password,
-        email: this.optionalString(payload.email),
-        phone: this.optionalString(payload.phone),
-        avatar: this.optionalString(payload.avatar),
-        status: Number(payload.status ?? 1),
+        passwordHash: await hashPassword(password),
+        email: toOptionalString(payload.email),
+        phone: toOptionalString(payload.phone),
+        avatar: toOptionalString(payload.avatar),
+        status: toOptionalNumber(payload.status, 1) ?? 1,
         roleId,
       },
     });
@@ -136,10 +122,7 @@ export class UsersService {
   }
 
   async updateUser(payload: UpdateUserPayload) {
-    const id = Number(payload.id);
-    if (!id) {
-      throw new BadRequestException('缺少用户 ID');
-    }
+    const id = requireNumber(payload.id, '缺少用户 ID');
 
     const user = await this.prisma.user.findUnique({
       where: {
@@ -153,7 +136,7 @@ export class UsersService {
     if (payload.roleid !== undefined) {
       const role = await this.prisma.role.findUnique({
         where: {
-          id: Number(payload.roleid),
+          id: requireNumber(payload.roleid, '角色不存在'),
         },
       });
       if (!role) {
@@ -163,34 +146,30 @@ export class UsersService {
 
     const data: Prisma.UserUpdateInput = {};
     if (payload.password !== undefined) {
-      const password = String(payload.password).trim();
-      if (!password) {
-        throw new BadRequestException('密码不能为空');
-      }
-      data.passwordHash = password;
+      data.passwordHash = await hashPassword(requireText(payload.password, '密码不能为空'));
     }
     if (payload.email !== undefined) {
-      data.email = this.optionalString(payload.email);
+      data.email = toOptionalString(payload.email);
     }
     if (payload.phone !== undefined) {
-      data.phone = this.optionalString(payload.phone);
+      data.phone = toOptionalString(payload.phone);
     }
     if (payload.avatar !== undefined) {
-      data.avatar = this.optionalString(payload.avatar);
+      data.avatar = toOptionalString(payload.avatar);
     }
     if (payload.name !== undefined) {
-      data.name = this.optionalString(payload.name);
+      data.name = toOptionalString(payload.name);
     }
     if (payload.sex !== undefined) {
-      data.sex = payload.sex ? Number(payload.sex) : null;
+      data.sex = payload.sex ? toOptionalNumber(payload.sex) ?? null : null;
     }
     if (payload.status !== undefined) {
-      data.status = Number(payload.status);
+      data.status = requireNumber(payload.status, '状态不能为空');
     }
     if (payload.roleid !== undefined) {
       data.role = {
         connect: {
-          id: Number(payload.roleid),
+          id: requireNumber(payload.roleid, '角色不存在'),
         },
       };
     }
@@ -210,10 +189,7 @@ export class UsersService {
   }
 
   async deleteUser(payload: unknown) {
-    const id = Number(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id);
-    if (!id) {
-      throw new BadRequestException('缺少用户 ID');
-    }
+    const id = requireNumber(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id, '缺少用户 ID');
 
     await this.assertUserExists(id);
     await this.prisma.user.update({
@@ -237,10 +213,7 @@ export class UsersService {
   }
 
   private async updateStatus(payload: unknown, status: number, message: string) {
-    const id = Number(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id);
-    if (!id) {
-      throw new BadRequestException('缺少用户 ID');
-    }
+    const id = requireNumber(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id, '缺少用户 ID');
 
     await this.assertUserExists(id);
     await this.prisma.user.update({
@@ -283,10 +256,5 @@ export class UsersService {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
-  }
-
-  private optionalString(value: unknown) {
-    const text = String(value ?? '').trim();
-    return text ? text : null;
   }
 }

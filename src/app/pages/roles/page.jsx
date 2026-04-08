@@ -1,18 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  App,
-  Button,
-  Card,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Space,
-  Table,
-  Tree,
-  Typography,
-} from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { App, Button, Card, Form, Popconfirm, Space, Table, Typography } from 'antd';
+import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
+import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import {
   createRole,
   getRoleMenus,
@@ -20,24 +9,12 @@ import {
   removeRole,
   setRoleAuthorities,
 } from '@/app/services/roles';
-
-function flattenMenuIds(tree, acc = []) {
-  tree.forEach((item) => {
-    acc.push(item.id);
-    if (item.children?.length) {
-      flattenMenuIds(item.children, acc);
-    }
-  });
-  return acc;
-}
-
-function transformTreeData(tree = []) {
-  return tree.map((item) => ({
-    key: item.id,
-    title: item.name,
-    children: transformTreeData(item.children || []),
-  }));
-}
+import { useFormModal } from '@/app/hooks/useFormModal';
+import { RoleAuthorityModal } from './components/RoleAuthorityModal';
+import { RoleCreateModal } from './components/RoleCreateModal';
+import { RoleSearchForm } from './components/RoleSearchForm';
+import { INITIAL_ROLE_FILTERS } from './utils/forms';
+import { flattenRoleMenuIds, transformRoleTreeData } from './utils/tree';
 
 export function RoleManagementPage() {
   const { message } = App.useApp();
@@ -49,11 +26,27 @@ export function RoleManagementPage() {
   const [checkedKeys, setCheckedKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [treeLoading, setTreeLoading] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState({ id: '', name: '' });
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const createModal = useFormModal({
+    submitting,
+    onOpenCreate: () => {
+      createForm.setFieldsValue({ name: '' });
+    },
+  });
+  const authModal = useFormModal({
+    submitting,
+    onOpenEdit: (role) => {
+      setCurrentRole({ id: role.id, name: role.name });
+      loadRoleTree(role.id).catch(() => {});
+    },
+    onClose: () => {
+      setCheckedKeys([]);
+      setTree([]);
+      setCurrentRole({ id: '', name: '' });
+    },
+  });
 
   async function loadRoles(nextKeyword = keyword) {
     setLoading(true);
@@ -72,7 +65,7 @@ export function RoleManagementPage() {
     try {
       const [allMenus, currentMenus] = await Promise.all([getRoleMenus(1), getRoleMenus(roleId)]);
       setTree(Array.isArray(allMenus) ? allMenus : []);
-      setCheckedKeys(flattenMenuIds(Array.isArray(currentMenus) ? currentMenus : []));
+      setCheckedKeys(flattenRoleMenuIds(Array.isArray(currentMenus) ? currentMenus : []));
     } catch (error) {
       message.error(error?.message || '权限树加载失败');
       setTree([]);
@@ -97,11 +90,6 @@ export function RoleManagementPage() {
     loadRoles('');
   }
 
-  function openCreateModal() {
-    createForm.setFieldsValue({ name: '' });
-    setCreateOpen(true);
-  }
-
   async function handleCreateRole(values) {
     if (!values.name?.trim()) {
       message.error('请输入角色名称');
@@ -112,7 +100,7 @@ export function RoleManagementPage() {
     try {
       await createRole(values.name.trim());
       message.success('角色创建成功');
-      setCreateOpen(false);
+      createModal.setOpen(false);
       await loadRoles();
     } catch (error) {
       message.error(error?.message || '角色创建失败');
@@ -135,9 +123,7 @@ export function RoleManagementPage() {
   }
 
   async function handleOpenAuth(role) {
-    setCurrentRole({ id: role.id, name: role.name });
-    setAuthOpen(true);
-    await loadRoleTree(role.id);
+    authModal.openEdit(role);
   }
 
   async function handleSubmitAuthorities() {
@@ -153,7 +139,7 @@ export function RoleManagementPage() {
         menuIds: checkedKeys.map((id) => Number(id)),
       });
       message.success('角色授权已更新');
-      setAuthOpen(false);
+      authModal.setOpen(false);
     } catch (error) {
       message.error(error?.message || '角色授权失败');
     } finally {
@@ -193,40 +179,21 @@ export function RoleManagementPage() {
 
   return (
     <div className="page-stack">
-      <Card>
-        <Space orientation="vertical" size={8}>
-          <Typography.Text type="secondary">Legacy Rewrite</Typography.Text>
-          <Typography.Title level={2} style={{ margin: 0 }}>
-            角色管理
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            这一页对应旧版角色管理模块，保留角色查询、创建、删除和角色授权能力。
-          </Typography.Paragraph>
-        </Space>
-      </Card>
+      <PageHeaderCard
+        title="角色管理"
+        description="这一页对应旧版角色管理模块，保留角色查询、创建、删除和角色授权能力。"
+      />
 
-      <Card>
-        <Form form={searchForm} layout="vertical" initialValues={{ keyword: '' }} onFinish={handleSearch}>
-          <div className="toolbar-grid toolbar-grid--compact">
-            <Form.Item label="角色名" name="keyword">
-              <Input placeholder="输入角色名" />
-            </Form.Item>
-            <Form.Item label=" ">
-              <Space wrap>
-                <Button type="primary" htmlType="submit" loading={loading}>
-                  搜索
-                </Button>
-                <Button onClick={handleReset} disabled={loading}>
-                  重置
-                </Button>
-                <Button type="primary" ghost icon={<PlusOutlined />} onClick={openCreateModal}>
-                  添加角色
-                </Button>
-              </Space>
-            </Form.Item>
-          </div>
-        </Form>
-      </Card>
+      <PageToolbarCard>
+        <RoleSearchForm
+          form={searchForm}
+          loading={loading}
+          initialValues={INITIAL_ROLE_FILTERS}
+          onSearch={handleSearch}
+          onReset={handleReset}
+          onCreate={createModal.openCreate}
+        />
+      </PageToolbarCard>
 
       <Card title="角色列表" extra={<Typography.Text type="secondary">当前共 {roles.length} 个角色</Typography.Text>}>
         <Table
@@ -238,54 +205,25 @@ export function RoleManagementPage() {
         />
       </Card>
 
-      <Modal
-        title="新增角色"
-        open={createOpen}
-        onCancel={() => setCreateOpen(false)}
-        onOk={() => createForm.submit()}
-        okText="创建"
-        cancelText="取消"
-        confirmLoading={submitting}
-        mask={{ closable: !submitting }}
-        keyboard={!submitting}
-      >
-        <Typography.Paragraph type="secondary">
-          创建新的后台角色，后续可继续分配权限菜单。
-        </Typography.Paragraph>
-        <Form form={createForm} layout="vertical" onFinish={handleCreateRole}>
-          <Form.Item label="角色名称" name="name" rules={[{ required: true, message: '请输入角色名' }]}>
-            <Input placeholder="请输入角色名" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <RoleCreateModal
+        open={createModal.open}
+        form={createForm}
+        submitting={submitting}
+        onCancel={createModal.close}
+        onSubmit={handleCreateRole}
+      />
 
-      <Modal
-        title={currentRole.name ? `给 ${currentRole.name} 授权` : '角色授权'}
-        open={authOpen}
-        onCancel={() => setAuthOpen(false)}
-        onOk={handleSubmitAuthorities}
-        okText="确认授权"
-        cancelText="取消"
-        confirmLoading={submitting}
-        width={660}
-        mask={{ closable: !submitting }}
-        keyboard={!submitting}
-      >
-        <Typography.Paragraph type="secondary">
-          提交时会自动带上当前选中的菜单树节点，保持授权结构完整。
-        </Typography.Paragraph>
-        {treeLoading ? <Typography.Text type="secondary">权限树加载中...</Typography.Text> : null}
-        {!treeLoading && !tree.length ? <Typography.Text type="secondary">暂无可授权菜单</Typography.Text> : null}
-        {!treeLoading && tree.length ? (
-          <Tree
-            checkable
-            defaultExpandAll
-            checkedKeys={checkedKeys}
-            treeData={transformTreeData(tree)}
-            onCheck={(nextCheckedKeys) => setCheckedKeys(nextCheckedKeys)}
-          />
-        ) : null}
-      </Modal>
+      <RoleAuthorityModal
+        open={authModal.open}
+        currentRole={currentRole}
+        treeLoading={treeLoading}
+        treeData={transformRoleTreeData(tree)}
+        checkedKeys={checkedKeys}
+        submitting={submitting}
+        onCancel={authModal.close}
+        onSubmit={handleSubmitAuthorities}
+        onCheck={(nextCheckedKeys) => setCheckedKeys(nextCheckedKeys)}
+      />
     </div>
   );
 }
