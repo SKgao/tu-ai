@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  account      String   @unique
+  username     String
+  passwordHash String
+  avatar       String?
+  phone        String?
+  email        String?
+  name         String?
+  sex          Int?
+  status       Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+}
+
+model MemberLevel {
+  userLevel   Int      @id
+  levelName   String
+  explainInfo String?  @default("")
+  exprieDays  Int?     @default(0)
+  orgMoney    Int?     @default(0)
+  needMoney   Int?     @default(0)
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     Member[]
+  orders      Order[]
+}
+
+model Member {
+  id                   Int              @id @default(autoincrement())
+  tutuNumber           Int              @unique
+  realName             String
+  icon                 String?
+  inviteCount          Int              @default(0)
+  channel              Int              @default(1)
+  hasBuyTextbook       Int              @default(0)
+  payTime              DateTime?
+  exprieTime           DateTime?
+  userMoney            Int              @default(0)
+  mobile               String?
+  email                String?
+  birthday             DateTime?
+  sex                  Int?
+  hasSetPassword       Int              @default(1)
+  bookVersionName      String?
+  textbookNamePractice String?
+  status               Int              @default(1)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  userLevel            Int              @default(0)
+  level                MemberLevel      @relation(fields: [userLevel], references: [userLevel])
+  feedbacks            MemberFeedback[]
+  orders               Order[]
+
+  @@index([userLevel])
+  @@index([status])
+  @@index([mobile])
+  @@index([createdAt])
+  @@index([payTime])
+  @@index([exprieTime])
+}
+
+model MemberFeedback {
+  id        Int      @id @default(autoincrement())
+  memberId   Int
+  content   String
+  createdAt DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  title     String
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Course {
+  textbookId   Int      @id
+  textbookName String
+  status       Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
+model Order {
+  id              Int          @id @default(autoincrement())
+  orderNo         String       @unique
+  memberId        Int
+  itemId          Int?
+  itemName        String
+  orderAmount     Int          @default(0)
+  payType         Int          @default(1)
+  orderStatus     Int          @default(1)
+  payTime         DateTime?
+  outNo           String?
+  cancelReason    String?
+  activityId      Int?
+  textbookId      Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  member          Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  level           MemberLevel? @relation(fields: [itemId], references: [userLevel])
+  activity        Activity?    @relation(fields: [activityId], references: [id])
+  course          Course?      @relation(fields: [textbookId], references: [textbookId])
+
+  @@index([memberId])
+  @@index([itemId])
+  @@index([payType])
+  @@index([orderStatus])
+  @@index([activityId])
+  @@index([textbookId])
+  @@index([createdAt])
+}
+
+model Role {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     User[]
+  roleMenus RoleMenu[]
+}
+
+model Menu {
+  id         Int        @id @default(autoincrement())
+  parentId   Int?
+  parent     Menu?      @relation("MenuTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Menu[]     @relation("MenuTree")
+  menuName   String
+  path       String     @unique
+  icon       String
+  menuScope  Int        @default(1)
+  url        String     @default("")
+  status     Int        @default(1)
+  sortValue  Int        @default(0)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  roleMenus  RoleMenu[]
+}
+
+model RoleMenu {
+  roleId     Int
+  menuId     Int
+  createdAt  DateTime @default(now())
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu       Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@index([menuId])
+}

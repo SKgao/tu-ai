@@ -1,0 +1,62 @@
+/**
+ * 主体颜色
+ * @type {[type]}
+ */
+ $theme-color: #1890ff;
+ $hover-color: #40a9ff;
+
+ /**
+  * 左侧导航宽度
+  * @type {[type]}
+  */
+ $left-width: 240px;
+
+ /**
+  * 顶部菜单高度
+  */
+ $top-height: 56px;
+
+
+
+ /**
+  * processing颜色
+  * @type {[type]}
+  */
+  $processing-color: #1890ff;
+  $processing-hover-color: rgba(#1890ff, 0.85);
+
+
+ /**
+  * success颜色
+  * @type {[type]}
+  */
+ $success-color: #52c41a;
+ $success-hover-color: rgba(#52c41a, 0.85);
+
+ /**
+  * danger颜色
+  * @type {[type]}
+  */
+ $danger-color: #f5222d;
+ $danger-hover-color: rgba(#f5222d, 0.85);
+
+
+ /**
+  * warning颜色
+  * @type {[type]}
+  */
+  $warning-color: #faad14;
+  $warning-hover-color: rgba(#faad14, 0.85);
+
+
+  /**
+  * warning颜色
+  * @type {[type]}
+  */
+  $default-color: #d9d9d9;
+  $default-hover-color: rgba(#d9d9d9, 0.85);
+
+
+ // 涨跌颜色
+ $up-color: red;
+ $down-color: green;
