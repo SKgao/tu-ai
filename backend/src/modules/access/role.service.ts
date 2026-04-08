@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { requireNumber, requireText, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
+import { contains } from '../../prisma/where';
 import { buildMenuTree, normalizePrimitivePayload } from './shared';
 
 type RoleListPayload = {
@@ -23,15 +25,9 @@ export class RoleService {
 
   async listRoles(payload: unknown) {
     const parsed = normalizePrimitivePayload<RoleListPayload>(payload, 'keyword');
-    const keyword = String(parsed.keyword ?? parsed.name ?? '').trim();
+    const keyword = toOptionalString(parsed.keyword) || toOptionalString(parsed.name);
     const roles = await this.prisma.role.findMany({
-      where: keyword
-        ? {
-            name: {
-              contains: keyword,
-            },
-          }
-        : undefined,
+      where: contains('name', keyword),
       orderBy: {
         id: 'asc',
       },
@@ -51,11 +47,7 @@ export class RoleService {
 
   async createRole(payload: unknown) {
     const parsed = normalizePrimitivePayload<RoleCreatePayload>(payload, 'name');
-    const name = String(parsed.name ?? parsed.rolename ?? '').trim();
-
-    if (!name) {
-      throw new BadRequestException('角色名称不能为空');
-    }
+    const name = requireText(parsed.name ?? parsed.rolename, '角色名称不能为空');
 
     const exists = await this.prisma.role.findUnique({
       where: {
@@ -81,11 +73,7 @@ export class RoleService {
 
   async deleteRole(payload: unknown) {
     const parsed = normalizePrimitivePayload<{ id?: number }>(payload, 'id');
-    const id = Number(parsed.id);
-
-    if (!id) {
-      throw new BadRequestException('缺少角色 ID');
-    }
+    const id = requireNumber(parsed.id, '缺少角色 ID');
 
     if (id === 1) {
       throw new BadRequestException('系统内置角色不允许删除');
@@ -157,12 +145,8 @@ export class RoleService {
   }
 
   async setRoleAuthorities(payload: RoleAuthorityPayload) {
-    const roleId = Number(payload.roleId);
+    const roleId = requireNumber(payload.roleId, '缺少角色 ID');
     const menuIds = Array.isArray(payload.menuIds) ? payload.menuIds.map(Number).filter(Boolean) : [];
-
-    if (!roleId) {
-      throw new BadRequestException('缺少角色 ID');
-    }
 
     if (!menuIds.length) {
       throw new BadRequestException('请至少选择一个菜单');

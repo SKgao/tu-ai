@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/common/password';
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,10 @@ function daysAgo(days: number) {
 }
 
 async function main() {
+  const adminPasswordHash = await hashPassword(process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456');
+  const opsPasswordHash = await hashPassword('ops123456');
+  const editorPasswordHash = await hashPassword('editor123456');
+
   const menuSeeds = [
     {
       menuName: '用户管理',
@@ -158,7 +163,7 @@ async function main() {
     where: { account: process.env.DEFAULT_ADMIN_ACCOUNT || 'admin' },
     update: {
       username: process.env.DEFAULT_ADMIN_ACCOUNT || 'admin',
-      passwordHash: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456',
+      passwordHash: adminPasswordHash,
       avatar: process.env.DEFAULT_ADMIN_AVATAR || 'https://placehold.co/160x160/png',
       phone: '13800000001',
       email: 'admin@tutu.local',
@@ -170,7 +175,7 @@ async function main() {
     create: {
       account: process.env.DEFAULT_ADMIN_ACCOUNT || 'admin',
       username: process.env.DEFAULT_ADMIN_ACCOUNT || 'admin',
-      passwordHash: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456',
+      passwordHash: adminPasswordHash,
       avatar: process.env.DEFAULT_ADMIN_AVATAR || 'https://placehold.co/160x160/png',
       phone: '13800000001',
       email: 'admin@tutu.local',
@@ -185,7 +190,7 @@ async function main() {
     where: { account: 'ops_demo' },
     update: {
       username: 'ops_demo',
-      passwordHash: 'ops123456',
+      passwordHash: opsPasswordHash,
       avatar: 'https://placehold.co/160x160/png?text=OPS',
       phone: '13800000002',
       email: 'ops@tutu.local',
@@ -197,7 +202,7 @@ async function main() {
     create: {
       account: 'ops_demo',
       username: 'ops_demo',
-      passwordHash: 'ops123456',
+      passwordHash: opsPasswordHash,
       avatar: 'https://placehold.co/160x160/png?text=OPS',
       phone: '13800000002',
       email: 'ops@tutu.local',
@@ -212,7 +217,7 @@ async function main() {
     where: { account: 'editor_demo' },
     update: {
       username: 'editor_demo',
-      passwordHash: 'editor123456',
+      passwordHash: editorPasswordHash,
       avatar: 'https://placehold.co/160x160/png?text=EDT',
       phone: '13800000003',
       email: 'editor@tutu.local',
@@ -224,7 +229,7 @@ async function main() {
     create: {
       account: 'editor_demo',
       username: 'editor_demo',
-      passwordHash: 'editor123456',
+      passwordHash: editorPasswordHash,
       avatar: 'https://placehold.co/160x160/png?text=EDT',
       phone: '13800000003',
       email: 'editor@tutu.local',

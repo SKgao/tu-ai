@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Activity, Course, Order, Prisma } from '@prisma/client';
+import { toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
+import { composeWhere, contains, eq, nested } from '../../prisma/where';
 
 type OrderListPayload = {
   tutuNumber?: number | string;
@@ -28,49 +30,31 @@ export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listOrders(payload: OrderListPayload = {}) {
-    const pageNum = Math.max(1, this.parseOptionalNumber(payload.pageNum) ?? 1);
-    const pageSize = Math.max(1, this.parseOptionalNumber(payload.pageSize) ?? 10);
-    const where: Prisma.OrderWhereInput = {
-      ...(this.parseOptionalNumber(payload.tutuNumber)
-        ? {
-            member: {
-              tutuNumber: this.parseOptionalNumber(payload.tutuNumber),
-            },
-          }
-        : {}),
-      ...(this.optionalString(payload.orderNo)
-        ? {
-            orderNo: {
-              contains: this.optionalString(payload.orderNo)!,
-            },
-          }
-        : {}),
-      ...(this.parseOptionalNumber(payload.itemId) !== undefined
-        ? {
-            itemId: this.parseOptionalNumber(payload.itemId),
-          }
-        : {}),
-      ...(this.parseOptionalNumber(payload.payType) !== undefined
-        ? {
-            payType: this.parseOptionalNumber(payload.payType),
-          }
-        : {}),
-      ...(this.parseOptionalNumber(payload.orderStatus) !== undefined
-        ? {
-            orderStatus: this.parseOptionalNumber(payload.orderStatus),
-          }
-        : {}),
-      ...(this.parseOptionalNumber(payload.activityId) !== undefined
-        ? {
-            activityId: this.parseOptionalNumber(payload.activityId),
-          }
-        : {}),
-      ...(this.parseOptionalNumber(payload.textbookId) !== undefined
-        ? {
-            textbookId: this.parseOptionalNumber(payload.textbookId),
-          }
-        : {}),
-    };
+    const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
+    const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
+    const tutuNumber = toOptionalNumber(payload.tutuNumber);
+    const orderNo = toOptionalString(payload.orderNo);
+    const itemId = toOptionalNumber(payload.itemId);
+    const payType = toOptionalNumber(payload.payType);
+    const orderStatus = toOptionalNumber(payload.orderStatus);
+    const activityId = toOptionalNumber(payload.activityId);
+    const textbookId = toOptionalNumber(payload.textbookId);
+    const where = composeWhere<Prisma.OrderWhereInput>(
+      nested(
+        'member',
+        tutuNumber
+          ? {
+              tutuNumber,
+            }
+          : undefined,
+      ),
+      contains('orderNo', orderNo),
+      eq('itemId', itemId),
+      eq('payType', payType),
+      eq('orderStatus', orderStatus),
+      eq('activityId', activityId),
+      eq('textbookId', textbookId),
+    );
 
     const [totalCount, rows] = await this.prisma.$transaction([
       this.prisma.order.count({ where }),
@@ -191,23 +175,5 @@ export class OrdersService {
       return '超时关闭';
     }
     return '未知';
-  }
-
-  private parseOptionalNumber(value: unknown) {
-    if (value === '' || value === null || value === undefined) {
-      return undefined;
-    }
-
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-      return undefined;
-    }
-
-    return parsed;
-  }
-
-  private optionalString(value: unknown) {
-    const text = String(value ?? '').trim();
-    return text ? text : null;
   }
 }

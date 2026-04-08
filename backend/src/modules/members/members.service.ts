@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Member, MemberFeedback, MemberLevel, Prisma } from '@prisma/client';
+import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
+import { composeWhere, contains, dateRange, eq, inArray, nested } from '../../prisma/where';
 
 type MemberLevelPayload = {
   userLevel?: number | string;
@@ -85,8 +87,8 @@ export class MembersService {
   }
 
   async createMemberLevel(payload: MemberLevelPayload) {
-    const userLevel = this.parseRequiredNumber(payload.userLevel, '缺少会员等级 ID');
-    const levelName = this.requireText(payload.levelName, '会员等级名称不能为空');
+    const userLevel = requireNumber(payload.userLevel, '缺少会员等级 ID');
+    const levelName = requireText(payload.levelName, '会员等级名称不能为空');
 
     const existing = await this.prisma.memberLevel.findUnique({
       where: { userLevel },
@@ -100,11 +102,11 @@ export class MembersService {
       data: {
         userLevel,
         levelName,
-        explainInfo: this.optionalString(payload.explainInfo) || '',
-        exprieDays: this.parseOptionalNumber(payload.exprieDays, 0),
-        orgMoney: this.parseOptionalNumber(payload.orgMoney, 0),
-        needMoney: this.parseOptionalNumber(payload.needMoney, 0),
-        icon: this.optionalString(payload.icon),
+        explainInfo: toOptionalString(payload.explainInfo) || '',
+        exprieDays: toOptionalNumber(payload.exprieDays, 0),
+        orgMoney: toOptionalNumber(payload.orgMoney, 0),
+        needMoney: toOptionalNumber(payload.needMoney, 0),
+        icon: toOptionalString(payload.icon),
       },
     });
 
@@ -116,7 +118,7 @@ export class MembersService {
   }
 
   async updateMemberLevel(payload: MemberLevelPayload) {
-    const userLevel = this.parseRequiredNumber(payload.userLevel, '缺少会员等级 ID');
+    const userLevel = requireNumber(payload.userLevel, '缺少会员等级 ID');
     const level = await this.prisma.memberLevel.findUnique({
       where: { userLevel },
       select: { userLevel: true },
@@ -130,32 +132,32 @@ export class MembersService {
       data: {
         ...(payload.levelName !== undefined
           ? {
-              levelName: this.requireText(payload.levelName, '会员等级名称不能为空'),
+              levelName: requireText(payload.levelName, '会员等级名称不能为空'),
             }
           : {}),
         ...(payload.explainInfo !== undefined
           ? {
-              explainInfo: this.optionalString(payload.explainInfo) || '',
+              explainInfo: toOptionalString(payload.explainInfo) || '',
             }
           : {}),
         ...(payload.exprieDays !== undefined
           ? {
-              exprieDays: this.parseOptionalNumber(payload.exprieDays, 0),
+              exprieDays: toOptionalNumber(payload.exprieDays, 0),
             }
           : {}),
         ...(payload.orgMoney !== undefined
           ? {
-              orgMoney: this.parseOptionalNumber(payload.orgMoney, 0),
+              orgMoney: toOptionalNumber(payload.orgMoney, 0),
             }
           : {}),
         ...(payload.needMoney !== undefined
           ? {
-              needMoney: this.parseOptionalNumber(payload.needMoney, 0),
+              needMoney: toOptionalNumber(payload.needMoney, 0),
             }
           : {}),
         ...(payload.icon !== undefined
           ? {
-              icon: this.optionalString(payload.icon),
+              icon: toOptionalString(payload.icon),
             }
           : {}),
       },
@@ -169,7 +171,7 @@ export class MembersService {
   }
 
   async deleteMemberLevel(payload: number | string) {
-    const userLevel = this.parseRequiredNumber(payload, '缺少会员等级 ID');
+    const userLevel = requireNumber(payload, '缺少会员等级 ID');
     if (userLevel === 0) {
       throw new BadRequestException('默认会员等级不允许删除');
     }
@@ -204,8 +206,8 @@ export class MembersService {
   }
 
   async listMembers(payload: MemberListPayload = {}) {
-    const pageNum = Math.max(1, this.parseOptionalNumber(payload.pageNum) ?? 1);
-    const pageSize = Math.max(1, this.parseOptionalNumber(payload.pageSize) ?? 10);
+    const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
+    const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
     const where = this.buildMemberWhere(payload);
     const orderBy = this.buildMemberOrderBy(payload);
 
@@ -236,37 +238,23 @@ export class MembersService {
   }
 
   async listMemberFeedback(payload: MemberFeedbackPayload = {}) {
-    const pageNum = Math.max(1, this.parseOptionalNumber(payload.pageNum) ?? 1);
-    const pageSize = Math.max(1, this.parseOptionalNumber(payload.pageSize) ?? 10);
-    const startTime = this.parseDate(payload.startTime);
-    const endTime = this.parseDate(payload.endTime);
-    const tutuNumber = this.parseOptionalNumber(payload.tutuNumber);
-    const mobile = this.optionalString(payload.mobile);
+    const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
+    const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
+    const startTime = parseDate(payload.startTime);
+    const endTime = parseDate(payload.endTime);
+    const tutuNumber = toOptionalNumber(payload.tutuNumber);
+    const mobile = toOptionalString(payload.mobile);
 
-    const where: Prisma.MemberFeedbackWhereInput = {
-      ...(startTime || endTime
-        ? {
-            createdAt: {
-              ...(startTime ? { gte: startTime } : {}),
-              ...(endTime ? { lte: endTime } : {}),
-            },
-          }
-        : {}),
-      ...(tutuNumber || mobile
-        ? {
-            member: {
-              ...(tutuNumber ? { tutuNumber } : {}),
-              ...(mobile
-                ? {
-                    mobile: {
-                      contains: mobile,
-                    },
-                  }
-                : {}),
-            },
-          }
-        : {}),
-    };
+    const where = composeWhere<Prisma.MemberFeedbackWhereInput>(
+      dateRange('createdAt', startTime, endTime),
+      nested(
+        'member',
+        composeWhere(
+          tutuNumber ? eq('tutuNumber', tutuNumber) : undefined,
+          contains('mobile', mobile),
+        ),
+      ),
+    );
 
     const [totalCount, rows] = await this.prisma.$transaction([
       this.prisma.memberFeedback.count({ where }),
@@ -308,8 +296,8 @@ export class MembersService {
   }
 
   async grantVip(payload: GrantVipPayload) {
-    const userId = this.parseRequiredNumber(payload.userId, '缺少用户 ID');
-    const userLevel = this.parseRequiredNumber(payload.userLevel, '请选择会员等级');
+    const userId = requireNumber(payload.userId, '缺少用户 ID');
+    const userLevel = requireNumber(payload.userLevel, '请选择会员等级');
 
     const [member, level] = await Promise.all([
       this.prisma.member.findUnique({
@@ -352,86 +340,43 @@ export class MembersService {
   }
 
   private buildMemberWhere(payload: MemberListPayload): Prisma.MemberWhereInput {
-    const registerStartTime = this.parseDate(payload.registerStartTime);
-    const registerEndTime = this.parseDate(payload.registerEndTime);
-    const payStartTime = this.parseDate(payload.payStartTime);
-    const payEndTime = this.parseDate(payload.payEndTime);
-    const expireStartTime = this.parseDate(payload.expireStartTime);
-    const expireEndTime = this.parseDate(payload.expireEndTime);
+    const registerStartTime = parseDate(payload.registerStartTime);
+    const registerEndTime = parseDate(payload.registerEndTime);
+    const payStartTime = parseDate(payload.payStartTime);
+    const payEndTime = parseDate(payload.payEndTime);
+    const expireStartTime = parseDate(payload.expireStartTime);
+    const expireEndTime = parseDate(payload.expireEndTime);
     const userLevelIds = Array.isArray(payload.userLevelIds)
       ? payload.userLevelIds
-          .map((item) => this.parseOptionalNumber(item))
+          .map((item) => toOptionalNumber(item))
           .filter((item): item is number => item !== undefined)
       : [];
-    const tutuNumber = this.parseOptionalNumber(payload.tutuNumber);
-    const mobile = this.optionalString(payload.mobile);
-    const sex = this.parseOptionalNumber(payload.sex);
-    const hasSetPassword = this.parseOptionalNumber(payload.hasSetPassword);
+    const tutuNumber = toOptionalNumber(payload.tutuNumber);
+    const mobile = toOptionalString(payload.mobile);
+    const sex = toOptionalNumber(payload.sex);
+    const hasSetPassword = toOptionalNumber(payload.hasSetPassword);
 
-    return {
-      status: {
-        in: [1, 2],
+    return composeWhere<Prisma.MemberWhereInput>(
+      {
+        status: {
+          in: [1, 2],
+        },
       },
-      ...(userLevelIds.length
-        ? {
-            userLevel: {
-              in: userLevelIds,
-            },
-          }
-        : {}),
-      ...(tutuNumber
-        ? {
-            tutuNumber,
-          }
-        : {}),
-      ...(mobile
-        ? {
-            mobile: {
-              contains: mobile,
-            },
-          }
-        : {}),
-      ...(sex
-        ? {
-            sex,
-          }
-        : {}),
-      ...(hasSetPassword
-        ? {
-            hasSetPassword,
-          }
-        : {}),
-      ...(registerStartTime || registerEndTime
-        ? {
-            createdAt: {
-              ...(registerStartTime ? { gte: registerStartTime } : {}),
-              ...(registerEndTime ? { lte: registerEndTime } : {}),
-            },
-          }
-        : {}),
-      ...(payStartTime || payEndTime
-        ? {
-            payTime: {
-              ...(payStartTime ? { gte: payStartTime } : {}),
-              ...(payEndTime ? { lte: payEndTime } : {}),
-            },
-          }
-        : {}),
-      ...(expireStartTime || expireEndTime
-        ? {
-            exprieTime: {
-              ...(expireStartTime ? { gte: expireStartTime } : {}),
-              ...(expireEndTime ? { lte: expireEndTime } : {}),
-            },
-          }
-        : {}),
-    };
+      inArray('userLevel', userLevelIds),
+      tutuNumber ? eq('tutuNumber', tutuNumber) : undefined,
+      contains('mobile', mobile),
+      sex ? eq('sex', sex) : undefined,
+      hasSetPassword ? eq('hasSetPassword', hasSetPassword) : undefined,
+      dateRange('createdAt', registerStartTime, registerEndTime),
+      dateRange('payTime', payStartTime, payEndTime),
+      dateRange('exprieTime', expireStartTime, expireEndTime),
+    );
   }
 
   private buildMemberOrderBy(payload: MemberListPayload): Prisma.MemberOrderByWithRelationInput[] {
     const orderBy: Prisma.MemberOrderByWithRelationInput[] = [];
-    const sortInvite = this.parseOptionalNumber(payload.sortInvite);
-    const sortUserId = this.parseOptionalNumber(payload.sortUserId);
+    const sortInvite = toOptionalNumber(payload.sortInvite);
+    const sortUserId = toOptionalNumber(payload.sortUserId);
 
     if (sortUserId !== undefined) {
       orderBy.push({
@@ -453,7 +398,7 @@ export class MembersService {
   }
 
   private async updateMemberStatus(payload: number | string, status: number, message: string) {
-    const id = this.parseRequiredNumber(payload, '缺少用户 ID');
+    const id = requireNumber(payload, '缺少用户 ID');
     const member = await this.prisma.member.findUnique({
       where: { id },
       select: { id: true },
@@ -522,48 +467,5 @@ export class MembersService {
       content: item.content,
       createdAt: item.createdAt.toISOString(),
     };
-  }
-
-  private parseRequiredNumber(value: unknown, message: string) {
-    const parsed = this.parseOptionalNumber(value);
-    if (parsed === undefined) {
-      throw new BadRequestException(message);
-    }
-    return parsed;
-  }
-
-  private parseOptionalNumber(value: unknown, fallback?: number) {
-    if (value === '' || value === null || value === undefined) {
-      return fallback;
-    }
-
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-      return fallback;
-    }
-
-    return parsed;
-  }
-
-  private parseDate(value: unknown) {
-    if (!value) {
-      return null;
-    }
-
-    const parsed = new Date(String(value));
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  private optionalString(value: unknown) {
-    const text = String(value ?? '').trim();
-    return text ? text : null;
-  }
-
-  private requireText(value: unknown, message: string) {
-    const text = String(value ?? '').trim();
-    if (!text) {
-      throw new BadRequestException(message);
-    }
-    return text;
   }
 }

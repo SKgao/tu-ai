@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { toOptionalString } from '../../common/parsers';
+import { hashPassword, isPasswordHash, verifyPassword } from '../../common/password';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -17,8 +19,8 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
   async login(payload: LoginDto) {
-    const identity = payload.account?.trim() || payload.username?.trim() || '';
-    const password = payload.password?.trim() || '';
+    const identity = toOptionalString(payload.account) || toOptionalString(payload.username) || '';
+    const password = toOptionalString(payload.password) || '';
 
     if (!identity || !password) {
       return {
@@ -34,12 +36,46 @@ export class AuthService {
       },
     });
 
-    if (!user || user.passwordHash !== password || user.status !== 1) {
+    if (!user) {
       return {
         code: 1,
         message: '用户名或密码错误',
         data: null,
       };
+    }
+
+    if (user.status === 2) {
+      return {
+        code: 1,
+        message: '账号已被禁用',
+        data: null,
+      };
+    }
+
+    if (user.status !== 1) {
+      return {
+        code: 1,
+        message: '用户名或密码错误',
+        data: null,
+      };
+    }
+
+    const passwordMatched = await verifyPassword(password, user.passwordHash);
+    if (!passwordMatched) {
+      return {
+        code: 1,
+        message: '用户名或密码错误',
+        data: null,
+      };
+    }
+
+    if (!isPasswordHash(user.passwordHash)) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: await hashPassword(password),
+        },
+      });
     }
 
     return {
