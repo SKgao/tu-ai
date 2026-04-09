@@ -3,18 +3,9 @@ import { Activity, Course, Order, Prisma } from '@prisma/client';
 import { toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, eq, nested } from '../../prisma/where';
+import { ListOrdersDto } from './dto/list-orders.dto';
 
-type OrderListPayload = {
-  tutuNumber?: number | string;
-  orderNo?: string;
-  itemId?: number | string;
-  payType?: number | string;
-  orderStatus?: number | string;
-  activityId?: number | string;
-  textbookId?: number | string;
-  pageNum?: number | string;
-  pageSize?: number | string;
-};
+type OrderListMode = 'all' | 'course';
 
 type OrderListItem = Order & {
   member: {
@@ -29,32 +20,18 @@ type OrderListItem = Order & {
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listOrders(payload: OrderListPayload = {}) {
+  async listOrders(payload: ListOrdersDto = {}) {
+    return this.listOrderPage(payload, 'all');
+  }
+
+  async listCourseOrders(payload: ListOrdersDto = {}) {
+    return this.listOrderPage(payload, 'course');
+  }
+
+  private async listOrderPage(payload: ListOrdersDto, mode: OrderListMode) {
     const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
     const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
-    const tutuNumber = toOptionalNumber(payload.tutuNumber);
-    const orderNo = toOptionalString(payload.orderNo);
-    const itemId = toOptionalNumber(payload.itemId);
-    const payType = toOptionalNumber(payload.payType);
-    const orderStatus = toOptionalNumber(payload.orderStatus);
-    const activityId = toOptionalNumber(payload.activityId);
-    const textbookId = toOptionalNumber(payload.textbookId);
-    const where = composeWhere<Prisma.OrderWhereInput>(
-      nested(
-        'member',
-        tutuNumber
-          ? {
-              tutuNumber,
-            }
-          : undefined,
-      ),
-      contains('orderNo', orderNo),
-      eq('itemId', itemId),
-      eq('payType', payType),
-      eq('orderStatus', orderStatus),
-      eq('activityId', activityId),
-      eq('textbookId', textbookId),
-    );
+    const where = this.buildOrderWhere(payload, mode);
 
     const [totalCount, rows] = await this.prisma.$transaction([
       this.prisma.order.count({ where }),
@@ -78,7 +55,7 @@ export class OrdersService {
 
     return {
       code: 0,
-      message: '订单列表获取成功',
+      message: mode === 'course' ? '课程订单列表获取成功' : '订单列表获取成功',
       data: {
         data: rows.map((order) => this.serializeOrder(order)),
         totalCount,
@@ -89,23 +66,39 @@ export class OrdersService {
     };
   }
 
-  async listActivityOptions() {
-    const rows = await this.prisma.activity.findMany({
-      where: {
-        status: 1,
-      },
-      orderBy: [{ id: 'asc' }],
-      select: {
-        id: true,
-        title: true,
-      },
-    });
+  private buildOrderWhere(payload: ListOrdersDto, mode: OrderListMode): Prisma.OrderWhereInput {
+    const tutuNumber = toOptionalNumber(payload.tutuNumber);
+    const orderNo = toOptionalString(payload.orderNo);
+    const itemId = toOptionalNumber(payload.itemId);
+    const payType = toOptionalNumber(payload.payType);
+    const orderStatus = toOptionalNumber(payload.orderStatus);
+    const activityId = toOptionalNumber(payload.activityId);
+    const textbookId = toOptionalNumber(payload.textbookId);
 
-    return {
-      code: 0,
-      message: '活动选项获取成功',
-      data: rows,
-    };
+    return composeWhere<Prisma.OrderWhereInput>(
+      nested(
+        'member',
+        tutuNumber
+          ? {
+              tutuNumber,
+            }
+          : undefined,
+      ),
+      contains('orderNo', orderNo),
+      eq('itemId', itemId),
+      eq('payType', payType),
+      eq('orderStatus', orderStatus),
+      eq('activityId', activityId),
+      mode === 'course'
+        ? textbookId !== undefined
+          ? eq('textbookId', textbookId)
+          : {
+              textbookId: {
+                not: null,
+              },
+            }
+        : eq('textbookId', textbookId),
+    );
   }
 
   async listCourseOptions() {

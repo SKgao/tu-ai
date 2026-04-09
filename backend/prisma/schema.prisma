@@ -35,6 +35,7 @@ model MemberLevel {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   members     Member[]
+  activities  Activity[]
   orders      Order[]
 }
 
@@ -84,21 +85,125 @@ model MemberFeedback {
 }
 
 model Activity {
+  id               Int          @id @default(autoincrement())
+  title            String
+  content          String?
+  icon             String?
+  activeMoney      Int?
+  status           Int          @default(1)
+  activityType     Int          @default(1)
+  itemId           Int?
+  activeExpireDays Int?
+  beginAt          DateTime?
+  endAt            DateTime?
+  url              String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  level            MemberLevel? @relation(fields: [itemId], references: [userLevel])
+  orders           Order[]
+
+  @@index([status])
+  @@index([activityType])
+  @@index([itemId])
+  @@index([createdAt])
+}
+
+model Grade {
   id        Int      @id @default(autoincrement())
-  title     String
-  status    Int      @default(1)
+  gradeName String   @unique
+  status    Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  orders    Order[]
+  courses   Course[]
+}
+
+model BookVersion {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  courses   Course[]
+}
+
+model CourseBag {
+  id        Int              @id @default(autoincrement())
+  title     String           @unique
+  icon      String?
+  sort      Int              @default(0)
+  status    Int              @default(1)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  courses   CourseBagCourse[]
+
+  @@index([status])
+  @@index([sort])
+  @@index([createdAt])
+}
+
+model CourseBagCourse {
+  id        Int       @id @default(autoincrement())
+  bagId     Int
+  name      String
+  icon      String?
+  sort      Int       @default(0)
+  status    Int       @default(1)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bag       CourseBag @relation(fields: [bagId], references: [id], onDelete: Cascade)
+  activities CourseBagActivity[]
+
+  @@index([bagId])
+  @@index([status])
+  @@index([sort])
+  @@index([createdAt])
+}
+
+model CourseBagActivity {
+  id         Int            @id
+  textbookId Int
+  teacher    String
+  status     Int            @default(1)
+  type       Int            @default(1)
+  saleBeginAt DateTime
+  saleEndAt  DateTime
+  beginAt    DateTime?
+  endAt      DateTime?
+  orgAmt     Int            @default(0)
+  amt        Int            @default(0)
+  num        Int            @default(0)
+  chatNo     String?
+  iconDetail String?
+  iconTicket String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  course     CourseBagCourse @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+
+  @@index([textbookId])
+  @@index([status])
+  @@index([type])
+  @@index([saleBeginAt])
+  @@index([createdAt])
 }
 
 model Course {
-  textbookId   Int      @id
-  textbookName String
-  status       Int      @default(1)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  orders       Order[]
+  textbookId    Int          @id
+  textbookName  String
+  icon          String?
+  gradeId       Int?
+  bookVersionId Int?
+  sortValue     Int          @default(0)
+  canLock       Int          @default(1)
+  status        Int          @default(1)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  grade         Grade?       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  bookVersion   BookVersion? @relation(fields: [bookVersionId], references: [id], onDelete: SetNull)
+  orders        Order[]
+
+  @@index([gradeId])
+  @@index([bookVersionId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Order {

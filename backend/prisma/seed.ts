@@ -16,6 +16,12 @@ function daysAgo(days: number) {
   return value;
 }
 
+async function resetSerialSequence(tableName: string, columnName = 'id') {
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"${tableName}"', '${columnName}'), COALESCE(MAX("${columnName}"), 1), true) FROM "${tableName}";`,
+  );
+}
+
 async function main() {
   const adminPasswordHash = await hashPassword(process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456');
   const opsPasswordHash = await hashPassword('ops123456');
@@ -454,9 +460,51 @@ async function main() {
   });
 
   const activities = [
-    { id: 1, title: '新春限时会员活动', status: 1 },
-    { id: 2, title: '开学季课程礼包', status: 1 },
-    { id: 3, title: '暑期成长计划', status: 1 },
+    {
+      id: 1,
+      title: '新春限时会员活动',
+      content: '春节期间购买年度会员享专属优惠。',
+      icon: 'https://placehold.co/320x180/png?text=Spring',
+      activeMoney: 129900,
+      status: 1,
+      activityType: 1,
+      itemId: 1,
+      activeExpireDays: 30,
+      beginAt: daysAgo(7),
+      endAt: daysFromNow(23),
+      url: 'https://example.com/activities/spring',
+      createdAt: daysAgo(10),
+    },
+    {
+      id: 2,
+      title: '开学季课程礼包',
+      content: '新学期课程礼包限时开售，适合基础班学员。',
+      icon: 'https://placehold.co/320x180/png?text=School',
+      activeMoney: 199900,
+      status: 1,
+      activityType: 1,
+      itemId: 2,
+      activeExpireDays: 45,
+      beginAt: daysAgo(2),
+      endAt: daysFromNow(43),
+      url: 'https://example.com/activities/school',
+      createdAt: daysAgo(5),
+    },
+    {
+      id: 3,
+      title: '暑期成长计划',
+      content: '分享活动海报可领取暑期成长资料包。',
+      icon: 'https://placehold.co/320x180/png?text=Summer',
+      activeMoney: null,
+      status: 2,
+      activityType: 2,
+      itemId: null,
+      activeExpireDays: 60,
+      beginAt: daysFromNow(30),
+      endAt: daysFromNow(90),
+      url: 'https://example.com/activities/summer',
+      createdAt: daysAgo(1),
+    },
   ];
 
   for (const activity of activities) {
@@ -466,12 +514,239 @@ async function main() {
       create: activity,
     });
   }
+  await resetSerialSequence('Activity');
+
+  const grades = [
+    { id: 1, gradeName: '启蒙班', status: 10 },
+    { id: 2, gradeName: '基础班', status: 20 },
+    { id: 3, gradeName: '进阶班', status: 30 },
+    { id: 4, gradeName: '提升班', status: 40 },
+  ];
+
+  for (const grade of grades) {
+    await prisma.grade.upsert({
+      where: { id: grade.id },
+      update: grade,
+      create: grade,
+    });
+  }
+  await resetSerialSequence('Grade');
+
+  const bookVersions = [
+    { id: 1, name: '图图英语启蒙版' },
+    { id: 2, name: '图图英语进阶版' },
+    { id: 3, name: '图图进阶专项' },
+    { id: 4, name: '图图阅读精讲' },
+  ];
+
+  for (const version of bookVersions) {
+    await prisma.bookVersion.upsert({
+      where: { id: version.id },
+      update: version,
+      create: version,
+    });
+  }
+  await resetSerialSequence('BookVersion');
+
+  const courseBags = [
+    {
+      id: 1,
+      title: '启蒙成长课包',
+      icon: 'https://placehold.co/320x180/png?text=Bag+1',
+      sort: 10,
+      status: 1,
+      createdAt: daysAgo(20),
+    },
+    {
+      id: 2,
+      title: '阅读专项课包',
+      icon: 'https://placehold.co/320x180/png?text=Bag+2',
+      sort: 20,
+      status: 1,
+      createdAt: daysAgo(12),
+    },
+    {
+      id: 3,
+      title: '寒假提升课包',
+      icon: 'https://placehold.co/320x180/png?text=Bag+3',
+      sort: 30,
+      status: 2,
+      createdAt: daysAgo(5),
+    },
+  ];
+
+  for (const bag of courseBags) {
+    await prisma.courseBag.upsert({
+      where: { id: bag.id },
+      update: bag,
+      create: bag,
+    });
+  }
+  await resetSerialSequence('CourseBag');
+
+  const courseBagCourses = [
+    {
+      id: 1001,
+      bagId: 1,
+      name: '拼读启蒙训练营',
+      icon: 'https://placehold.co/320x180/png?text=C1001',
+      sort: 10,
+      status: 1,
+      createdAt: daysAgo(18),
+    },
+    {
+      id: 1002,
+      bagId: 1,
+      name: '自然拼读口语营',
+      icon: 'https://placehold.co/320x180/png?text=C1002',
+      sort: 20,
+      status: 1,
+      createdAt: daysAgo(16),
+    },
+    {
+      id: 2001,
+      bagId: 2,
+      name: '分级阅读表达课',
+      icon: 'https://placehold.co/320x180/png?text=C2001',
+      sort: 10,
+      status: 1,
+      createdAt: daysAgo(10),
+    },
+    {
+      id: 2002,
+      bagId: 2,
+      name: '阅读理解专项班',
+      icon: 'https://placehold.co/320x180/png?text=C2002',
+      sort: 20,
+      status: 2,
+      createdAt: daysAgo(8),
+    },
+    {
+      id: 3001,
+      bagId: 3,
+      name: '寒假冲刺训练营',
+      icon: 'https://placehold.co/320x180/png?text=C3001',
+      sort: 10,
+      status: 1,
+      createdAt: daysAgo(4),
+    },
+  ];
+
+  for (const course of courseBagCourses) {
+    await prisma.courseBagCourse.upsert({
+      where: { id: course.id },
+      update: course,
+      create: course,
+    });
+  }
+  await resetSerialSequence('CourseBagCourse');
+
+  const courseBagActivities = [
+    {
+      id: 5001,
+      textbookId: 1001,
+      teacher: 'Luna',
+      status: 1,
+      type: 1,
+      saleBeginAt: daysAgo(12),
+      saleEndAt: daysAgo(2),
+      beginAt: daysAgo(1),
+      endAt: daysFromNow(29),
+      orgAmt: 299900,
+      amt: 199900,
+      num: 24,
+      chatNo: 'tutu-luna',
+      iconDetail: 'https://placehold.co/320x180/png?text=A5001D',
+      iconTicket: 'https://placehold.co/320x180/png?text=A5001T',
+      createdAt: daysAgo(12),
+    },
+    {
+      id: 5002,
+      textbookId: 1001,
+      teacher: 'Mika',
+      status: 2,
+      type: 2,
+      saleBeginAt: daysAgo(20),
+      saleEndAt: daysAgo(5),
+      beginAt: null,
+      endAt: null,
+      orgAmt: 259900,
+      amt: 159900,
+      num: 18,
+      chatNo: 'tutu-mika',
+      iconDetail: 'https://placehold.co/320x180/png?text=A5002D',
+      iconTicket: 'https://placehold.co/320x180/png?text=A5002T',
+      createdAt: daysAgo(20),
+    },
+    {
+      id: 6001,
+      textbookId: 2001,
+      teacher: 'Iris',
+      status: 1,
+      type: 3,
+      saleBeginAt: daysAgo(6),
+      saleEndAt: daysFromNow(6),
+      beginAt: null,
+      endAt: null,
+      orgAmt: 399900,
+      amt: 269900,
+      num: 30,
+      chatNo: 'tutu-iris',
+      iconDetail: 'https://placehold.co/320x180/png?text=A6001D',
+      iconTicket: 'https://placehold.co/320x180/png?text=A6001T',
+      createdAt: daysAgo(6),
+    },
+  ];
+
+  for (const activity of courseBagActivities) {
+    await prisma.courseBagActivity.upsert({
+      where: { id: activity.id },
+      update: activity,
+      create: activity,
+    });
+  }
 
   const courses = [
-    { textbookId: 101, textbookName: 'L1 Starter', status: 1 },
-    { textbookId: 102, textbookName: 'L2 Skills', status: 1 },
-    { textbookId: 103, textbookName: 'L3 Focus', status: 1 },
-    { textbookId: 104, textbookName: 'L4 Master', status: 1 },
+    {
+      textbookId: 101,
+      textbookName: 'L1 Starter',
+      icon: 'https://placehold.co/160x160/png?text=L1',
+      gradeId: 1,
+      bookVersionId: 1,
+      sortValue: 10,
+      canLock: 1,
+      status: 1,
+    },
+    {
+      textbookId: 102,
+      textbookName: 'L2 Skills',
+      icon: 'https://placehold.co/160x160/png?text=L2',
+      gradeId: 2,
+      bookVersionId: 2,
+      sortValue: 20,
+      canLock: 1,
+      status: 1,
+    },
+    {
+      textbookId: 103,
+      textbookName: 'L3 Focus',
+      icon: 'https://placehold.co/160x160/png?text=L3',
+      gradeId: 3,
+      bookVersionId: 3,
+      sortValue: 30,
+      canLock: 2,
+      status: 1,
+    },
+    {
+      textbookId: 104,
+      textbookName: 'L4 Master',
+      icon: 'https://placehold.co/160x160/png?text=L4',
+      gradeId: 4,
+      bookVersionId: 4,
+      sortValue: 40,
+      canLock: 1,
+      status: 1,
+    },
   ];
 
   for (const course of courses) {
