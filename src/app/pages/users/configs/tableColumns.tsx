@@ -1,5 +1,6 @@
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
 import { getStatusMeta } from '../utils/forms';
 import type { UserRecord } from '../types';
 
@@ -38,7 +39,7 @@ export function createUserColumns({
           <Typography.Text type="secondary">无</Typography.Text>
         ),
     },
-    { title: '手机号', dataIndex: 'phone', render: (value) => String(value || '无') },
+    { title: '手机号', dataIndex: 'phone', render: (value) => <MaskedPhoneText value={value} /> },
     { title: '邮箱', dataIndex: 'email', render: (value) => String(value || '无') },
     { title: '姓名', dataIndex: 'name', render: (value) => String(value || '无') },
     { title: '性别', dataIndex: 'sex', render: (value) => (Number(value) === 1 ? '男' : Number(value) === 2 ? '女' : '未知') },

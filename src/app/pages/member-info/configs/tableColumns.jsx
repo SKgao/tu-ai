@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Image, Space, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 
 export function createMemberInfoColumns() {
   return [
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => value ?? '-' },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
     { title: '用户昵称', dataIndex: 'realName', render: (value) => value || '-' },
     {
       title: '用户头像',

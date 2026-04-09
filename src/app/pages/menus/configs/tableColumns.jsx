@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Popconfirm, Space, Tag, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 
 const MENU_SCOPE_LABELS = {
   1: '左侧菜单',
@@ -23,8 +24,8 @@ function getStatusMeta(value) {
 
 export function createMenuColumns({ onEdit, onDelete, submitting }) {
   return [
-    { title: 'ID', dataIndex: 'id', render: (value) => value ?? '-' },
-    { title: '父级 ID', dataIndex: 'parentId', render: (value) => value ?? 0 },
+    { title: 'ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
+    { title: '父级 ID', dataIndex: 'parentId', render: (value) => renderCopyableIdValue(value, { placeholder: 0 }) },
     { title: '排序', dataIndex: 'sortValue', render: (value) => value ?? 0 },
     {
       title: '作用',

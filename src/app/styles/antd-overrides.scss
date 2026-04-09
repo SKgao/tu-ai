@@ -1,0 +1,308 @@
+.ant-table-wrapper .ant-table-thead > tr > th {
+  text-align: center;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th .ant-table-column-title {
+  text-align: center;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th .ant-table-column-sorters {
+  justify-content: center;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  text-align: center;
+}
+
+.toolbar-grid > .ant-form-item {
+  margin-bottom: 0;
+}
+
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row {
+  display: grid !important;
+  grid-template-columns: var(--app-toolbar-label-width) minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+}
+
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label {
+  width: var(--app-toolbar-label-width) !important;
+  max-width: var(--app-toolbar-label-width) !important;
+  min-width: var(--app-toolbar-label-width) !important;
+  padding: 0 !important;
+  text-align: right !important;
+}
+
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label > label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control {
+  min-width: 0 !important;
+}
+
+.toolbar-grid > .ant-form-item:last-child > .ant-form-item-row > .ant-form-item-control {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toolbar-grid > .ant-form-item:last-child > .ant-form-item-row > .ant-form-item-control .ant-space {
+  flex-wrap: nowrap !important;
+}
+
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-affix-wrapper,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-number,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-picker,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select-auto-complete,
+.toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-cascader {
+  width: 100%;
+  max-width: 240px;
+}
+
+.toolbar-grid .ant-select-multiple .ant-select-selector,
+.form-grid .ant-select-multiple .ant-select-selector {
+  align-items: center;
+}
+
+.toolbar-grid .ant-select-multiple .ant-select-selection-overflow,
+.form-grid .ant-select-multiple .ant-select-selection-overflow {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.toolbar-grid .ant-select-multiple .ant-select-selection-overflow-item,
+.form-grid .ant-select-multiple .ant-select-selection-overflow-item {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.toolbar-grid .ant-select-multiple .ant-select-selection-item,
+.form-grid .ant-select-multiple .ant-select-selection-item {
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.login-form.ant-form-horizontal .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.login-form.ant-form-horizontal .ant-form-item-label {
+  flex: 0 0 var(--login-form-label-width);
+  max-width: var(--login-form-label-width);
+  padding: 0;
+  text-align: right;
+}
+
+.login-form.ant-form-horizontal .ant-form-item-label > label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.login-form.ant-form-horizontal .ant-form-item-control {
+  min-width: 0;
+}
+
+.login-form.ant-form-horizontal .ant-form-item-control-input,
+.login-form.ant-form-horizontal .ant-form-item-control-input-content {
+  min-width: 0;
+}
+
+.form-grid > .ant-form-item {
+  margin-bottom: 0;
+}
+
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row {
+  display: grid !important;
+  grid-template-columns: var(--app-form-grid-label-width) minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+}
+
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label {
+  width: var(--app-form-grid-label-width) !important;
+  max-width: var(--app-form-grid-label-width) !important;
+  min-width: var(--app-form-grid-label-width) !important;
+  padding: 0 !important;
+  text-align: right !important;
+}
+
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label > label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control {
+  min-width: 0 !important;
+}
+
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-affix-wrapper,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-number,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-picker,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select-auto-complete,
+.form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-cascader {
+  width: 100%;
+}
+
+.ant-form-vertical {
+  --app-form-label-width: 112px;
+}
+
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-label {
+  flex: 0 0 var(--app-form-label-width);
+  width: var(--app-form-label-width);
+  max-width: var(--app-form-label-width);
+  padding: 6px 0 0;
+  text-align: right;
+}
+
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-label > label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-control-input,
+.ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-control-input-content {
+  min-width: 0;
+}
+
+.ant-form-vertical .ant-form-item.form-field--full:not(.ant-form-item-hidden) .ant-form-item-label {
+  padding-top: 6px;
+}
+
+.form-grid > .ant-form-item.form-field--full:not(.ant-form-item-hidden) > .ant-form-item-row {
+  grid-template-columns: var(--app-form-grid-label-width) minmax(0, 1fr) !important;
+}
+
+@media (max-width: 768px) {
+  .ant-form-vertical {
+    --app-form-label-width: 100%;
+  }
+
+  .ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-row {
+    display: block;
+  }
+
+  .ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-label {
+    width: auto;
+    max-width: none;
+    padding: 0 0 8px;
+    text-align: left;
+  }
+
+  .ant-form-vertical .ant-form-item:not(.ant-form-item-hidden) .ant-form-item-label > label {
+    justify-content: flex-start;
+    white-space: normal;
+    min-height: 0;
+  }
+
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row {
+    display: block !important;
+  }
+
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    padding: 0 0 8px !important;
+    text-align: left !important;
+  }
+
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label > label {
+    justify-content: flex-start;
+    white-space: normal;
+    min-height: 0;
+  }
+
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-affix-wrapper,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-input-number,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-picker,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-select-auto-complete,
+  .toolbar-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-cascader {
+    max-width: none;
+  }
+
+  .toolbar-grid > .ant-form-item:last-child > .ant-form-item-row > .ant-form-item-control {
+    display: block;
+  }
+
+  .toolbar-grid > .ant-form-item:last-child > .ant-form-item-row > .ant-form-item-control .ant-space {
+    flex-wrap: wrap !important;
+  }
+
+  .toolbar-grid .ant-select-multiple .ant-select-selection-item,
+  .form-grid .ant-select-multiple .ant-select-selection-item {
+    max-width: 100%;
+  }
+
+  .form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row {
+    display: block !important;
+  }
+
+  .form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    padding: 0 0 8px !important;
+    text-align: left !important;
+  }
+
+  .form-grid > .ant-form-item:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label > label {
+    justify-content: flex-start;
+    white-space: normal;
+    min-height: 0;
+  }
+
+  .login-form {
+    --login-form-label-width: 100%;
+  }
+
+  .login-form.ant-form-horizontal .ant-form-item-label {
+    max-width: none;
+    padding: 0 0 8px;
+    text-align: left;
+  }
+
+  .login-form.ant-form-horizontal .ant-form-item-label > label {
+    justify-content: flex-start;
+    white-space: normal;
+    min-height: 0;
+  }
+}

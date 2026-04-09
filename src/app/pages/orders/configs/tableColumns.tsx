@@ -1,13 +1,14 @@
 import type { TableColumnsType } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 import type { OrderRecord } from '../types';
 
 export function createOrderColumns(): TableColumnsType<OrderRecord> {
   return [
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => String(value ?? '-') },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
     { title: '真实姓名', dataIndex: 'realName', render: (value) => String(value || '无') },
     { title: '商品名称', dataIndex: 'itemName', render: (value) => String(value || '-') },
-    { title: '订单号', dataIndex: 'orderNo', render: (value) => String(value || '-') },
+    { title: '订单号', dataIndex: 'orderNo', render: (value) => renderCopyableIdValue(value) },
     {
       title: '订单金额',
       dataIndex: 'orderAmount',
@@ -20,7 +21,7 @@ export function createOrderColumns(): TableColumnsType<OrderRecord> {
       title: '第三方交易号',
       dataIndex: 'outNo',
       className: 'table-content-cell',
-      render: (value) => String(value || '无'),
+      render: (value) => renderCopyableIdValue(value, { placeholder: '无' }),
     },
     {
       title: '取消原因',

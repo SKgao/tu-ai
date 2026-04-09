@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 
 export function createCustomPassColumns({
   partsId,
@@ -11,7 +12,7 @@ export function createCustomPassColumns({
   actionSubmitting,
 }) {
   return [
-    { title: '小关卡 ID', dataIndex: 'id' },
+    { title: '小关卡 ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     { title: '标题', dataIndex: 'title', render: (value) => value || '-' },
     { title: '过渡标题', dataIndex: 'tmpTitle', render: (value) => value || '-' },
     {

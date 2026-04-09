@@ -1,10 +1,12 @@
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import { formatCurrencyCent } from '@/app/lib/formatters';
+import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
 
 export function createCourseUserColumns() {
   return [
     { title: '精品课程名称', dataIndex: 'textbookName', render: (value) => value || '-' },
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => value ?? '-' },
-    { title: '手机号', dataIndex: 'mobile', render: (value) => value || '无' },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
+    { title: '手机号', dataIndex: 'mobile', render: (value) => <MaskedPhoneText value={value} /> },
     { title: '用户名', dataIndex: 'realName', render: (value) => value || '无' },
     {
       title: '性别',

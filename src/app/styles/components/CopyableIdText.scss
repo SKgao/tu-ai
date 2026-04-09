@@ -1,0 +1,19 @@
+.copyable-id-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.copyable-id-text__button.ant-btn.ant-btn-sm {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  color: rgba(20, 33, 61, 0.48);
+}
+
+.copyable-id-text__button.ant-btn.ant-btn-sm:hover {
+  color: #155a96;
+  background: rgba(47, 136, 219, 0.08);
+}

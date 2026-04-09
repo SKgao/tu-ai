@@ -1,5 +1,6 @@
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import type { MemberLevelRecord } from '../types';
 import { fromAmountCent } from '../utils/forms';
 
@@ -20,6 +21,7 @@ export function createMemberLevelColumns({
     {
       title: '会员等级 ID',
       dataIndex: 'userLevel',
+      render: (value) => renderCopyableIdValue(value),
     },
     {
       title: '会员等级名称',

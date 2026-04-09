@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, Space, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
+import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 
 export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
   return [
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => value ?? '-' },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
     { title: '用户昵称', dataIndex: 'realName', render: (value) => value || '-' },
     {
       title: '用户头像',
@@ -49,7 +51,7 @@ export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
     { title: '会员开始时间', dataIndex: 'payTime', render: (value) => value || '-' },
     { title: '会员到期时间', dataIndex: 'exprieTime', render: (value) => value || '-' },
     { title: '累计消费金额', dataIndex: 'userMoney', render: (value) => formatCurrencyCent(value, '0.00 元') },
-    { title: '手机号', dataIndex: 'mobile', render: (value) => value || '无' },
+    { title: '手机号', dataIndex: 'mobile', render: (value) => <MaskedPhoneText value={value} /> },
     { title: 'E-mail', dataIndex: 'email', render: (value) => value || '无' },
     { title: '会员生日', dataIndex: 'birthday', render: (value) => value || '无' },
     {
@@ -114,8 +116,8 @@ export function createMemberColumns({ onOpenVip, onMemberStatus, submitting }) {
 
 export function createMemberFeedbackColumns() {
   return [
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => value ?? '-' },
-    { title: '手机号', dataIndex: 'mobile', render: (value) => value || '无' },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
+    { title: '手机号', dataIndex: 'mobile', render: (value) => <MaskedPhoneText value={value} /> },
     {
       title: '反馈内容',
       dataIndex: 'content',

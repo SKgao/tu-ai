@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 
 export function createCourseBagColumns({ onEdit, onToggleStatus, onDelete, submitting }) {
   return [
-    { title: 'ID', dataIndex: 'id' },
+    { title: 'ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     { title: '课程包标题', dataIndex: 'title', render: (value) => value || '-' },
     {
       title: '图标',

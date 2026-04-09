@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Key } from 'react';
 import { App, Button, Card, Form, Popconfirm, Space, Table, Typography } from 'antd';
 import type { FormProps, TableColumnsType, TreeProps } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
@@ -171,7 +172,7 @@ export function RoleManagementPage() {
   }
 
   const columns: TableColumnsType<RoleRecord> = [
-    { title: '角色 ID', dataIndex: 'id' },
+    { title: '角色 ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     { title: '角色名', dataIndex: 'name', render: (value) => String(value || '-') },
     {
       title: '操作',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, InputNumber, Popconfirm, Select, Space, Tag, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 
 export function createSessionColumns({
   bindSelections,
@@ -17,7 +18,7 @@ export function createSessionColumns({
   onDelete,
 }) {
   return [
-    { title: 'ID', dataIndex: 'id' },
+    { title: 'ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     { title: '标题', dataIndex: 'title', render: (value) => value || '-' },
     {
       title: '图标',

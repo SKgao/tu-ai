@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import type { BookRecord, GradeRecord, ResourceType, VersionRecord } from '../types';
 
 type CreateBookColumnsOptions = {
@@ -121,7 +122,7 @@ export function createResourceColumns({
   submitting,
 }: CreateResourceColumnsOptions): TableColumnsType<ResourceRecord> {
   return [
-    { title: 'ID', dataIndex: 'id' },
+    { title: 'ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     {
       title: resourceType === 'grade' ? '年级名称' : '教材版本名称',
       dataIndex: resourceType === 'grade' ? 'gradeName' : 'name',

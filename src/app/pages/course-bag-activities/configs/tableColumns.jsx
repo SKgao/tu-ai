@@ -1,10 +1,11 @@
 import React from 'react';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 
 export function createCourseBagActivityColumns({ onEdit, onDelete, submitting }) {
   return [
-    { title: '活动 ID', dataIndex: 'id' },
+    { title: '活动 ID', dataIndex: 'id', render: (value) => renderCopyableIdValue(value) },
     { title: '课程名称', dataIndex: 'textbookName', render: (value) => value || '-' },
     { title: '辅导老师', dataIndex: 'teacher', render: (value) => value || '-' },
     {

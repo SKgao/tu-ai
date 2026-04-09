@@ -1,10 +1,12 @@
 import { Image, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
+import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
 import type { InviteRecord } from '../types';
 
 export function createInviteColumns(): TableColumnsType<InviteRecord> {
   return [
-    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => String(value ?? '-') },
+    { title: '图图号', dataIndex: 'tutuNumber', render: (value) => renderCopyableIdValue(value) },
     { title: '用户昵称', dataIndex: 'realName', render: (value) => String(value || '无') },
     {
       title: '用户头像',
@@ -22,7 +24,7 @@ export function createInviteColumns(): TableColumnsType<InviteRecord> {
           <Typography.Text type="secondary">无</Typography.Text>
         ),
     },
-    { title: '手机号', dataIndex: 'mobile', render: (value) => String(value || '无') },
+    { title: '手机号', dataIndex: 'mobile', render: (value) => <MaskedPhoneText value={value} /> },
     { title: '邀请时间', dataIndex: 'inviteTime', render: (value) => String(value || '-') },
   ];
 }
