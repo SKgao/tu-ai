@@ -1,5 +1,15 @@
-import React from 'react';
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
+import type { TableColumnsType } from 'antd';
+import type { SubjectRecord, SubjectResourceRecord } from '../types';
+
+type CreateSubjectColumnsOptions = {
+  enableSceneColumn: boolean;
+  onEdit: (record: SubjectRecord) => void;
+  onView: (record: SubjectRecord) => void;
+  onDelete: (record: SubjectRecord) => void | Promise<void>;
+  submitting: boolean;
+  actionSubmitting: boolean;
+};
 
 export function createSubjectColumns({
   enableSceneColumn,
@@ -8,8 +18,8 @@ export function createSubjectColumns({
   onDelete,
   submitting,
   actionSubmitting,
-}) {
-  const columns = [
+}: CreateSubjectColumnsOptions): TableColumnsType<SubjectRecord> {
+  const columns: TableColumnsType<SubjectRecord> = [
     { title: '单元名称', dataIndex: 'unitsName', render: (value) => value || '-' },
     { title: 'Part 描述', dataIndex: 'partsTips', render: (value) => value || '-' },
     { title: 'Part 标题', dataIndex: 'partsTitle', render: (value) => value || '-' },
@@ -66,7 +76,7 @@ export function createSubjectColumns({
   return columns;
 }
 
-export function createSubjectResourceColumns() {
+export function createSubjectResourceColumns(): TableColumnsType<SubjectResourceRecord> {
   return [
     { title: '资源文本', dataIndex: 'text', render: (value) => value || '-' },
     {

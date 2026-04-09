@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Button,
   Form,
@@ -11,8 +10,25 @@ import {
   Typography,
   Upload,
 } from 'antd';
+import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { FormModalMode } from '@/app/hooks/useFormModal';
+import type { UploadState } from '@/app/hooks/useUploadState';
 import { EMPTY_PASS_FORM } from '../utils/forms';
+import type { PassFormValues, PassSubjectOption } from '../types';
+
+type PassModalProps = {
+  open: boolean;
+  mode: FormModalMode;
+  form: FormInstance<PassFormValues>;
+  subjects: PassSubjectOption[];
+  submitting: boolean;
+  uploadState: UploadState;
+  iconValue?: string;
+  onCancel: () => void;
+  onSubmit: FormProps<PassFormValues>['onFinish'];
+  onUpload: NonNullable<UploadProps['customRequest']>;
+};
 
 export function PassModal({
   open,
@@ -25,7 +41,7 @@ export function PassModal({
   onCancel,
   onSubmit,
   onUpload,
-}) {
+}: PassModalProps) {
   return (
     <Modal
       title={mode === 'create' ? '新增关卡' : '编辑关卡'}
@@ -38,6 +54,7 @@ export function PassModal({
       width={700}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         维护关卡标题、图片、归属 part、排序和题型。
@@ -71,7 +88,7 @@ export function PassModal({
             <Input placeholder="可直接粘贴图片 URL" />
           </Form.Item>
           <Form.Item label="上传关卡图片" className="form-field--full">
-            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
               <Upload
                 accept="image/*"
                 maxCount={1}

@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Button,
   Form,
@@ -11,8 +10,25 @@ import {
   Typography,
   Upload,
 } from 'antd';
+import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { FormModalMode } from '@/app/hooks/useFormModal';
+import type { UploadState } from '@/app/hooks/useUploadState';
 import { EMPTY_UNIT_FORM } from '../utils/forms';
+import type { UnitBookOption, UnitFormValues } from '../types';
+
+type UnitModalProps = {
+  open: boolean;
+  mode: FormModalMode;
+  form: FormInstance<UnitFormValues>;
+  books: UnitBookOption[];
+  submitting: boolean;
+  uploadState: UploadState;
+  iconValue?: string;
+  onCancel: () => void;
+  onSubmit: FormProps<UnitFormValues>['onFinish'];
+  onUpload: NonNullable<UploadProps['customRequest']>;
+};
 
 export function UnitModal({
   open,
@@ -25,7 +41,7 @@ export function UnitModal({
   onCancel,
   onSubmit,
   onUpload,
-}) {
+}: UnitModalProps) {
   return (
     <Modal
       title={mode === 'create' ? '新增单元' : '编辑单元'}
@@ -38,6 +54,7 @@ export function UnitModal({
       width={700}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         维护单元名称、封面、教材归属和排序字段。

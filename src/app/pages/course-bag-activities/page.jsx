@@ -13,6 +13,7 @@ import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMultiUploadState } from '@/app/hooks/useMultiUploadState';
+import { listCourseBags } from '@/app/services/course-bags';
 import {
   createCourseBagActivity,
   listCourseBagActivities,
@@ -21,10 +22,6 @@ import {
   updateCourseBagActivity,
 } from '@/app/services/course-bag-activities';
 import { createCourseBagActivityColumns } from './configs/tableColumns';
-import {
-  selectCourseOptions,
-  useMemberCommerceOptionsStore,
-} from '@/app/stores/memberCommerceOptions';
 import { CourseBagActivityModal } from './components/CourseBagActivityModal';
 import { CourseBagActivityToolbar } from './components/CourseBagActivityToolbar';
 import {
@@ -44,6 +41,7 @@ export function CourseBagActivityManagementPage() {
   const courseId = searchParams.get('id') || '';
   const courseName = searchParams.get('courseName') || '';
   const [activities, setActivities] = useState([]);
+  const [courseOptions, setCourseOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -63,8 +61,6 @@ export function CourseBagActivityManagementPage() {
       form.setFieldsValue(normalizeCourseBagActivityFormValues(activity));
     },
   });
-  const courseOptions = useMemberCommerceOptionsStore(selectCourseOptions);
-  const ensureCourseOptions = useMemberCommerceOptionsStore((state) => state.ensureCourseOptions);
   const courseType = Form.useWatch('type', form) || '1';
   const detailValue = Form.useWatch('iconDetail', form);
   const ticketValue = Form.useWatch('iconTicket', form);
@@ -88,9 +84,26 @@ export function CourseBagActivityManagementPage() {
   }, [courseId, message]);
 
   useMountEffect(() => {
-    ensureCourseOptions().catch((error) => {
-      message.error(error?.message || '课程选项加载失败');
-    });
+    async function loadCourseOptions() {
+      try {
+        const bags = await listCourseBags();
+        const items = Array.isArray(bags)
+          ? bags.flatMap((bag) =>
+              Array.isArray(bag?.textBookDOS)
+                ? bag.textBookDOS.map((course) => ({
+                    textbookId: course.id,
+                    textbookName: course.name,
+                  }))
+                : [],
+            )
+          : [];
+        setCourseOptions(items);
+      } catch (error) {
+        message.error(error?.message || '课程选项加载失败');
+      }
+    }
+
+    loadCourseOptions();
   });
 
   useEffect(() => {

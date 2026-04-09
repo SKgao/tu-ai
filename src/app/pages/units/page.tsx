@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { App, Card, Form, Space, Table, Typography } from 'antd';
+import { App, Card, Form, Table, Typography } from 'antd';
+import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
+import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import {
   createUnit,
   listBooks,
@@ -16,7 +18,6 @@ import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
-import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { UnitModal } from './components/UnitModal';
 import { UnitSearchForm } from './components/UnitSearchForm';
 import { createUnitColumns } from './configs/tableColumns';
@@ -26,26 +27,53 @@ import {
   buildUnitSearchFilters,
   normalizeUnitFormValues,
 } from './utils/forms';
+import type {
+  UnitBookListResult,
+  UnitBookOption,
+  UnitFormValues,
+  UnitListResult,
+  UnitQuery,
+  UnitRecord,
+  UnitSearchValues,
+} from './types';
+
+type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
+type UploadRequestFile = UploadRequestOptions['file'];
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getUploadFileName(file: UploadRequestFile): string {
+  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
+    ? file.name
+    : '文件';
+}
+
+function getSelectedTextbookId(form: FormInstance<UnitSearchValues>): string | undefined {
+  const value = form.getFieldValue('textBookId');
+  return typeof value === 'string' && value ? value : undefined;
+}
 
 export function UnitManagementPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [searchForm] = Form.useForm();
-  const [modalForm] = Form.useForm();
+  const [searchForm] = Form.useForm<UnitSearchValues>();
+  const [modalForm] = Form.useForm<UnitFormValues>();
   const initialTextbookId = searchParams.get('textbookId') || searchParams.get('textBookId') || '';
-  const [books, setBooks] = useState([]);
+  const [books, setBooks] = useState<UnitBookOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
     useUploadState();
-  const unitModal = useFormModal({
+  const unitModal = useFormModal<UnitRecord>({
     submitting,
     onOpenCreate: () => {
       resetUploadState();
       modalForm.setFieldsValue({
         ...EMPTY_UNIT_FORM,
-        textBookId: searchForm.getFieldValue('textBookId') || initialTextbookId || undefined,
+        textBookId: getSelectedTextbookId(searchForm) || initialTextbookId || undefined,
       });
     },
     onOpenEdit: (unit) => {
@@ -53,7 +81,8 @@ export function UnitManagementPage() {
       modalForm.setFieldsValue(normalizeUnitFormValues(unit));
     },
   });
-  const iconValue = Form.useWatch('icon', modalForm);
+  const watchedIcon = Form.useWatch('icon', modalForm);
+  const iconValue = typeof watchedIcon === 'string' ? watchedIcon : undefined;
   const {
     query,
     data: units,
@@ -63,7 +92,7 @@ export function UnitManagementPage() {
     setPageNum,
     setPageSize,
     reload,
-  } = useRemoteTable({
+  } = useRemoteTable<UnitQuery, UnitListResult, UnitRecord>({
     initialQuery: {
       startTime: '',
       endTime: '',
@@ -71,7 +100,7 @@ export function UnitManagementPage() {
       pageNum: 1,
       pageSize: 10,
     },
-    request: listUnits,
+    request: async (currentQuery) => (await listUnits(currentQuery)) as UnitListResult,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
     onError: (errorMessage) => message.error(errorMessage || '单元列表加载失败'),
@@ -85,22 +114,22 @@ export function UnitManagementPage() {
   useMountEffect(() => {
     async function loadBookOptions() {
       try {
-        const data = await listBooks({
+        const data = (await listBooks({
           pageNum: 1,
           pageSize: 1000,
-        });
+        })) as UnitBookListResult;
         setBooks(Array.isArray(data?.data) ? data.data : []);
       } catch (error) {
-        message.error(error?.message || '教材列表加载失败');
+        message.error(getErrorMessage(error, '教材列表加载失败'));
       }
     }
 
-    loadBookOptions();
+    return loadBookOptions();
   });
 
-  function handleSearch(values) {
+  const handleSearch: FormProps<UnitSearchValues>['onFinish'] = (values) => {
     applyFilters(buildUnitSearchFilters(values));
-  }
+  };
 
   function handleReset() {
     searchForm.resetFields();
@@ -113,23 +142,31 @@ export function UnitManagementPage() {
     });
   }
 
-  async function handleUpload({ file, onError, onSuccess }) {
-    setUploading(file.name);
+  async function handleUpload(options: UploadRequestOptions): Promise<void> {
+    const { file, onError, onSuccess } = options;
+    const fileName = getUploadFileName(file);
+
+    setUploading(fileName);
 
     try {
+      if (!(file instanceof Blob)) {
+        throw new Error('上传文件无效');
+      }
+
       const url = await uploadAsset(file);
       modalForm.setFieldValue('icon', url);
       setUploadSuccess('上传成功，已自动写入封面地址');
       onSuccess?.({ url });
     } catch (error) {
-      const errorMessage = error?.message || '上传失败';
+      const errorMessage = getErrorMessage(error, '上传失败');
+      const uploadError = error instanceof Error ? error : new Error(errorMessage);
       setUploadError(errorMessage);
       message.error(errorMessage);
-      onError?.(error);
+      onError?.(uploadError);
     }
   }
 
-  async function handleSubmit(values) {
+  const handleSubmit: FormProps<UnitFormValues>['onFinish'] = async (values) => {
     if (!values.text?.trim() || !values.textBookId) {
       message.error('请填写单元名称并选择教材');
       return;
@@ -157,16 +194,16 @@ export function UnitManagementPage() {
       unitModal.setOpen(false);
       await reload().catch(() => {});
     } catch (error) {
-      message.error(error?.message || '单元提交失败');
+      message.error(getErrorMessage(error, '单元提交失败'));
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(unit) {
+  async function handleDelete(unit: UnitRecord): Promise<void> {
     setActionSubmitting(true);
     try {
-      await removeUnit(unit.id);
+      await removeUnit(Number(unit.id));
       message.success('单元已删除');
       if (units.length === 1 && query.pageNum > 1) {
         setPageNum(query.pageNum - 1);
@@ -174,23 +211,23 @@ export function UnitManagementPage() {
         await reload().catch(() => {});
       }
     } catch (error) {
-      message.error(error?.message || '单元删除失败');
+      message.error(getErrorMessage(error, '单元删除失败'));
     } finally {
       setActionSubmitting(false);
     }
   }
 
-  async function handleToggleLock(unit) {
+  async function handleToggleLock(unit: UnitRecord): Promise<void> {
     setActionSubmitting(true);
     try {
       await lockUnit({
-        unitId: unit.id,
-        canLock: unit.canLock === 1 ? 2 : 1,
+        unitId: Number(unit.id),
+        canLock: Number(unit.canLock) === 1 ? 2 : 1,
       });
-      message.success(unit.canLock === 1 ? '单元已锁定' : '单元已解锁');
+      message.success(Number(unit.canLock) === 1 ? '单元已锁定' : '单元已解锁');
       await reload().catch(() => {});
     } catch (error) {
-      message.error(error?.message || '单元锁定状态更新失败');
+      message.error(getErrorMessage(error, '单元锁定状态更新失败'));
     } finally {
       setActionSubmitting(false);
     }
@@ -227,7 +264,7 @@ export function UnitManagementPage() {
       </PageToolbarCard>
 
       <Card title="单元列表" extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}>
-        <Table
+        <Table<UnitRecord>
           rowKey="id"
           columns={columns}
           dataSource={units}

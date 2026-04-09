@@ -1,5 +1,5 @@
 import { Button, Form, Modal, Select, Typography, Upload } from 'antd';
-import type { FormInstance, FormProps, UploadFile } from 'antd';
+import type { FormInstance, FormProps, UploadProps } from 'antd';
 import {
   EMPTY_IMPORT_FORM,
   IMPORT_FIELD_OPTIONS,
@@ -18,8 +18,10 @@ type ImportSourceMaterialModalProps = {
   onSubmit: FormProps<ImportSourceMaterialFormValues>['onFinish'];
 };
 
-function getUploadFileList(event?: { fileList?: UploadFile[] }): UploadFile[] {
-  return event?.fileList || [];
+type UploadChangeEvent = Parameters<NonNullable<UploadProps['onChange']>>[0];
+
+function getUploadFileList(event?: UploadChangeEvent) {
+  return event?.fileList ?? [];
 }
 
 export function ImportSourceMaterialModal({
@@ -42,6 +44,7 @@ export function ImportSourceMaterialModal({
       width={720}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         兼容旧页的目录导入思路，当前提交文件名数组给后端处理。

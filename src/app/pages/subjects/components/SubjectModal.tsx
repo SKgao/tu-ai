@@ -1,7 +1,30 @@
-import React from 'react';
 import { Button, Form, Input, InputNumber, Modal, Select, Typography, Upload } from 'antd';
+import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { FormModalMode } from '@/app/hooks/useFormModal';
+import type { UploadState } from '@/app/hooks/useUploadState';
 import { EMPTY_SUBJECT_FORM, isScenePassId } from '../utils/forms';
+import type {
+  SubjectFormValues,
+  SubjectTypeOption,
+  SubjectUploadField,
+} from '../types';
+
+type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
+
+type SubjectModalProps = {
+  open: boolean;
+  mode: FormModalMode;
+  form: FormInstance<SubjectFormValues>;
+  routeCustomsPassId: string;
+  currentCustomsPassId?: string;
+  subjectTypes: SubjectTypeOption[];
+  submitting: boolean;
+  uploadState: UploadState;
+  onCancel: () => void;
+  onSubmit: FormProps<SubjectFormValues>['onFinish'];
+  onUpload: (options: UploadRequestOptions, field: SubjectUploadField) => void | Promise<void>;
+};
 
 export function SubjectModal({
   open,
@@ -15,7 +38,7 @@ export function SubjectModal({
   onCancel,
   onSubmit,
   onUpload,
-}) {
+}: SubjectModalProps) {
   const uploadItems = [
     ...(mode === 'create'
       ? [
@@ -39,6 +62,7 @@ export function SubjectModal({
       width={840}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         {mode === 'create' ? '保留新架构下最常用的单题录入能力。' : '维护题目内容、顺序、关卡名和场景图。'}
@@ -112,7 +136,7 @@ export function SubjectModal({
                 accept={item.accept}
                 maxCount={1}
                 showUploadList={false}
-                customRequest={(options) => onUpload(options, item.field)}
+                customRequest={(options) => onUpload(options, item.field as SubjectUploadField)}
                 disabled={uploadState.uploading}
               >
                 <Button icon={<UploadOutlined />} loading={uploadState.uploading}>

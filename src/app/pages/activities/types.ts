@@ -7,6 +7,7 @@ export type ActivityRecord = {
   icon?: string;
   activeMoney?: number | string | null;
   status?: number | string | null;
+  activityType?: number | string | null;
   itemId?: number | string | null;
   activeExpireDays?: number | string | null;
   beginAt?: string;
@@ -45,7 +46,7 @@ export type ActivityFormValues = {
   content?: string;
   icon?: string;
   activeMoney?: number;
-  status?: string;
+  activityType?: string;
   itemId?: string;
   activeExpireDays?: number;
   beginAt?: Dayjs;

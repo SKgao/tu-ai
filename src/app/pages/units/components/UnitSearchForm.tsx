@@ -1,7 +1,19 @@
-import React from 'react';
 import { Button, DatePicker, Form, Select } from 'antd';
+import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { SearchFormActions } from '@/app/components/forms/SearchFormActions';
+import type { UnitBookOption, UnitSearchValues } from '../types';
+
+type UnitSearchFormProps = {
+  form: FormInstance<UnitSearchValues>;
+  loading: boolean;
+  books: UnitBookOption[];
+  initialTextbookId: string;
+  onSearch: FormProps<UnitSearchValues>['onFinish'];
+  onReset: () => void;
+  onCreate: () => void;
+  onBack: () => void;
+};
 
 export function UnitSearchForm({
   form,
@@ -12,7 +24,7 @@ export function UnitSearchForm({
   onReset,
   onCreate,
   onBack,
-}) {
+}: UnitSearchFormProps) {
   return (
     <Form
       form={form}

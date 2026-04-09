@@ -1,6 +1,14 @@
-import React from 'react';
 import { Button, Space, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+
+type PassToolbarProps = {
+  partsId?: string;
+  textbookId?: string;
+  loading: boolean;
+  onCreate: () => void;
+  onBack: () => void;
+  onRefresh: () => void;
+};
 
 export function PassToolbar({
   partsId,
@@ -9,7 +17,7 @@ export function PassToolbar({
   onCreate,
   onBack,
   onRefresh,
-}) {
+}: PassToolbarProps) {
   return (
     <div className="toolbar-grid toolbar-grid--compact">
       <Typography.Text type="secondary">

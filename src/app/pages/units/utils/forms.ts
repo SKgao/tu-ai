@@ -1,8 +1,14 @@
 import { toApiDateTime } from '@/app/lib/dateTime';
+import type {
+  UnitFormValues,
+  UnitQuery,
+  UnitRecord,
+  UnitSearchValues,
+} from '../types';
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-export const EMPTY_UNIT_FORM = {
+export const EMPTY_UNIT_FORM: UnitFormValues = {
   id: undefined,
   text: '',
   icon: '',
@@ -10,7 +16,7 @@ export const EMPTY_UNIT_FORM = {
   sort: undefined,
 };
 
-export function normalizeUnitFormValues(unit) {
+export function normalizeUnitFormValues(unit?: UnitRecord | null): UnitFormValues {
   if (!unit) {
     return { ...EMPTY_UNIT_FORM };
   }
@@ -24,7 +30,9 @@ export function normalizeUnitFormValues(unit) {
   };
 }
 
-export function buildUnitSearchFilters(values) {
+export function buildUnitSearchFilters(
+  values: UnitSearchValues = {},
+): Pick<UnitQuery, 'startTime' | 'endTime' | 'textBookId'> {
   return {
     startTime: toApiDateTime(values.startTime),
     endTime: toApiDateTime(values.endTime),

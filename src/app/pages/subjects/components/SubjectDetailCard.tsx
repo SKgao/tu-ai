@@ -1,6 +1,19 @@
-import React from 'react';
 import { Button, Card, Descriptions, Image, Popconfirm, Space, Table, Typography } from 'antd';
 import { createSubjectResourceColumns } from '../configs/tableColumns';
+import type { SubjectDetailRecord, SubjectResourceRecord } from '../types';
+
+type SubjectDetailCardProps = {
+  loading: boolean;
+  detailRecord: SubjectDetailRecord | null;
+  topicId: string;
+  detailResources: SubjectResourceRecord[];
+  submitting: boolean;
+  actionSubmitting: boolean;
+  onBack: () => void;
+  onEdit: (record: SubjectDetailRecord) => void;
+  onRefresh: () => void | Promise<void>;
+  onDelete: (record: SubjectDetailRecord) => void | Promise<void>;
+};
 
 export function SubjectDetailCard({
   loading,
@@ -13,7 +26,7 @@ export function SubjectDetailCard({
   onEdit,
   onRefresh,
   onDelete,
-}) {
+}: SubjectDetailCardProps) {
   return (
     <Card
       title="题目详情"

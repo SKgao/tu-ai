@@ -64,7 +64,7 @@ export function ActivityModal({
           <Form.Item label="活动标题" name="title" rules={[{ required: true, message: '请输入活动标题' }]}>
             <Input placeholder="请输入活动标题" />
           </Form.Item>
-          <Form.Item label="活动类型" name="status" rules={[{ required: true, message: '请选择活动类型' }]}>
+          <Form.Item label="活动类型" name="activityType" rules={[{ required: true, message: '请选择活动类型' }]}>
             <Select disabled={mode === 'edit'} options={ACTIVITY_TYPE_OPTIONS as unknown as { value: string; label: string }[]} />
           </Form.Item>
           <Form.Item label="活动开始时间" name="beginAt" rules={[{ required: true, message: '请选择活动开始时间' }]}>

@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { App, Card, Form, Space, Table, Typography } from 'antd';
+import { App, Card, Form, Table, Typography } from 'antd';
+import type { FormProps, UploadProps } from 'antd';
+import type { Key } from 'react';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -32,13 +34,37 @@ import {
   isScenePassId,
   normalizeSubjectFormValues,
 } from './utils/forms';
+import type {
+  SubjectDetailRecord,
+  SubjectFormValues,
+  SubjectListResult,
+  SubjectQuery,
+  SubjectRecord,
+  SubjectResourceRecord,
+  SubjectSearchValues,
+  SubjectTypeOption,
+  SubjectUploadField,
+} from './types';
+
+type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
+type UploadRequestFile = UploadRequestOptions['file'];
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getUploadFileName(file: UploadRequestFile): string {
+  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
+    ? file.name
+    : '文件';
+}
 
 export function SubjectsManagementPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [searchForm] = Form.useForm();
-  const [modalForm] = Form.useForm();
+  const [searchForm] = Form.useForm<SubjectSearchValues>();
+  const [modalForm] = Form.useForm<SubjectFormValues>();
   const routeCustomsPassId = searchParams.get('customsPassId') || '';
   const partsId = searchParams.get('partsId') || '';
   const sessionId = searchParams.get('sessionId') || '';
@@ -55,7 +81,7 @@ export function SubjectsManagementPage() {
     setPageNum,
     setPageSize,
     reload,
-  } = useRemoteTable({
+  } = useRemoteTable<SubjectQuery, SubjectListResult, SubjectRecord>({
     initialQuery: {
       startTime: '',
       endTime: '',
@@ -65,21 +91,21 @@ export function SubjectsManagementPage() {
       pageNum: 1,
       pageSize: 10,
     },
-    request: listSubjectRecords,
+    request: async (currentQuery) => (await listSubjectRecords(currentQuery)) as SubjectListResult,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
     enabled: !isDetailMode,
     onError: (errorMessage) => message.error(errorMessage || '题目列表加载失败'),
   });
-  const [detailRecord, setDetailRecord] = useState(null);
+  const [detailRecord, setDetailRecord] = useState<SubjectDetailRecord | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [subjectTypes, setSubjectTypes] = useState([]);
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [subjectTypes, setSubjectTypes] = useState<SubjectTypeOption[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Key[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
     useUploadState();
-  const subjectModal = useFormModal({
+  const subjectModal = useFormModal<SubjectRecord>({
     submitting,
     onOpenCreate: () => {
       resetUploadState();
@@ -90,7 +116,8 @@ export function SubjectsManagementPage() {
       modalForm.setFieldsValue(normalizeSubjectFormValues(record, routeCustomsPassId));
     },
   });
-  const currentCustomsPassId = Form.useWatch('customsPassId', modalForm);
+  const watchedCustomsPassId = Form.useWatch('customsPassId', modalForm);
+  const currentCustomsPassId = typeof watchedCustomsPassId === 'string' ? watchedCustomsPassId : undefined;
 
   const enableSceneColumn = useMemo(() => {
     if (isScenePassId(routeCustomsPassId) || isScenePassId(currentCustomsPassId) || isScenePassId(detailRecord?.customsPassId)) {
@@ -100,7 +127,7 @@ export function SubjectsManagementPage() {
     return records.some((item) => isScenePassId(item.customsPassId));
   }, [currentCustomsPassId, detailRecord?.customsPassId, records, routeCustomsPassId]);
 
-  const detailResources = Array.isArray(detailRecord?.sourceVOS) ? detailRecord.sourceVOS : [];
+  const detailResources: SubjectResourceRecord[] = Array.isArray(detailRecord?.sourceVOS) ? detailRecord.sourceVOS : [];
 
   useEffect(() => {
     searchForm.resetFields();
@@ -120,13 +147,13 @@ export function SubjectsManagementPage() {
     async function loadSubjectTypes() {
       try {
         const data = await listSubjects();
-        setSubjectTypes(Array.isArray(data) ? data : []);
+        setSubjectTypes(Array.isArray(data) ? (data as SubjectTypeOption[]) : []);
       } catch (error) {
-        message.error(error?.message || '题型列表加载失败');
+        message.error(getErrorMessage(error, '题型列表加载失败'));
       }
     }
 
-    loadSubjectTypes();
+    return loadSubjectTypes();
   });
 
   useEffect(() => {
@@ -144,9 +171,9 @@ export function SubjectsManagementPage() {
       setDetailLoading(true);
       try {
         const data = await getSubjectRecordDetail(topicId);
-        setDetailRecord(data);
+        setDetailRecord(data as SubjectDetailRecord | null);
       } catch (error) {
-        message.error(error?.message || '题目详情加载失败');
+        message.error(getErrorMessage(error, '题目详情加载失败'));
       } finally {
         setDetailLoading(false);
       }
@@ -155,30 +182,41 @@ export function SubjectsManagementPage() {
     loadDetail();
   }, [isDetailMode, message, topicId]);
 
-  async function handleUpload({ file, onError, onSuccess }, field) {
-    setUploading(file.name);
+  async function handleUpload(
+    options: UploadRequestOptions,
+    field: SubjectUploadField,
+  ): Promise<void> {
+    const { file, onError, onSuccess } = options;
+    const fileName = getUploadFileName(file);
+
+    setUploading(fileName);
 
     try {
+      if (!(file instanceof Blob)) {
+        throw new Error('上传文件无效');
+      }
+
       const url = await uploadAsset(file);
       modalForm.setFieldValue(field, url);
-      setUploadSuccess(`${file.name} 上传成功`);
+      setUploadSuccess(`${fileName} 上传成功`);
       onSuccess?.({ url });
     } catch (error) {
-      const errorMessage = error?.message || '上传失败';
+      const errorMessage = getErrorMessage(error, '上传失败');
+      const uploadError = error instanceof Error ? error : new Error(errorMessage);
       setUploadError(errorMessage);
       message.error(errorMessage);
-      onError?.(error);
+      onError?.(uploadError);
     }
   }
 
-  async function reloadCurrentPage() {
+  async function reloadCurrentPage(): Promise<void> {
     if (isDetailMode && topicId) {
       setDetailLoading(true);
       try {
         const data = await getSubjectRecordDetail(topicId);
-        setDetailRecord(data);
+        setDetailRecord(data as SubjectDetailRecord | null);
       } catch (error) {
-        message.error(error?.message || '题目详情加载失败');
+        message.error(getErrorMessage(error, '题目详情加载失败'));
       } finally {
         setDetailLoading(false);
       }
@@ -189,7 +227,11 @@ export function SubjectsManagementPage() {
     setSelectedIds([]);
   }
 
-  async function syncSceneGraph(subjectId, nextSceneGraph, previousSceneGraph) {
+  async function syncSceneGraph(
+    subjectId: number,
+    nextSceneGraph: string,
+    previousSceneGraph?: string,
+  ): Promise<void> {
     const current = previousSceneGraph && previousSceneGraph !== 'null' ? previousSceneGraph : '';
     const next = nextSceneGraph && nextSceneGraph !== 'null' ? nextSceneGraph : '';
 
@@ -214,7 +256,7 @@ export function SubjectsManagementPage() {
     await createSubjectScenePic({ id: subjectId, scenePic: next });
   }
 
-  async function handleSubmit(values) {
+  const handleSubmit: FormProps<SubjectFormValues>['onFinish'] = async (values) => {
     if (!values.customsPassId || !values.sourceIds?.trim()) {
       message.error('请填写关卡 ID 和题目内容');
       return;
@@ -254,16 +296,16 @@ export function SubjectsManagementPage() {
       subjectModal.setOpen(false);
       await reloadCurrentPage();
     } catch (error) {
-      message.error(error?.message || '题目提交失败');
+      message.error(getErrorMessage(error, '题目提交失败'));
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(record) {
+  async function handleDelete(record: SubjectRecord): Promise<void> {
     setActionSubmitting(true);
     try {
-      await removeSubjectRecord(record.id);
+      await removeSubjectRecord(Number(record.id));
       message.success('题目已删除');
       if (isDetailMode) {
         navigate(`/subjects${buildSearch(searchParams, {}, ['topicId', 'detpage'])}`, { replace: true });
@@ -276,24 +318,24 @@ export function SubjectsManagementPage() {
         await reloadCurrentPage();
       }
     } catch (error) {
-      message.error(error?.message || '题目删除失败');
+      message.error(getErrorMessage(error, '题目删除失败'));
     } finally {
       setActionSubmitting(false);
     }
   }
 
-  async function handleBatchDelete() {
+  async function handleBatchDelete(): Promise<void> {
     if (!selectedIds.length) {
       return;
     }
 
     setActionSubmitting(true);
     try {
-      await batchRemoveSubjectRecords(selectedIds);
+      await batchRemoveSubjectRecords(selectedIds.map((id) => Number(id)));
       message.success('批量删除成功');
       await reloadCurrentPage();
     } catch (error) {
-      message.error(error?.message || '批量删除失败');
+      message.error(getErrorMessage(error, '批量删除失败'));
     } finally {
       setActionSubmitting(false);
     }
@@ -313,6 +355,10 @@ export function SubjectsManagementPage() {
     submitting,
     actionSubmitting,
   });
+
+  const handleSearch: FormProps<SubjectSearchValues>['onFinish'] = (values) => {
+    applyFilters(buildSubjectSearchFilters(values, routeCustomsPassId));
+  };
 
   return (
     <div className="page-stack">
@@ -338,7 +384,7 @@ export function SubjectsManagementPage() {
               selectedCount={selectedIds.length}
               submitting={submitting}
               actionSubmitting={actionSubmitting}
-              onSearch={(values) => applyFilters(buildSubjectSearchFilters(values, routeCustomsPassId))}
+              onSearch={handleSearch}
               onCreate={subjectModal.openCreate}
               onBatchDelete={handleBatchDelete}
               onBack={() => navigate(-1)}
@@ -346,7 +392,7 @@ export function SubjectsManagementPage() {
           </PageToolbarCard>
 
           <Card title="题目列表" extra={<Typography.Text type="secondary">共 {totalCount} 条记录，已选 {selectedIds.length} 条</Typography.Text>}>
-            <Table
+            <Table<SubjectRecord>
               rowKey="id"
               columns={columns}
               dataSource={records}

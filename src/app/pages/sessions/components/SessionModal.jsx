@@ -36,6 +36,7 @@ export function SessionModal({
       width={720}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         维护大关卡的教材归属、标题、图片与顺序。

@@ -1,8 +1,14 @@
 import { toApiDateTime } from '@/app/lib/dateTime';
+import type {
+  SubjectFormValues,
+  SubjectQuery,
+  SubjectRecord,
+  SubjectSearchValues,
+} from '../types';
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-export const EMPTY_SUBJECT_FORM = {
+export const EMPTY_SUBJECT_FORM: SubjectFormValues = {
   id: undefined,
   customsPassId: undefined,
   customsPassName: '',
@@ -17,11 +23,17 @@ export const EMPTY_SUBJECT_FORM = {
   originalSceneGraph: '',
 };
 
-export function isScenePassId(value) {
+export function isScenePassId(value: unknown): boolean {
   return String(value) === '2' || String(value) === '8';
 }
 
-export function buildSearch(searchParams, updates = {}, removals = []) {
+type SearchUpdateValue = string | number | boolean | null | undefined;
+
+export function buildSearch(
+  searchParams: URLSearchParams,
+  updates: Record<string, SearchUpdateValue> = {},
+  removals: string[] = [],
+): string {
   const nextSearch = new URLSearchParams(searchParams);
   removals.forEach((key) => nextSearch.delete(key));
   Object.entries(updates).forEach(([key, value]) => {
@@ -35,7 +47,10 @@ export function buildSearch(searchParams, updates = {}, removals = []) {
   return result ? `?${result}` : '';
 }
 
-export function buildSubjectSearchFilters(values = {}, routeCustomsPassId = '') {
+export function buildSubjectSearchFilters(
+  values: SubjectSearchValues = {},
+  routeCustomsPassId = '',
+): Pick<SubjectQuery, 'startTime' | 'endTime' | 'customsPassId' | 'customsPassName' | 'sourceIds'> {
   return {
     startTime: toApiDateTime(values.startTime),
     endTime: toApiDateTime(values.endTime),
@@ -45,7 +60,10 @@ export function buildSubjectSearchFilters(values = {}, routeCustomsPassId = '') 
   };
 }
 
-export function normalizeSubjectFormValues(record, routeCustomsPassId) {
+export function normalizeSubjectFormValues(
+  record: SubjectRecord | null | undefined,
+  routeCustomsPassId = '',
+): SubjectFormValues {
   if (!record) {
     return {
       ...EMPTY_SUBJECT_FORM,

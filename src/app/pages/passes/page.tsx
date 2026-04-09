@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { App, Card, Form, Space, Table, Typography } from 'antd';
+import { App, Card, Form, Table, Typography } from 'antd';
+import type { FormProps, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import {
@@ -19,24 +20,41 @@ import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { PassModal } from './components/PassModal';
 import { PassToolbar } from './components/PassToolbar';
 import { createPassColumns } from './configs/tableColumns';
-import {
-  PAGE_SIZE_OPTIONS,
-  normalizePassFormValues,
-} from './utils/forms';
+import { PAGE_SIZE_OPTIONS, normalizePassFormValues } from './utils/forms';
+import type {
+  PassFormValues,
+  PassListResult,
+  PassQuery,
+  PassRecord,
+  PassSubjectOption,
+} from './types';
+
+type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
+type UploadRequestFile = UploadRequestOptions['file'];
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getUploadFileName(file: UploadRequestFile): string {
+  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
+    ? file.name
+    : '文件';
+}
 
 export function PassManagementPage() {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<PassFormValues>();
   const partsId = searchParams.get('partsId') || '';
   const textbookId = searchParams.get('textbookId') || '';
-  const [subjects, setSubjects] = useState([]);
+  const [subjects, setSubjects] = useState<PassSubjectOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
     useUploadState();
-  const passModal = useFormModal({
+  const passModal = useFormModal<PassRecord>({
     submitting,
     onOpenCreate: () => {
       resetUploadState();
@@ -47,7 +65,8 @@ export function PassManagementPage() {
       form.setFieldsValue(normalizePassFormValues(pass, partsId));
     },
   });
-  const iconValue = Form.useWatch('icon', form);
+  const watchedIcon = Form.useWatch('icon', form);
+  const iconValue = typeof watchedIcon === 'string' ? watchedIcon : undefined;
   const {
     query,
     data: passes,
@@ -56,13 +75,13 @@ export function PassManagementPage() {
     setPageNum,
     setPageSize,
     reload,
-  } = useRemoteTable({
+  } = useRemoteTable<PassQuery, PassListResult, PassRecord>({
     initialQuery: {
       partsId,
       pageNum: 1,
       pageSize: 10,
     },
-    request: listPasses,
+    request: async (currentQuery) => (await listPasses(currentQuery)) as PassListResult,
     getItems: (result) => result?.data,
     getTotalCount: (result) => result?.totalCount || 0,
     onError: (errorMessage) => message.error(errorMessage || '关卡列表加载失败'),
@@ -72,32 +91,40 @@ export function PassManagementPage() {
     async function loadSubjectOptions() {
       try {
         const data = await listSubjects();
-        setSubjects(Array.isArray(data) ? data : []);
+        setSubjects(Array.isArray(data) ? (data as PassSubjectOption[]) : []);
       } catch (error) {
-        message.error(error?.message || '题型列表加载失败');
+        message.error(getErrorMessage(error, '题型列表加载失败'));
       }
     }
 
-    loadSubjectOptions();
+    return loadSubjectOptions();
   });
 
-  async function handleUpload({ file, onError, onSuccess }) {
-    setUploading(file.name);
+  async function handleUpload(options: UploadRequestOptions): Promise<void> {
+    const { file, onError, onSuccess } = options;
+    const fileName = getUploadFileName(file);
+
+    setUploading(fileName);
 
     try {
+      if (!(file instanceof Blob)) {
+        throw new Error('上传文件无效');
+      }
+
       const url = await uploadAsset(file);
       form.setFieldValue('icon', url);
       setUploadSuccess('上传成功，已自动写入图片地址');
       onSuccess?.({ url });
     } catch (error) {
-      const errorMessage = error?.message || '上传失败';
+      const errorMessage = getErrorMessage(error, '上传失败');
+      const uploadError = error instanceof Error ? error : new Error(errorMessage);
       setUploadError(errorMessage);
       message.error(errorMessage);
-      onError?.(error);
+      onError?.(uploadError);
     }
   }
 
-  async function handleSubmit(values) {
+  const handleSubmit: FormProps<PassFormValues>['onFinish'] = async (values) => {
     if (!values.title?.trim() || values.partsId === undefined || !values.subject) {
       message.error('请填写关卡标题、Part ID 并选择题型');
       return;
@@ -126,16 +153,16 @@ export function PassManagementPage() {
       passModal.setOpen(false);
       await reload().catch(() => {});
     } catch (error) {
-      message.error(error?.message || '关卡提交失败');
+      message.error(getErrorMessage(error, '关卡提交失败'));
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(pass) {
+  async function handleDelete(pass: PassRecord): Promise<void> {
     setActionSubmitting(true);
     try {
-      await removePass(pass.id);
+      await removePass(Number(pass.id));
       message.success('关卡已删除');
       if (passes.length === 1 && query.pageNum > 1) {
         setPageNum(query.pageNum - 1);
@@ -143,10 +170,14 @@ export function PassManagementPage() {
         await reload().catch(() => {});
       }
     } catch (error) {
-      message.error(error?.message || '关卡删除失败');
+      message.error(getErrorMessage(error, '关卡删除失败'));
     } finally {
       setActionSubmitting(false);
     }
+  }
+
+  function handleRefresh(): void {
+    void reload().catch(() => {});
   }
 
   const columns = createPassColumns({
@@ -170,7 +201,7 @@ export function PassManagementPage() {
           loading={loading}
           onCreate={passModal.openCreate}
           onBack={() => navigate(textbookId ? `/parts?textBookId=${textbookId}&unitId=` : '/parts')}
-          onRefresh={() => reload().catch(() => {})}
+          onRefresh={handleRefresh}
         />
       </PageToolbarCard>
 

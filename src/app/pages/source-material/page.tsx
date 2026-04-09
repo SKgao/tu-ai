@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Key } from 'react';
 import { App, Button, Card, Form, Table, Typography } from 'antd';
-import type { FormProps, UploadProps } from 'antd';
+import type { FormProps, UploadFile, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -45,17 +45,28 @@ import type {
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 type UploadField = 'icon' | 'audio';
+type UploadRequestFile = UploadRequestOptions['file'];
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function getUploadFileName(file: unknown): string {
-  return typeof file === 'object' && file && 'name' in file && typeof file.name === 'string' ? file.name : '文件';
+function getUploadFileName(file: UploadRequestFile): string {
+  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
+    ? file.name
+    : '文件';
 }
 
-function getImportFileName(file: { name?: string; originFileObj?: { name?: string } }): string | undefined {
+function getImportFileName(file: UploadFile): string | undefined {
   return file.name || file.originFileObj?.name;
+}
+
+function isNonEmptyString(value: string | undefined): value is string {
+  return Boolean(value);
+}
+
+function getImportFileNames(files: UploadFile[] = []): string[] {
+  return files.map(getImportFileName).filter(isNonEmptyString);
 }
 
 export function SourceMaterialManagementPage() {
@@ -136,10 +147,8 @@ export function SourceMaterialManagementPage() {
 
       const url = await uploadAsset(file);
       const current = materialForm.getFieldsValue();
-      const next = {
-        ...current,
-        [field]: url,
-      };
+      const next: SourceMaterialFormValues = { ...current };
+      next[field] = url;
 
       if (!String(next.text || '').trim()) {
         if (field === 'icon') {
@@ -154,9 +163,10 @@ export function SourceMaterialManagementPage() {
       onSuccess?.({ url });
     } catch (error) {
       const errorMessage = getErrorMessage(error, '上传失败');
+      const uploadError = error instanceof Error ? error : new Error(errorMessage);
       setUploadError(errorMessage);
       message.error(errorMessage);
-      onError?.(error as Error);
+      onError?.(uploadError);
     }
   }
 
@@ -281,9 +291,9 @@ export function SourceMaterialManagementPage() {
     try {
       const result = await importSubjectSources({
         textbookId: Number(values.textbookId),
-        audioArray: (values.audioArray || []).map(getImportFileName).filter(Boolean) as string[],
-        imageArray: (values.imageArray || []).map(getImportFileName).filter(Boolean) as string[],
-        sentensArray: (values.sentensArray || []).map(getImportFileName).filter(Boolean) as string[],
+        audioArray: getImportFileNames(values.audioArray),
+        imageArray: getImportFileNames(values.imageArray),
+        sentensArray: getImportFileNames(values.sentensArray),
       });
       setImportResult(result || '');
       message.success('素材导入请求已提交');

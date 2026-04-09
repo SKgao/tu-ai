@@ -69,7 +69,7 @@ export function ActivityManagementPage() {
         content: '',
         icon: '',
         activeMoney: undefined,
-        status: '1',
+        activityType: '1',
         itemId: undefined,
         activeExpireDays: undefined,
         beginAt: undefined,
@@ -94,7 +94,7 @@ export function ActivityManagementPage() {
     (state) => state.refreshActivityFilterOptions,
   );
   const iconValue = Form.useWatch('icon', modalForm) as string | undefined;
-  const activityType = (Form.useWatch('status', modalForm) as string | undefined) || '1';
+  const activityType = (Form.useWatch('activityType', modalForm) as string | undefined) || '1';
   const {
     query,
     data: activities,

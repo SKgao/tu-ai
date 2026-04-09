@@ -1,6 +1,21 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
+import type { TableColumnsType } from 'antd';
+import type { UnitRecord } from '../types';
+
+type CreateUnitColumnsOptions = {
+  bookMap: Map<string, string | undefined>;
+  textbookId?: string;
+  onEdit: (unit: UnitRecord) => void;
+  onToggleLock: (unit: UnitRecord) => void | Promise<void>;
+  onDelete: (unit: UnitRecord) => void | Promise<void>;
+  submitting: boolean;
+  actionSubmitting: boolean;
+};
+
+function isUnlocked(value: UnitRecord['canLock']): boolean {
+  return Number(value) === 1;
+}
 
 export function createUnitColumns({
   bookMap,
@@ -10,7 +25,7 @@ export function createUnitColumns({
   onDelete,
   submitting,
   actionSubmitting,
-}) {
+}: CreateUnitColumnsOptions): TableColumnsType<UnitRecord> {
   return [
     { title: '单元名', dataIndex: 'text', render: (value) => value || '-' },
     {
@@ -32,13 +47,17 @@ export function createUnitColumns({
     {
       title: '教材',
       dataIndex: 'textBookName',
-      render: (_, record) => record.textBookName || bookMap.get(String(record.textBookId)) || record.textBookId || '-',
+      render: (_value, record) =>
+        record.textBookName ||
+        bookMap.get(String(record.textBookId || '')) ||
+        (record.textBookId ? String(record.textBookId) : '-') ||
+        '-',
     },
     { title: '排序', dataIndex: 'sort', render: (value) => value ?? '-' },
     {
       title: '锁定状态',
       dataIndex: 'canLock',
-      render: (value) => <Tag color={value === 1 ? 'success' : 'warning'}>{value === 1 ? '已解锁' : '已锁定'}</Tag>,
+      render: (value) => <Tag color={isUnlocked(value) ? 'success' : 'warning'}>{isUnlocked(value) ? '已解锁' : '已锁定'}</Tag>,
     },
     { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
     {
@@ -70,7 +89,7 @@ export function createUnitColumns({
             disabled={submitting || actionSubmitting}
             style={{ paddingInline: 0 }}
           >
-            {unit.canLock === 1 ? '锁定' : '解锁'}
+            {isUnlocked(unit.canLock) ? '锁定' : '解锁'}
           </Button>
           <Popconfirm
             title={`确认删除单元 ${unit.text || unit.id} 吗？`}

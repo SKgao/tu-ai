@@ -13,7 +13,7 @@ export const EMPTY_ACTIVITY_FORM: ActivityFormValues = {
   content: '',
   icon: '',
   activeMoney: undefined,
-  status: '1',
+  activityType: '1',
   itemId: undefined,
   activeExpireDays: undefined,
   beginAt: undefined,
@@ -56,7 +56,7 @@ export function normalizeActivityFormValues(activity?: ActivityRecord | null): A
       activity.activeMoney !== undefined && activity.activeMoney !== null
         ? Number((Number(activity.activeMoney) / 100).toFixed(2))
         : undefined,
-    status: String(activity.status ?? '1'),
+    activityType: String(activity.activityType ?? '1'),
     itemId:
       activity.itemId !== undefined && activity.itemId !== null ? String(activity.itemId) : undefined,
     activeExpireDays:
@@ -89,7 +89,7 @@ export function validateActivityForm(values: ActivityFormValues): string {
     return '活动开始时间不能大于结束时间';
   }
 
-  const isPurchaseActivity = String(values.status) === '1';
+  const isPurchaseActivity = String(values.activityType) === '1';
   if (isPurchaseActivity && !values.itemId) {
     return '购买活动必须选择参与活动商品';
   }
@@ -103,7 +103,7 @@ export function buildActivityPayload(
 ): Record<string, string | number | undefined> {
   const beginAt = dayjs(values.beginAt);
   const endAt = dayjs(values.endAt);
-  const isPurchaseActivity = String(values.status) === '1';
+  const isPurchaseActivity = String(values.activityType) === '1';
   const diffDays = Math.floor(endAt.diff(beginAt, 'day', true));
 
   return {
@@ -111,7 +111,7 @@ export function buildActivityPayload(
     content: values.content?.trim() || '',
     icon: values.icon?.trim() || '',
     url: values.url?.trim() || '',
-    status: Number(values.status),
+    activityType: Number(values.activityType || '1'),
     beginAt: toApiDateTime(values.beginAt),
     endAt: toApiDateTime(values.endAt),
     activeExpireDays:

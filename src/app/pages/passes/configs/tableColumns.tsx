@@ -1,13 +1,21 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
+import type { TableColumnsType } from 'antd';
+import type { PassRecord } from '../types';
+
+type CreatePassColumnsOptions = {
+  onEdit: (pass: PassRecord) => void;
+  onDelete: (pass: PassRecord) => void | Promise<void>;
+  submitting: boolean;
+  actionSubmitting: boolean;
+};
 
 export function createPassColumns({
   onEdit,
   onDelete,
   submitting,
   actionSubmitting,
-}) {
+}: CreatePassColumnsOptions): TableColumnsType<PassRecord> {
   return [
     { title: '关卡标题', dataIndex: 'title', render: (value) => value || '-' },
     {

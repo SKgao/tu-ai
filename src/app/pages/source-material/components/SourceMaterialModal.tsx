@@ -1,6 +1,7 @@
 import { Button, Form, Input, Modal, Select, Typography, Upload } from 'antd';
 import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { FormModalMode } from '@/app/hooks/useFormModal';
 import type { UploadState } from '@/app/hooks/useUploadState';
 import {
   EMPTY_MATERIAL_FORM,
@@ -12,17 +13,18 @@ import type {
 } from '../types';
 
 type UploadField = 'icon' | 'audio';
+type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 
 type SourceMaterialModalProps = {
   open: boolean;
-  mode: 'create' | 'edit' | string;
+  mode: FormModalMode;
   form: FormInstance<SourceMaterialFormValues>;
   books: SourceMaterialBookOption[];
   submitting: boolean;
   uploadState: UploadState;
   onCancel: () => void;
   onSubmit: FormProps<SourceMaterialFormValues>['onFinish'];
-  onUpload: (options: Parameters<NonNullable<UploadProps['customRequest']>>[0], field: UploadField) => void | Promise<void>;
+  onUpload: (options: UploadRequestOptions, field: UploadField) => void | Promise<void>;
 };
 
 export function SourceMaterialModal({
@@ -48,6 +50,7 @@ export function SourceMaterialModal({
       width={840}
       mask={{ closable: !submitting }}
       keyboard={!submitting}
+      forceRender
     >
       <Typography.Paragraph type="secondary">
         维护素材文本、图标、音频和释义信息。

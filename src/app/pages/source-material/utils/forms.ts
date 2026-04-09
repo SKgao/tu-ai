@@ -2,6 +2,7 @@ import { toApiDateTime } from '@/app/lib/dateTime';
 import type {
   ImportSourceMaterialFormValues,
   SourceMaterialFormValues,
+  SourceMaterialQuery,
   SourceMaterialRecord,
   SourceMaterialSearchValues,
 } from '../types';
@@ -71,7 +72,7 @@ export function normalizeMaterialFormValues(
 
 export function buildSourceMaterialSearchFilters(
   values: SourceMaterialSearchValues = {},
-) {
+): Pick<SourceMaterialQuery, 'startTime' | 'endTime' | 'text' | 'openLike'> {
   return {
     startTime: toApiDateTime(values.startTime),
     endTime: toApiDateTime(values.endTime),

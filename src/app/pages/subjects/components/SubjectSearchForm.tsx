@@ -1,6 +1,23 @@
-import React from 'react';
 import { Button, DatePicker, Form, Input, Space, Typography } from 'antd';
+import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import type { SubjectSearchValues } from '../types';
+
+type SubjectSearchFormProps = {
+  form: FormInstance<SubjectSearchValues>;
+  loading: boolean;
+  routeCustomsPassId: string;
+  textbookId: string;
+  partsId: string;
+  sessionId: string;
+  selectedCount: number;
+  submitting: boolean;
+  actionSubmitting: boolean;
+  onSearch: FormProps<SubjectSearchValues>['onFinish'];
+  onCreate: () => void;
+  onBatchDelete: () => void | Promise<void>;
+  onBack: () => void;
+};
 
 export function SubjectSearchForm({
   form,
@@ -16,7 +33,7 @@ export function SubjectSearchForm({
   onCreate,
   onBatchDelete,
   onBack,
-}) {
+}: SubjectSearchFormProps) {
   return (
     <Form
       form={form}
