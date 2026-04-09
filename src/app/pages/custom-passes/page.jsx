@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   App,
@@ -93,7 +93,7 @@ export function CustomPassManagementPage() {
     if (partsId) {
       loadSubjectTypes();
     }
-  }, [partsId]);
+  }, [partsId, message]);
 
   async function handleUpload({ file, onError, onSuccess }, field = 'icon', target = 'pass') {
     setUploading(file.name);
@@ -199,18 +199,14 @@ export function CustomPassManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createCustomPassColumns({
-        partsId,
-        sessionId,
-        onEdit: passModal.openEdit,
-        onDelete: handleDelete,
-        submitting,
-        actionSubmitting,
-      }),
-    [actionSubmitting, passModal.openEdit, partsId, sessionId, submitting],
-  );
+  const columns = createCustomPassColumns({
+    partsId,
+    sessionId,
+    onEdit: passModal.openEdit,
+    onDelete: handleDelete,
+    submitting,
+    actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

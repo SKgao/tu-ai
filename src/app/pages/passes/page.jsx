@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Card, Form, Space, Table, Typography } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
@@ -12,6 +12,7 @@ import {
   uploadAsset,
 } from '@/app/services/passes';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -67,7 +68,7 @@ export function PassManagementPage() {
     onError: (errorMessage) => message.error(errorMessage || '关卡列表加载失败'),
   });
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadSubjectOptions() {
       try {
         const data = await listSubjects();
@@ -78,7 +79,7 @@ export function PassManagementPage() {
     }
 
     loadSubjectOptions();
-  }, []);
+  });
 
   async function handleUpload({ file, onError, onSuccess }) {
     setUploading(file.name);
@@ -148,16 +149,12 @@ export function PassManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createPassColumns({
-        onEdit: passModal.openEdit,
-        onDelete: handleDelete,
-        submitting,
-        actionSubmitting,
-      }),
-    [actionSubmitting, passModal.openEdit, submitting],
-  );
+  const columns = createPassColumns({
+    onEdit: passModal.openEdit,
+    onDelete: handleDelete,
+    submitting,
+    actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { App, Button, Card, Form, Space, Table, Typography } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
@@ -162,15 +162,11 @@ export function MenuManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createMenuColumns({
-        onEdit: menuModal.openEdit,
-        onDelete: handleDelete,
-        submitting: submitting || actionSubmitting,
-      }),
-    [actionSubmitting, menuModal.openEdit, submitting],
-  );
+  const columns = createMenuColumns({
+    onEdit: menuModal.openEdit,
+    onDelete: handleDelete,
+    submitting: submitting || actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

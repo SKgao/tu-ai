@@ -12,6 +12,10 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { mkdirSync } from 'fs';
 import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { CreateUserDto } from './dto/create-user.dto';
+import { ListUsersDto } from './dto/list-users.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserIdDto } from './dto/user-id.dto';
 import { UsersService } from './users.service';
 
 const uploadDir = join(process.cwd(), 'uploads');
@@ -28,32 +32,32 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('user/list')
-  listUsers(@Body() payload: Record<string, unknown>) {
+  listUsers(@Body() payload: ListUsersDto) {
     return this.usersService.listUsers(payload);
   }
 
   @Post('user/add')
-  addUser(@Body() payload: Record<string, unknown>) {
+  addUser(@Body() payload: CreateUserDto) {
     return this.usersService.createUser(payload);
   }
 
   @Post('user/update')
-  updateUser(@Body() payload: Record<string, unknown>) {
+  updateUser(@Body() payload: UpdateUserDto) {
     return this.usersService.updateUser(payload);
   }
 
   @Post('user/delete')
-  deleteUser(@Body() payload: unknown) {
+  deleteUser(@Body() payload: UserIdDto) {
     return this.usersService.deleteUser(payload);
   }
 
   @Post('user/forbidden')
-  forbidUser(@Body() payload: unknown) {
+  forbidUser(@Body() payload: UserIdDto) {
     return this.usersService.forbidUser(payload);
   }
 
   @Post('user/using')
-  enableUser(@Body() payload: unknown) {
+  enableUser(@Body() payload: UserIdDto) {
     return this.usersService.enableUser(payload);
   }
 

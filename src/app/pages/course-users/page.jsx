@@ -5,6 +5,7 @@ import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { createCourseUser, listCourseUsers } from '@/app/services/course-users';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { createCourseUserColumns } from './configs/tableColumns';
@@ -76,11 +77,11 @@ export function CourseUserManagementPage() {
     });
   }, [patchQuery, routeTutuNumber, searchForm]);
 
-  useEffect(() => {
+  useMountEffect(() => {
     ensureCourseOptions().catch((error) => {
       message.error(error?.message || '精品课程列表加载失败');
     });
-  }, [ensureCourseOptions, message]);
+  });
 
   function handleSearch(values) {
     applyFilters(buildCourseUserSearchFilters(values));

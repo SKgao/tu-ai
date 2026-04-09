@@ -5,6 +5,7 @@ import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import {
@@ -113,9 +114,9 @@ export function SubjectsManagementPage() {
       pageNum: 1,
     }));
     setSelectedIds([]);
-  }, [routeCustomsPassId]);
+  }, [routeCustomsPassId, searchForm, setQuery]);
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadSubjectTypes() {
       try {
         const data = await listSubjects();
@@ -126,7 +127,7 @@ export function SubjectsManagementPage() {
     }
 
     loadSubjectTypes();
-  }, []);
+  });
 
   useEffect(() => {
     setSelectedIds([]);
@@ -152,7 +153,7 @@ export function SubjectsManagementPage() {
     }
 
     loadDetail();
-  }, [isDetailMode, topicId]);
+  }, [isDetailMode, message, topicId]);
 
   async function handleUpload({ file, onError, onSuccess }, field) {
     setUploading(file.name);

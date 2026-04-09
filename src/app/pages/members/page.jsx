@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { App, Card, Form, Table, Tabs, Typography, Space } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { disableMember, enableMember, grantMemberVip } from '@/app/services/members';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMemberManagementData } from './hooks/useMemberManagementData';
 import { createMemberColumns, createMemberFeedbackColumns } from './configs/tableColumns';
 import { MemberFeedbackSearchForm } from './components/MemberFeedbackSearchForm';
@@ -53,11 +54,11 @@ export function MemberManagementPage() {
       onError: (errorMessage) => message.error(errorMessage),
     });
 
-  useEffect(() => {
+  useMountEffect(() => {
     ensureMemberLevelOptions().catch((error) => {
       message.error(error?.message || '会员等级列表加载失败');
     });
-  }, [ensureMemberLevelOptions, message]);
+  });
 
   function handleMemberSearch(values) {
     searchMembers(values);
@@ -121,15 +122,11 @@ export function MemberManagementPage() {
     }
   }
 
-  const memberColumns = useMemo(
-    () =>
-      createMemberColumns({
-        onOpenVip: vipModal.openEdit,
-        onMemberStatus: handleMemberStatus,
-        submitting: vipSubmitting || actionSubmitting,
-      }),
-    [actionSubmitting, vipModal.openEdit, vipSubmitting],
-  );
+  const memberColumns = createMemberColumns({
+    onOpenVip: vipModal.openEdit,
+    onMemberStatus: handleMemberStatus,
+    submitting: vipSubmitting || actionSubmitting,
+  });
   const feedbackColumns = useMemo(() => createMemberFeedbackColumns(), []);
 
   return (

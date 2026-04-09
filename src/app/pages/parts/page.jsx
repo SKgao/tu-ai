@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Card, Form, Space, Table, Typography } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
@@ -150,18 +150,14 @@ export function PartManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createPartColumns({
-        textBookId,
-        onEdit: partModal.openEdit,
-        onToggleLock: handleToggleLock,
-        onDelete: handleDelete,
-        submitting,
-        actionSubmitting,
-      }),
-    [actionSubmitting, partModal.openEdit, submitting, textBookId],
-  );
+  const columns = createPartColumns({
+    textBookId,
+    onEdit: partModal.openEdit,
+    onToggleLock: handleToggleLock,
+    onDelete: handleDelete,
+    submitting,
+    actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

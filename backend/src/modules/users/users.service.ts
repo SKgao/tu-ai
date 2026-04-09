@@ -4,43 +4,16 @@ import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalStri
 import { hashPassword } from '../../common/password';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange } from '../../prisma/where';
-import { normalizePrimitivePayload } from '../access/shared';
-
-type ListUsersPayload = {
-  account?: string;
-  startTime?: string;
-  endTime?: string;
-  pageNum?: number;
-  pageSize?: number;
-};
-
-type CreateUserPayload = {
-  account?: string;
-  password?: string;
-  email?: string;
-  phone?: string;
-  avatar?: string;
-  status?: number | string;
-  roleid?: number;
-};
-
-type UpdateUserPayload = {
-  id?: number;
-  password?: string;
-  email?: string;
-  phone?: string;
-  avatar?: string;
-  status?: number;
-  roleid?: number;
-  name?: string;
-  sex?: number;
-};
+import { CreateUserDto } from './dto/create-user.dto';
+import { ListUsersDto } from './dto/list-users.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserIdDto } from './dto/user-id.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listUsers(payload: ListUsersPayload = {}) {
+  async listUsers(payload: ListUsersDto = {}) {
     const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
     const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
     const account = toOptionalString(payload.account);
@@ -78,7 +51,7 @@ export class UsersService {
     };
   }
 
-  async createUser(payload: CreateUserPayload) {
+  async createUser(payload: CreateUserDto) {
     const account = requireText(payload.account, '用户名和密码不能为空');
     const password = requireText(payload.password, '用户名和密码不能为空');
     const roleId = toOptionalNumber(payload.roleid, 1) ?? 1;
@@ -121,7 +94,7 @@ export class UsersService {
     };
   }
 
-  async updateUser(payload: UpdateUserPayload) {
+  async updateUser(payload: UpdateUserDto) {
     const id = requireNumber(payload.id, '缺少用户 ID');
 
     const user = await this.prisma.user.findUnique({
@@ -188,8 +161,8 @@ export class UsersService {
     };
   }
 
-  async deleteUser(payload: unknown) {
-    const id = requireNumber(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id, '缺少用户 ID');
+  async deleteUser(payload: UserIdDto) {
+    const id = requireNumber(payload.id, '缺少用户 ID');
 
     await this.assertUserExists(id);
     await this.prisma.user.update({
@@ -204,16 +177,16 @@ export class UsersService {
     };
   }
 
-  async forbidUser(payload: unknown) {
+  async forbidUser(payload: UserIdDto) {
     return this.updateStatus(payload, 2, '用户禁用成功');
   }
 
-  async enableUser(payload: unknown) {
+  async enableUser(payload: UserIdDto) {
     return this.updateStatus(payload, 1, '用户启用成功');
   }
 
-  private async updateStatus(payload: unknown, status: number, message: string) {
-    const id = requireNumber(normalizePrimitivePayload<{ id?: number }>(payload, 'id').id, '缺少用户 ID');
+  private async updateStatus(payload: UserIdDto, status: number, message: string) {
+    const id = requireNumber(payload.id, '缺少用户 ID');
 
     await this.assertUserExists(id);
     await this.prisma.user.update({

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   App,
@@ -23,6 +23,7 @@ import {
   upSpecialCourse,
 } from '@/app/services/special-courses';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMultiUploadState } from '@/app/hooks/useMultiUploadState';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -95,7 +96,7 @@ export function SpecialCourseManagementPage() {
     onError: (errorMessage) => message.error(errorMessage || '精品课程列表加载失败'),
   });
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadBooksData() {
       try {
         const data = await listBooks({
@@ -109,7 +110,7 @@ export function SpecialCourseManagementPage() {
     }
 
     loadBooksData();
-  }, [message]);
+  });
 
   function handleSearch(values) {
     applyFilters(buildSpecialCourseSearchFilters(values));
@@ -205,16 +206,12 @@ export function SpecialCourseManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createSpecialCourseColumns({
-        onEdit: courseModal.openEdit,
-        onToggleStatus: handleStatusChange,
-        onDelete: handleDelete,
-        submitting: submitting || actionSubmitting,
-      }),
-    [actionSubmitting, courseModal.openEdit, submitting],
-  );
+  const columns = createSpecialCourseColumns({
+    onEdit: courseModal.openEdit,
+    onToggleStatus: handleStatusChange,
+    onDelete: handleDelete,
+    submitting: submitting || actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

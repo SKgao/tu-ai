@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { App, Button, Card, DatePicker, Form, Input, Select, Space, Table, Typography } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { listMemberInfos } from '@/app/services/member-info';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -83,11 +84,11 @@ export function MemberInfoManagementPage() {
 
   const levelOptions = memberLevelOptions.filter((item) => item.levelName !== '普通用户');
 
-  useEffect(() => {
+  useMountEffect(() => {
     ensureMemberLevelOptions().catch((error) => {
       message.error(error?.message || '会员等级列表加载失败');
     });
-  }, [ensureMemberLevelOptions, message]);
+  });
 
   useEffect(() => {
     if (didInitLevelsRef.current || !levelOptions.length) {

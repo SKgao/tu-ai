@@ -7,7 +7,12 @@ export class TokenAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const token = request.headers.token;
+    const authorization = request.headers.authorization;
+    const headerToken = request.headers.token;
+    const token =
+      typeof authorization === 'string' && authorization.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length).trim()
+        : headerToken;
 
     if (!token || typeof token !== 'string') {
       throw new UnauthorizedException('请先登录');

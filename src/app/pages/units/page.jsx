@@ -13,6 +13,7 @@ import {
   uploadAsset,
 } from '@/app/services/units';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
@@ -81,7 +82,7 @@ export function UnitManagementPage() {
     [books],
   );
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadBookOptions() {
       try {
         const data = await listBooks({
@@ -95,7 +96,7 @@ export function UnitManagementPage() {
     }
 
     loadBookOptions();
-  }, []);
+  });
 
   function handleSearch(values) {
     applyFilters(buildUnitSearchFilters(values));
@@ -195,19 +196,15 @@ export function UnitManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createUnitColumns({
-        bookMap,
-        textbookId: query.textBookId,
-        onEdit: unitModal.openEdit,
-        onToggleLock: handleToggleLock,
-        onDelete: handleDelete,
-        submitting,
-        actionSubmitting,
-      }),
-    [actionSubmitting, bookMap, query.textBookId, submitting, unitModal.openEdit],
-  );
+  const columns = createUnitColumns({
+    bookMap,
+    textbookId: query.textBookId,
+    onEdit: unitModal.openEdit,
+    onToggleLock: handleToggleLock,
+    onDelete: handleDelete,
+    submitting,
+    actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Button, Card, Form, Space, Table, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -57,7 +57,7 @@ export function CourseBagCourseManagementPage() {
     [courses],
   );
 
-  async function loadCourses() {
+  const loadCourses = useCallback(async () => {
     if (!bagId) {
       setCourses([]);
       setLoading(false);
@@ -74,11 +74,11 @@ export function CourseBagCourseManagementPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [bagId, message]);
 
   useEffect(() => {
     loadCourses();
-  }, [bagId]);
+  }, [loadCourses]);
 
   async function handleUpload({ file, onError, onSuccess }) {
     setUploading(file.name);
@@ -158,16 +158,12 @@ export function CourseBagCourseManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createCourseBagCourseColumns({
-        onEdit: courseModal.openEdit,
-        onToggleStatus: handleStatusChange,
-        onDelete: handleDelete,
-        submitting: submitting || actionSubmitting,
-      }),
-    [actionSubmitting, courseModal.openEdit, submitting],
-  );
+  const columns = createCourseBagCourseColumns({
+    onEdit: courseModal.openEdit,
+    onToggleStatus: handleStatusChange,
+    onDelete: handleDelete,
+    submitting: submitting || actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

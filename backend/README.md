@@ -140,6 +140,8 @@ npm run start
 ```bash
 npm run start:dev
 npm run build
+npm run typecheck
+npm run test
 npm run start
 npm run db:up
 npm run db:down

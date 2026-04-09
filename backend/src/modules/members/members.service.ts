@@ -3,48 +3,10 @@ import { Member, MemberFeedback, MemberLevel, Prisma } from '@prisma/client';
 import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange, eq, inArray, nested } from '../../prisma/where';
-
-type MemberLevelPayload = {
-  userLevel?: number | string;
-  levelName?: string;
-  explainInfo?: string;
-  exprieDays?: number | string | null;
-  orgMoney?: number | string | null;
-  needMoney?: number | string | null;
-  icon?: string;
-};
-
-type MemberListPayload = {
-  pageNum?: number | string;
-  pageSize?: number | string;
-  userLevelIds?: Array<number | string>;
-  expireStartTime?: string;
-  expireEndTime?: string;
-  payStartTime?: string;
-  payEndTime?: string;
-  registerStartTime?: string;
-  registerEndTime?: string;
-  tutuNumber?: number | string;
-  mobile?: string;
-  sex?: number | string;
-  hasSetPassword?: number | string;
-  sortInvite?: number | string;
-  sortUserId?: number | string;
-};
-
-type MemberFeedbackPayload = {
-  pageNum?: number | string;
-  pageSize?: number | string;
-  startTime?: string;
-  endTime?: string;
-  tutuNumber?: number | string;
-  mobile?: string;
-};
-
-type GrantVipPayload = {
-  userId?: number | string;
-  userLevel?: number | string;
-};
+import { GrantVipDto } from './dto/grant-vip.dto';
+import { ListMemberFeedbackDto } from './dto/list-member-feedback.dto';
+import { ListMembersDto } from './dto/list-members.dto';
+import { CreateMemberLevelDto, UpdateMemberLevelDto } from './dto/member-level.dto';
 
 type MemberListItem = Member & {
   level?: MemberLevel | null;
@@ -86,7 +48,7 @@ export class MembersService {
     };
   }
 
-  async createMemberLevel(payload: MemberLevelPayload) {
+  async createMemberLevel(payload: CreateMemberLevelDto) {
     const userLevel = requireNumber(payload.userLevel, '缺少会员等级 ID');
     const levelName = requireText(payload.levelName, '会员等级名称不能为空');
 
@@ -117,7 +79,7 @@ export class MembersService {
     };
   }
 
-  async updateMemberLevel(payload: MemberLevelPayload) {
+  async updateMemberLevel(payload: UpdateMemberLevelDto) {
     const userLevel = requireNumber(payload.userLevel, '缺少会员等级 ID');
     const level = await this.prisma.memberLevel.findUnique({
       where: { userLevel },
@@ -205,7 +167,7 @@ export class MembersService {
     };
   }
 
-  async listMembers(payload: MemberListPayload = {}) {
+  async listMembers(payload: ListMembersDto = {}) {
     const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
     const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
     const where = this.buildMemberWhere(payload);
@@ -237,7 +199,7 @@ export class MembersService {
     };
   }
 
-  async listMemberFeedback(payload: MemberFeedbackPayload = {}) {
+  async listMemberFeedback(payload: ListMemberFeedbackDto = {}) {
     const pageNum = Math.max(1, toOptionalNumber(payload.pageNum) ?? 1);
     const pageSize = Math.max(1, toOptionalNumber(payload.pageSize) ?? 10);
     const startTime = parseDate(payload.startTime);
@@ -295,7 +257,7 @@ export class MembersService {
     return this.updateMemberStatus(payload, 2, '会员禁用成功');
   }
 
-  async grantVip(payload: GrantVipPayload) {
+  async grantVip(payload: GrantVipDto) {
     const userId = requireNumber(payload.userId, '缺少用户 ID');
     const userLevel = requireNumber(payload.userLevel, '请选择会员等级');
 
@@ -339,7 +301,7 @@ export class MembersService {
     };
   }
 
-  private buildMemberWhere(payload: MemberListPayload): Prisma.MemberWhereInput {
+  private buildMemberWhere(payload: ListMembersDto): Prisma.MemberWhereInput {
     const registerStartTime = parseDate(payload.registerStartTime);
     const registerEndTime = parseDate(payload.registerEndTime);
     const payStartTime = parseDate(payload.payStartTime);
@@ -373,7 +335,7 @@ export class MembersService {
     );
   }
 
-  private buildMemberOrderBy(payload: MemberListPayload): Prisma.MemberOrderByWithRelationInput[] {
+  private buildMemberOrderBy(payload: ListMembersDto): Prisma.MemberOrderByWithRelationInput[] {
     const orderBy: Prisma.MemberOrderByWithRelationInput[] = [];
     const sortInvite = toOptionalNumber(payload.sortInvite);
     const sortUserId = toOptionalNumber(payload.sortUserId);

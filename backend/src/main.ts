@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { json, static as serveStatic, urlencoded } from 'express';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
@@ -12,9 +13,18 @@ async function bootstrap() {
     cors: {
       origin: true,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'token'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'token'],
     },
   });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
   app.use(json({ strict: false }));
   app.use(urlencoded({ extended: true }));
   const uploadDir = join(process.cwd(), 'uploads');

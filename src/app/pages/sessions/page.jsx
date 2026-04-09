@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Card, Form, Table, Typography, Space } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
@@ -56,7 +56,7 @@ export function SessionManagementPage() {
   });
   const iconValue = Form.useWatch('icon', form);
 
-  async function loadSessions(currentTextbookId = filterTextbookId) {
+  const loadSessions = useCallback(async (currentTextbookId = filterTextbookId) => {
     if (!currentTextbookId) {
       setSessions([]);
       setAvailableCustomPasses([]);
@@ -81,11 +81,11 @@ export function SessionManagementPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filterTextbookId, message]);
 
   useEffect(() => {
     loadSessions();
-  }, [filterTextbookId]);
+  }, [loadSessions]);
 
   async function handleUpload({ file, onError, onSuccess }) {
     setUploading(file.name);
@@ -260,36 +260,24 @@ export function SessionManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createSessionColumns({
-        bindSelections,
-        availableCustomPasses,
-        filterTextbookId,
-        partsId,
-        submitting,
-        actionSubmitting,
-        onBindSelectionChange: (sessionId, value) =>
-          setBindSelections((current) => ({
-            ...current,
-            [sessionId]: value,
-          })),
-        onBindCustomPass: handleBindCustomPass,
-        onOpenBoundModal: openBoundModal,
-        onEdit: sessionModal.openEdit,
-        onToggleStatus: handleToggleStatus,
-        onDelete: handleDelete,
-      }),
-    [
-      actionSubmitting,
-      availableCustomPasses,
-      bindSelections,
-      filterTextbookId,
-      partsId,
-      sessionModal.openEdit,
-      submitting,
-    ],
-  );
+  const columns = createSessionColumns({
+    bindSelections,
+    availableCustomPasses,
+    filterTextbookId,
+    partsId,
+    submitting,
+    actionSubmitting,
+    onBindSelectionChange: (sessionId, value) =>
+      setBindSelections((current) => ({
+        ...current,
+        [sessionId]: value,
+      })),
+    onBindCustomPass: handleBindCustomPass,
+    onOpenBoundModal: openBoundModal,
+    onEdit: sessionModal.openEdit,
+    onToggleStatus: handleToggleStatus,
+    onDelete: handleDelete,
+  });
 
   return (
     <div className="page-stack">

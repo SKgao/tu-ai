@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { App, Button, Card, Form, Space, Table, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import {
   changeCourseBagStatus,
@@ -61,9 +62,9 @@ export function CourseBagManagementPage() {
     }
   }
 
-  useEffect(() => {
+  useMountEffect(() => {
     loadBags();
-  }, []);
+  });
 
   async function handleUpload({ file, onError, onSuccess }) {
     setUploading(file.name);
@@ -142,16 +143,12 @@ export function CourseBagManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createCourseBagColumns({
-        onEdit: bagModal.openEdit,
-        onToggleStatus: handleStatusChange,
-        onDelete: handleDelete,
-        submitting: submitting || actionSubmitting,
-      }),
-    [actionSubmitting, bagModal.openEdit, submitting],
-  );
+  const columns = createCourseBagColumns({
+    onEdit: bagModal.openEdit,
+    onToggleStatus: handleStatusChange,
+    onDelete: handleDelete,
+    submitting: submitting || actionSubmitting,
+  });
 
   return (
     <div className="page-stack">

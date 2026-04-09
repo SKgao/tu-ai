@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   App,
@@ -11,6 +11,7 @@ import {
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
+import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMultiUploadState } from '@/app/hooks/useMultiUploadState';
 import {
   createCourseBagActivity,
@@ -68,7 +69,7 @@ export function CourseBagActivityManagementPage() {
   const detailValue = Form.useWatch('iconDetail', form);
   const ticketValue = Form.useWatch('iconTicket', form);
 
-  async function loadActivities() {
+  const loadActivities = useCallback(async () => {
     if (!courseId) {
       setActivities([]);
       setLoading(false);
@@ -84,17 +85,17 @@ export function CourseBagActivityManagementPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId, message]);
 
-  useEffect(() => {
+  useMountEffect(() => {
     ensureCourseOptions().catch((error) => {
       message.error(error?.message || '课程选项加载失败');
     });
-  }, [ensureCourseOptions]);
+  });
 
   useEffect(() => {
     loadActivities();
-  }, [courseId]);
+  }, [loadActivities]);
 
   async function handleUpload(field, { file, onError, onSuccess }) {
     setUploading(field, file.name);
@@ -154,15 +155,11 @@ export function CourseBagActivityManagementPage() {
     }
   }
 
-  const columns = useMemo(
-    () =>
-      createCourseBagActivityColumns({
-        onEdit: activityModal.openEdit,
-        onDelete: handleDelete,
-        submitting: submitting || actionSubmitting,
-      }),
-    [actionSubmitting, activityModal.openEdit, submitting],
-  );
+  const columns = createCourseBagActivityColumns({
+    onEdit: activityModal.openEdit,
+    onDelete: handleDelete,
+    submitting: submitting || actionSubmitting,
+  });
 
   return (
     <div className="page-stack">
