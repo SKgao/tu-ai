@@ -185,6 +185,33 @@ model CourseBagActivity {
   @@index([createdAt])
 }
 
+model SpecialCourse {
+  textbookId  Int      @id
+  textbookName String
+  teacher     String
+  status      Int      @default(1)
+  type        Int      @default(1)
+  saleBeginAt DateTime
+  saleEndAt   DateTime
+  beginAt     DateTime?
+  endAt       DateTime?
+  orgAmt      Int      @default(0)
+  amt         Int      @default(0)
+  num         Int      @default(0)
+  chatNo      String?
+  iconDetail  String?
+  iconTicket  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [textbookId], references: [textbookId], onDelete: Cascade)
+
+  @@index([status])
+  @@index([type])
+  @@index([saleBeginAt])
+  @@index([saleEndAt])
+  @@index([createdAt])
+}
+
 model Course {
   textbookId    Int          @id
   textbookName  String
@@ -198,6 +225,7 @@ model Course {
   updatedAt     DateTime     @updatedAt
   grade         Grade?       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   bookVersion   BookVersion? @relation(fields: [bookVersionId], references: [id], onDelete: SetNull)
+  specialCourse SpecialCourse?
   orders        Order[]
 
   @@index([gradeId])

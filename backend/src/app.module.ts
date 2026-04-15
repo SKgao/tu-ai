@@ -7,6 +7,7 @@ import { CourseBagsModule } from './modules/course-bags/course-bags.module';
 import { UsersModule } from './modules/users/users.module';
 import { MembersModule } from './modules/members/members.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { SpecialCoursesModule } from './modules/special-courses/special-courses.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ActivitiesModule,
     BooksModule,
     CourseBagsModule,
+    SpecialCoursesModule,
     UsersModule,
     MembersModule,
     OrdersModule,

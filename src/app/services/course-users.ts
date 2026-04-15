@@ -7,6 +7,6 @@ export async function listCourseUsers(payload: RequestPayload = {}): Promise<Api
 }
 
 export async function createCourseUser(payload: RequestPayload): Promise<ApiEnvelope<boolean>> {
-  const response = await http.post<ApiEnvelope<boolean>>('member/add', compactPayload(payload));
+  const response = await http.post<ApiEnvelope<boolean>>('course/user/add', compactPayload(payload));
   return response.data;
 }

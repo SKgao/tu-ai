@@ -102,14 +102,12 @@ export class OrdersService {
   }
 
   async listCourseOptions() {
-    const rows = await this.prisma.course.findMany({
-      where: {
-        status: 1,
-      },
+    const rows = await this.prisma.specialCourse.findMany({
       orderBy: [{ textbookId: 'asc' }],
       select: {
         textbookId: true,
         textbookName: true,
+        status: true,
       },
     });
 
@@ -150,6 +148,9 @@ export class OrdersService {
     }
     if (payType === 2) {
       return '支付宝';
+    }
+    if (payType === 3) {
+      return '后台开通';
     }
     return '未知';
   }

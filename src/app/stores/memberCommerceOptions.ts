@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { ApiEntity, ApiEntityList } from '@/app/lib/http';
 import { listActivityOptions } from '@/app/services/activities';
-import { listCourseOptions } from '@/app/services/course-bag-activities';
 import { listMemberLevelOptions, listMemberLevels } from '@/app/services/member-levels';
+import { listSpecialCourseOptions } from '@/app/services/special-courses';
 
 type ResourceState<T extends ApiEntity = ApiEntity> = {
   items: T[];
@@ -150,7 +150,7 @@ export const useMemberCommerceOptionsStore = create<MemberCommerceOptionsState>(
   },
 
   ensureCourseOptions(options) {
-    return loadResource(set, get, 'courseOptions', listCourseOptions, options);
+    return loadResource(set, get, 'courseOptions', listSpecialCourseOptions, options);
   },
 
   refreshMemberLevels() {

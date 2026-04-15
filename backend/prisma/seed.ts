@@ -757,6 +757,89 @@ async function main() {
     });
   }
 
+  const specialCourses = [
+    {
+      textbookId: 101,
+      textbookName: 'L1 Starter 精品启蒙班',
+      teacher: 'Luna',
+      status: 1,
+      type: 1,
+      saleBeginAt: daysAgo(15),
+      saleEndAt: daysFromNow(7),
+      beginAt: daysFromNow(10),
+      endAt: daysFromNow(70),
+      orgAmt: 299900,
+      amt: 199900,
+      num: 24,
+      chatNo: 'tutu-luna',
+      iconDetail: 'https://placehold.co/320x180/png?text=SC101D',
+      iconTicket: 'https://placehold.co/320x180/png?text=SC101T',
+      createdAt: daysAgo(15),
+    },
+    {
+      textbookId: 102,
+      textbookName: 'L2 Skills 精品进阶班',
+      teacher: 'Mika',
+      status: 1,
+      type: 2,
+      saleBeginAt: daysAgo(8),
+      saleEndAt: daysFromNow(18),
+      beginAt: null,
+      endAt: null,
+      orgAmt: 359900,
+      amt: 239900,
+      num: 30,
+      chatNo: 'tutu-mika',
+      iconDetail: 'https://placehold.co/320x180/png?text=SC102D',
+      iconTicket: 'https://placehold.co/320x180/png?text=SC102T',
+      createdAt: daysAgo(8),
+    },
+    {
+      textbookId: 103,
+      textbookName: 'L3 Focus 精品突破班',
+      teacher: 'Iris',
+      status: 2,
+      type: 1,
+      saleBeginAt: daysAgo(20),
+      saleEndAt: daysAgo(2),
+      beginAt: daysAgo(1),
+      endAt: daysFromNow(45),
+      orgAmt: 399900,
+      amt: 269900,
+      num: 36,
+      chatNo: 'tutu-iris',
+      iconDetail: 'https://placehold.co/320x180/png?text=SC103D',
+      iconTicket: 'https://placehold.co/320x180/png?text=SC103T',
+      createdAt: daysAgo(20),
+    },
+    {
+      textbookId: 104,
+      textbookName: 'L4 Master 精品冲刺班',
+      teacher: 'Nova',
+      status: 1,
+      type: 2,
+      saleBeginAt: daysAgo(4),
+      saleEndAt: daysFromNow(28),
+      beginAt: null,
+      endAt: null,
+      orgAmt: 459900,
+      amt: 329900,
+      num: 40,
+      chatNo: 'tutu-nova',
+      iconDetail: 'https://placehold.co/320x180/png?text=SC104D',
+      iconTicket: 'https://placehold.co/320x180/png?text=SC104T',
+      createdAt: daysAgo(4),
+    },
+  ];
+
+  for (const course of specialCourses) {
+    await prisma.specialCourse.upsert({
+      where: { textbookId: course.textbookId },
+      update: course,
+      create: course,
+    });
+  }
+
   const orderSeeds = [
     {
       orderNo: 'TUTU202604080001',
