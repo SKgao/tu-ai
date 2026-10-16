@@ -31,17 +31,17 @@ export class SpecialCoursesController {
     return this.specialCoursesService.updateSpecialCourse(payload);
   }
 
-  @Get('special-course/delete/:textbookId')
+  @Post('special-course/delete/:textbookId')
   deleteSpecialCourse(@Param('textbookId', ParseIntPipe) textbookId: number) {
     return this.specialCoursesService.deleteSpecialCourse(textbookId);
   }
 
-  @Get('special-course/up/:textbookId')
+  @Post('special-course/up/:textbookId')
   upSpecialCourse(@Param('textbookId', ParseIntPipe) textbookId: number) {
     return this.specialCoursesService.changeSpecialCourseStatus(textbookId, 1);
   }
 
-  @Get('special-course/down/:textbookId')
+  @Post('special-course/down/:textbookId')
   downSpecialCourse(@Param('textbookId', ParseIntPipe) textbookId: number) {
     return this.specialCoursesService.changeSpecialCourseStatus(textbookId, 2);
   }

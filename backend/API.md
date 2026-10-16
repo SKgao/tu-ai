@@ -16,7 +16,39 @@
 
 - 登录接口：`POST /user/login`
 - 登录成功后返回 JWT
-- 其余后台接口通过请求头 `token` 传递令牌
+- 其余后台接口通过请求头传递令牌，以下两种都支持：
+  - `Authorization: Bearer <token>`（当前前端使用这种方式）
+  - `token: <token>`
+- 服务启动时必须配置 `JWT_SECRET`，未配置会直接启动失败（不再提供兜底默认值）
+
+### 授权规则
+
+除登录接口外，所有接口都先经过 `TokenAuthGuard` 做身份认证。在此之上，`RolesGuard` 负责授权：
+
+- 标注了 `@SuperAdminOnly()` 的接口只有超级管理员可以访问，其余角色会收到 `code = 1`、`message = 没有权限执行该操作`
+- 超级管理员角色 ID 由环境变量 `SUPER_ADMIN_ROLE_IDS` 配置（逗号分隔），默认 `1`
+- 未标注的接口保持“登录即可访问”
+
+当前受限（仅超级管理员）的接口：
+
+| 模块 | 接口 |
+| --- | --- |
+| 用户 | `POST /user/list`、`POST /user/add`、`POST /user/update`、`POST /user/delete`、`POST /user/forbidden`、`POST /user/using` |
+| 角色 | `POST /role/list`、`POST /role/add`、`POST /role/delete`、`GET /role/menus/:id`、`POST /role/setAuthority` |
+| 菜单 | `POST /menu/list`、`POST /menu/add`、`POST /menu/update`、`POST /menu/delete` |
+
+例外说明：
+
+- `POST /file/upload` 被教材、单元等多个业务页面共用，因此只要求登录
+- `POST /role/menus` 只返回当前登录角色自己的菜单，供前端构建导航使用，因此只要求登录
+
+> 注意：业务接口（教材、会员、订单、活动、课程包、精品课程）目前仍为“登录即可访问”。
+> 现有菜单数据（seed 中只有 7 条）覆盖不到全部 74 个接口，因此在菜单与接口完成对齐之前，
+> 先不对这些接口做按菜单粒度的授权。
+
+### 写操作约定
+
+所有会改变数据的接口一律使用 `POST`，不再使用 `GET`（避免被浏览器预取、爬虫或 CSRF 触发）。
 
 ### 返回结构
 
@@ -124,13 +156,13 @@
 
 请求体字段：
 
-- `account`
-- `password`
+- `account`（必填）
+- `password`（必填）
+- `roleid`（必填，必须显式指定角色，缺失会返回“请选择角色”）
 - `email`
 - `phone`
 - `avatar`
 - `status`
-- `roleid`
 
 ### `POST /user/update`
 
@@ -304,7 +336,7 @@
 
 - 更新会员等级
 
-### `GET /member/level/delete/:userLevel`
+### `POST /member/level/delete/:userLevel`
 
 说明：
 
@@ -355,13 +387,13 @@
 - `tutuNumber`
 - `mobile`
 
-### `GET /member/startup/:id`
+### `POST /member/startup/:id`
 
 说明：
 
 - 启用会员
 
-### `GET /member/forbidden/:id`
+### `POST /member/forbidden/:id`
 
 说明：
 
@@ -377,6 +409,40 @@
 
 - `userId`
 - `userLevel`
+
+> ⚠️ 以下两个接口的请求体字段名叫 `userId`，但**实际传的是图图号（`tutuNumber`），不是 `Member.id`**。
+> 前端跳转链接是 `/invite-count?userId=${member.tutuNumber}`，页面标题也显示「当前图图号」。
+> 按 `Member.id` 实现会永远查不到数据。
+
+### `POST /member/invite/list`
+
+说明：
+
+- 邀请明细：某会员邀请了谁
+
+请求体：
+
+- **裸数字**（`tutuNumber`），不是对象，例如 `7`
+
+响应 `data`：`{ data: [...], totalCount }`，行字段：
+
+- `tutuNumber` / `realName` / `icon` / `mobile` / `inviteTime`
+
+> 前端读取路径是 `response.data.data.data`（信封 → data → data），实现时需保持该嵌套。
+
+### `POST /member/pass/record`
+
+说明：
+
+- 学习记录（分页）
+
+请求体字段：
+
+- `userId`（**图图号**）
+- `pageNum` / `pageSize`（可选）
+
+响应 `data.data[]`：`textbookName` / `unitName` / `partName` / `sessionName` / `createdAt`
+（四个名称是 join 出的展示字段，不落库；为空时返回空串）
 
 ## Books
 
@@ -409,7 +475,7 @@
 - `gradeName`
 - `status`
 
-### `GET /grade/version/delete/:id`
+### `POST /grade/version/delete/:id`
 
 说明：
 
@@ -443,7 +509,7 @@
 - `id`
 - `name`
 
-### `GET /book/version/delete/:id`
+### `POST /book/version/delete/:id`
 
 说明：
 
@@ -514,6 +580,336 @@
 - `textbookId`
 - `canLock`
 
+## Units
+
+单元属于教材（`Course`），是教学层级 `教材 → 单元 → Part → 关卡` 的第一层。
+
+### `POST /unit/list`
+
+说明：
+
+- 单元分页列表
+
+请求体字段：
+
+- `startTime`（可选，按创建时间筛选）
+- `endTime`（可选）
+- `textBookId`（可选，教材 ID）
+- `pageNum`（可选，默认 1）
+- `pageSize`（可选，默认 10）
+
+响应 `data`：
+
+- `data[]`：`id` / `text` / `icon` / `textBookId` / `textBookName` / `sort` / `canLock` / `status` / `createdAt`
+- `totalCount` / `totalPages` / `pageNum` / `pageSize`
+
+### `POST /unit/add`
+
+说明：
+
+- 新增单元
+
+请求体字段：
+
+- `text`（必填，单元名称）
+- `textBookId`（必填，教材 ID）
+- `icon`（可选）
+- `sort`（可选，默认 0）
+
+### `POST /unit/update`
+
+说明：
+
+- 更新单元
+
+请求体字段：
+
+- `id`（必填）
+- `text` / `textBookId` / `icon` / `sort`（同 `/unit/add`）
+
+> 该接口为全量更新：`text` 与 `textBookId` 必填。
+
+### `POST /unit/del/:id`
+
+说明：
+
+- 删除单元（硬删除）
+
+请求参数：
+
+- 路径参数 `id`
+
+### `POST /unit/lock`
+
+说明：
+
+- 锁定 / 解锁单元
+
+请求参数（**query**）：
+
+- `unitId`
+- `canLock`（`1` = 已解锁，`2` = 已锁定）
+
+## Parts
+
+Part 属于单元（`Unit`），是教学层级 `教材 → 单元 → Part → 关卡` 的第三层。
+
+### `POST /part/list`
+
+说明：
+
+- Part 分页列表
+
+请求体字段：
+
+- `unitId`（可选，按所属单元筛选；**注意是 `unitId`，与记录字段 `unitsId` 不同名**）
+- `startTime` / `endTime`（可选）
+- `pageNum` / `pageSize`（可选）
+
+响应 `data.data[]`：`id` / `title` / `icon` / `tips` / `sort` / `canLock` / `unitsId` / `createdAt`
+
+### `POST /part/add`
+
+请求体字段：
+
+- `title`（必填）
+- `unitsId`（必填，所属单元 ID）
+- `icon` / `tips` / `sort`（可选）
+
+### `POST /part/update`
+
+请求体字段：
+
+- `id`（必填）
+- `title` / `icon` / `tips` / `sort` / `canLock` / `unitsId`（**均为可选，传入即更新**）
+
+> 该接口是**部分更新**语义：前端编辑提交会带全量字段，而「锁定/解锁」切换只传 `{ id, canLock }`。
+> 未传的字段不会被清空。
+
+### `POST /part/del/:id`
+
+说明：
+
+- 删除 Part（硬删除）
+
+## Passes
+
+关卡与小关卡**共用一张表**（`Pass`），靠外键区分：
+
+- **关卡**（`/passes` 页）：`partsId` 有值，带 `subject`（题型）
+- **小关卡**（`/custom-passes` 页）：`textbookId` 有值，带 `tmpTitle`，且 `id` 由客户端指定
+
+### `GET /pass/list/:id` 与 `GET /pass/list`
+
+说明：
+
+- 关卡 / 小关卡分页列表
+
+⚠️ **筛选维度由 query 决定，路径参数仅为兼容保留**：
+
+- query 带 `partsId` → 按 Part 过滤（关卡）
+- query 带 `textbookId` → 按教材过滤（小关卡）
+
+两者都缺失时返回 `code = 1`、`message = 缺少 partsId 或 textbookId，无法确定关卡列表的筛选维度`，
+**不会猜测维度返回可能错误的数据**。
+
+说明：`partsId` 为空时前端会请求 `pass/list/`（尾斜杠、无路径参数），因此该路由同时注册了带参与非带参两种形态。
+
+响应 `data.data[]` 为两者字段的**超集**：
+`id` / `title` / `tmpTitle` / `icon` / `sort` / `partsId` / `textbookId` / `subject` / `customerNumber` / `totalScore` / `createdAt`
+（`partsId` / `textbookId` / `subject` 为空时返回 `""`）
+
+### `GET /pass/subject`
+
+说明：
+
+- **题型字典**（不是题目列表），供关卡的 `subject` 字段选择
+
+响应结构为**双层 data**（前端读 `response.data.data.data`）：
+
+```json
+{ "code": 0, "message": "题型列表获取成功", "data": { "data": [ { "id": 1, "name": "题型名" } ] } }
+```
+
+> ⚠️ 数据源是 `SubjectType` 表，**当前未预置任何数据**（真实题型取值不在本仓库内）。
+> 需要补齐数据后该接口才会返回可选项；在那之前关卡（`subject` 必填）无法新建。
+
+### `POST /pass/add`
+
+请求体字段（按形态二选一）：
+
+- **关卡**：`title`(必填) / `partsId`(必填) / `subject`(必填) / `icon` / `sort`
+- **小关卡**：`title`(必填) / `textbookId`(必填) / `id`(必填，客户端指定) / `tmpTitle` / `icon` / `sort`
+
+> 同时传 `partsId` 与 `textbookId`（或都不传）会报 `必须且只能指定 partsId（关卡）或 textbookId（小关卡）其中之一`。
+
+### `POST /pass/update`
+
+请求体字段：`id`(必填) + 任意子集（`title` / `tmpTitle` / `icon` / `sort` / `subject` / `partsId` / `textbookId`），传入即更新。
+
+### `POST /pass/delete`
+
+说明：
+
+- 小关卡页的删除形态，参数在 **query**：`?id=&textbookId=`
+- 记录由 `id` 唯一确定，`textbookId` 仅为兼容前端既有调用而接收
+
+### `POST /pass/delete/:id`
+
+说明：
+
+- 关卡页的删除形态，路径参数 `id`
+
+## Sessions
+
+大关卡直接挂在教材下，是小关卡的容器（`教材 → 大关卡 → 小关卡 → 题目`）。
+
+### `GET /session/list/:textbookId`
+
+说明：
+
+- 取某教材下全部大关卡，返回**裸数组**（不是分页结构）
+
+响应 `data[]`：`id` / `title` / `icon` / `status` / `sort` / `textbookId` / `createdAt`
+
+### `POST /session/add`
+
+请求体字段：
+
+- `id`（必填，**由客户端指定**，`Session.id` 非自增）
+- `textbookId`（必填）
+- `title`（必填）
+- `icon` / `sort`（可选）
+
+> ID 已存在时返回 `大关卡 ID 已存在`。
+
+### `POST /session/update`
+
+请求体字段：`id`(必填) + `textbookId` / `title` / `icon` / `sort`（可选）
+
+### `POST /session/delete/:id`
+
+说明：
+
+- 删除大关卡；同时清理其绑定行（显式事务，不依赖数据库级联）
+
+### `POST /session/changeStatus`
+
+说明：
+
+- 启用 / 禁用大关卡
+
+请求参数（**query**）：`id`、`status`（`1` = 启用，`2` = 禁用；其它值报错）
+
+### `POST /session/bind`
+
+说明：
+
+- 绑定小关卡到大关卡
+
+请求参数（**query**）：`textbookId`、`sessionId`、`customPassId`
+
+> 重复绑定会明确报错（`该小关卡已绑定到此大关卡，请勿重复绑定`），不做静默幂等。
+> 同时校验大关卡存在且归属该教材、小关卡存在。
+
+### `POST /session/custom/list`
+
+说明：
+
+- 某大关卡已绑定的小关卡列表，返回**裸数组**
+
+请求参数（**query**）：`textbookId`、`sessionId`
+
+响应 `data[]`：`id`（**绑定行 id**，解绑/排序都用它）/ `customTitle`（小关卡标题）/ `title` / `icon` / `sort`（绑定顺序）/ `sessionId` / `customPassId`
+
+### `POST /session/unbind/:id`
+
+说明：
+
+- 解绑；路径参数 `id` 是**绑定行 id**（即 `session/custom/list` 返回的 `id`）
+
+### `POST /session/change/sort`
+
+说明：
+
+- 调整绑定顺序
+
+请求参数（**query**）：`id`（绑定行 id）、`sort`
+
+## Source Materials
+
+素材挂在**教材**一级（`textbookId` → `Course.textbookId`），题目通过 `sourceIds` 引用。
+
+### `POST /source/list`
+
+请求体字段：
+
+- `startTime` / `endTime` / `text`（可选）
+- `openLike`（可选，**`1` = 精确匹配，缺省/其它 = 模糊匹配**；前端模糊搜索时该字段不会发送）
+- `pageNum` / `pageSize`（可选）
+
+> 该列表**不支持 `textbookId` 筛选**，是跨教材的全局素材库。
+
+响应 `data.data[]`：`id` / `textbookId` / `text` / `icon` / `audio` / `translation` / `explainsArray` / `createdAt`
+
+### `POST /source/add`
+
+请求体字段：`textbookId`(必填) / `text`(必填) / `icon` / `audio` / `translation` / `explainsArray`
+
+### `POST /source/update`
+
+请求体字段：`id`(必填) + 任意子集（`text` / `icon` / `audio` / `translation` / `explainsArray`）
+
+> **不接受 `textbookId`**：即使请求里带上也会被剥离，素材不可改挂教材。
+
+### `POST /source/delete/:id`
+
+说明：
+
+- 删除单条素材
+
+### `POST /source/delete/batch`
+
+说明：
+
+- 批量删除素材
+
+请求体：**裸 JSON 数组**（`number[]`），不是对象
+
+### `POST /source/audio/down/batch`
+
+说明：
+
+- 批量下载素材音频
+
+请求体：**裸 JSON 数组**（`number[]`）
+
+> ⚠️ **依赖外部服务**：需要配置 `SOURCE_AUDIO_DOWNLOAD_BASE_URL`，且调用协议尚未实现。
+
+### `POST /test/send2line/source`
+
+说明：
+
+- 批量同步素材到外部系统 line（**不是单元测试接口**）
+
+请求体：**裸 JSON 数组**（`number[]`）
+
+> ⚠️ **依赖外部服务**：需要配置 `SEND2LINE_BASE_URL`，且调用协议尚未实现。
+
+### `POST /subject/source/import`
+
+说明：
+
+- 题目-素材导入，**返回 HTML 字符串**（前端用 `dangerouslySetInnerHTML` 渲染）
+
+请求体字段：`textbookId`(必填) / `audioArray` / `imageArray` / `sentensArray`
+（三者是**文件名数组**，不是 URL；`sentensArray` 为原代码拼写）
+
+> ⚠️ **依赖外部服务**：需要配置 `SUBJECT_SOURCE_IMPORT_BASE_URL`，且调用协议尚未实现。
+
+> 以上三个外部依赖接口的当前行为：**未配置时报明确错误；已配置时也报错**（因为协议不在本仓库内，
+> 既不猜测协议也不静默假装成功）。确认协议后即可在对应 service 方法内补实现。
+
 ## Activities
 
 ### `POST /activity/list`
@@ -573,7 +969,7 @@
 - `id`
 - 其余字段同 `activity/add`
 
-### `GET /activity/delete/:id`
+### `POST /activity/delete/:id`
 
 说明：
 
@@ -692,7 +1088,7 @@
 - `id`
 - `status`
 
-### `GET /bag/delete/:id`
+### `POST /bag/delete/:id`
 
 说明：
 
@@ -727,7 +1123,7 @@
 - `icon`
 - `sort`
 
-### `GET /course/changeStatus`
+### `POST /course/changeStatus`
 
 说明：
 
@@ -738,7 +1134,7 @@
 - `id`
 - `status`
 
-### `GET /course/delete/:id`
+### `POST /course/delete/:id`
 
 说明：
 
@@ -790,7 +1186,7 @@
 - `id`
 - 其余字段同 `course/active/add`
 
-### `GET /course/active/del/:id`
+### `POST /course/active/del/:id`
 
 说明：
 
@@ -861,19 +1257,19 @@
 - `textbookId`
 - 其余字段同 `special-course/add`
 
-### `GET /special-course/delete/:textbookId`
+### `POST /special-course/delete/:textbookId`
 
 说明：
 
 - 删除精品课程
 
-### `GET /special-course/up/:textbookId`
+### `POST /special-course/up/:textbookId`
 
 说明：
 
 - 上架精品课程
 
-### `GET /special-course/down/:textbookId`
+### `POST /special-course/down/:textbookId`
 
 说明：
 

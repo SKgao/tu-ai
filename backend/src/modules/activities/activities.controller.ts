@@ -31,7 +31,8 @@ export class ActivitiesController {
     return this.activitiesService.updateActivity(payload);
   }
 
-  @Get('activity/delete/:id')
+  // 写操作统一使用 POST，避免被预取/爬虫或 CSRF 触发。
+  @Post('activity/delete/:id')
   deleteActivity(@Param('id', ParseIntPipe) id: number) {
     return this.activitiesService.deleteActivity(id);
   }

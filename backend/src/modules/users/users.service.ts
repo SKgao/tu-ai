@@ -54,7 +54,8 @@ export class UsersService {
   async createUser(payload: CreateUserDto) {
     const account = requireText(payload.account, '用户名和密码不能为空');
     const password = requireText(payload.password, '用户名和密码不能为空');
-    const roleId = toOptionalNumber(payload.roleid, 1) ?? 1;
+    // 不再默认落到 roleId=1（超级管理员），必须显式指定角色。
+    const roleId = requireNumber(payload.roleid, '请选择角色');
 
     const existing = await this.prisma.user.findUnique({
       where: {

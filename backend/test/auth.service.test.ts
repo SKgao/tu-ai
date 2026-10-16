@@ -3,6 +3,10 @@ import test from 'node:test';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { hashPassword } from '../src/common/password';
 
+// 测试不加载 .env，这里显式提供一个仅用于测试的密钥，
+// 避免依赖开发者本机的 JWT_SECRET 配置。
+process.env.JWT_SECRET = 'unit-test-secret-not-for-production-use';
+
 test('AuthService.login rejects missing credentials', async () => {
   const prisma = {
     user: {

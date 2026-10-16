@@ -25,8 +25,7 @@ export class CreateUserDto {
   @IsInt()
   status?: number;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  roleid?: number;
+  @IsInt({ message: '请选择角色' })
+  @Min(1, { message: '请选择角色' })
+  roleid!: number;
 }

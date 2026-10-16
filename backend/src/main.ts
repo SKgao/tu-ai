@@ -6,9 +6,12 @@ import { json, static as serveStatic, urlencoded } from 'express';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { assertRequiredEnv } from './common/env';
 import { LegacyApiExceptionFilter } from './modules/auth/legacy-api-exception.filter';
 
 async function bootstrap() {
+  assertRequiredEnv();
+
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: true,

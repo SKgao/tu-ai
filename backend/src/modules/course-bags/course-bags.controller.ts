@@ -44,7 +44,7 @@ export class CourseBagsController {
     return this.courseBagsService.changeCourseBagStatus(mergePayload(query, body));
   }
 
-  @Get('bag/delete/:id')
+  @Post('bag/delete/:id')
   deleteCourseBag(@Param('id', ParseIntPipe) id: number) {
     return this.courseBagsService.deleteCourseBag(id);
   }

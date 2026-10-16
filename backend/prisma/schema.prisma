@@ -64,6 +64,9 @@ model Member {
   level                MemberLevel      @relation(fields: [userLevel], references: [userLevel])
   feedbacks            MemberFeedback[]
   orders               Order[]
+  invitesSent          MemberInvite[]   @relation("MemberInviteSender")
+  invitesReceived      MemberInvite[]   @relation("MemberInviteReceiver")
+  learningRecords      LearningRecord[]
 
   @@index([userLevel])
   @@index([status])
@@ -227,6 +230,11 @@ model Course {
   bookVersion   BookVersion? @relation(fields: [bookVersionId], references: [id], onDelete: SetNull)
   specialCourse SpecialCourse?
   orders        Order[]
+  units         Unit[]
+  passes        Pass[]
+  sessions      Session[]
+  sourceMaterials SourceMaterial[]
+  learningRecords LearningRecord[]
 
   @@index([gradeId])
   @@index([bookVersionId])
@@ -299,4 +307,185 @@ model RoleMenu {
 
   @@id([roleId, menuId])
   @@index([menuId])
+}
+
+// 教学层级：教材 Course → 单元 Unit → Part → 关卡 Pass
+model Unit {
+  id         Int      @id @default(autoincrement())
+  text       String
+  icon       String?  @default("")
+  sort       Int      @default(0)
+  canLock    Int      @default(1)
+  status     Int      @default(1)
+  textbookId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  course     Course   @relation(fields: [textbookId], references: [textbookId], onDelete: Cascade)
+  parts      Part[]
+  learningRecords LearningRecord[]
+
+  @@index([textbookId])
+  @@index([sort])
+  @@index([createdAt])
+}
+
+model Part {
+  id        Int      @id @default(autoincrement())
+  title     String
+  icon      String?  @default("")
+  tips      String?  @default("")
+  sort      Int      @default(0)
+  canLock   Int      @default(1)
+  unitsId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  unit      Unit     @relation(fields: [unitsId], references: [id], onDelete: Cascade)
+  passes    Pass[]
+  learningRecords LearningRecord[]
+
+  @@index([unitsId])
+  @@index([sort])
+  @@index([createdAt])
+}
+
+/// 关卡 / 小关卡共用一张表（旧后端设计）：
+/// - 关卡（passes 页）：partsId 有值，带 subject / customerNumber / totalScore
+/// - 小关卡（custom-passes 页）：textbookId 有值，带 tmpTitle
+/// pass/list/:id 的 :id 语义由 query 中的 partsId / textbookId 决定。
+model Pass {
+  id             Int      @id @default(autoincrement())
+  title          String
+  tmpTitle       String?  @default("")
+  icon           String?  @default("")
+  sort           Int      @default(0)
+  partsId        Int?
+  textbookId     Int?
+  subject        Int?
+  customerNumber Int      @default(0)
+  totalScore     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  part           Part?    @relation(fields: [partsId], references: [id], onDelete: Cascade)
+  course         Course?  @relation(fields: [textbookId], references: [textbookId], onDelete: Cascade)
+  subjects       Subject[]
+  sessionBindings SessionCustomPass[]
+
+  @@index([partsId])
+  @@index([textbookId])
+  @@index([sort])
+  @@index([createdAt])
+}
+
+model Session {
+  id         Int      @id
+  textbookId Int
+  title      String
+  icon       String?  @default("")
+  sort       Int      @default(0)
+  status     Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  course     Course   @relation(fields: [textbookId], references: [textbookId], onDelete: Cascade)
+  customPasses SessionCustomPass[]
+  learningRecords LearningRecord[]
+
+  @@index([textbookId, sort])
+}
+
+model SessionCustomPass {
+  id           Int        @id @default(autoincrement())
+  sessionId    Int
+  customPassId Int
+  sort         Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  customPass   Pass       @relation(fields: [customPassId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, customPassId])
+  @@index([sessionId, sort])
+}
+
+model Subject {
+  id            Int      @id @default(autoincrement())
+  customsPassId Int
+  partId        Int?
+  sessionId     Int?
+  subject       Int?
+  sourceIds     String   @default("")
+  sort          Int      @default(0)
+  showIndex     String?  @default("")
+  icon          String?  @default("")
+  audio         String?  @default("")
+  sentenceAudio String?  @default("")
+  sceneGraph    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  customPass    Pass     @relation(fields: [customsPassId], references: [id], onDelete: Cascade)
+
+  @@index([customsPassId, sort])
+  @@index([createdAt])
+}
+
+model SourceMaterial {
+  id            Int      @id @default(autoincrement())
+  textbookId    Int
+  text          String
+  icon          String?  @default("")
+  audio         String?  @default("")
+  translation   String?  @default("")
+  explainsArray String?  @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  course        Course   @relation(fields: [textbookId], references: [textbookId], onDelete: Cascade)
+
+  @@index([textbookId])
+  @@index([text])
+  @@index([createdAt])
+}
+
+/// 邀请关系。Member 只有 inviteCount 聚合字段，无法查出「邀请了谁」，故单独建表。
+model MemberInvite {
+  id        Int      @id @default(autoincrement())
+  inviterId Int
+  inviteeId Int
+  createdAt DateTime @default(now())
+  inviter   Member   @relation("MemberInviteSender", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee   Member   @relation("MemberInviteReceiver", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([inviterId, inviteeId])
+  @@index([inviterId, createdAt])
+  @@index([inviteeId])
+}
+
+model LearningRecord {
+  id         Int      @id @default(autoincrement())
+  memberId   Int
+  textbookId Int?
+  unitId     Int?
+  partId     Int?
+  sessionId  Int?
+  createdAt  DateTime @default(now())
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  textbook   Course?  @relation(fields: [textbookId], references: [textbookId])
+  unit       Unit?    @relation(fields: [unitId], references: [id])
+  part       Part?    @relation(fields: [partId], references: [id])
+  session    Session? @relation(fields: [sessionId], references: [id])
+
+  @@index([memberId, createdAt])
+}
+
+/// 题型字典（pass/subject 的数据源）。
+/// ⚠️ 仓库内没有真实题型取值——旧后端不在本仓，前端历来从接口拉取。
+/// 这里只建表、不预置数据：需要补齐数据后 `pass/subject` 才会返回可选题型，
+/// 在那之前关卡（Pass.subject 必填）无法新建。
+model SubjectType {
+  id        Int      @id @default(autoincrement())
+  name      String
+  sort      Int      @default(0)
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sort])
 }

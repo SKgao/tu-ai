@@ -12,6 +12,8 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { mkdirSync } from 'fs';
 import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { SuperAdminOnly } from '../auth/roles.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersDto } from './dto/list-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -27,40 +29,47 @@ function buildUploadFilename(originalName: string) {
 }
 
 @Controller()
-@UseGuards(TokenAuthGuard)
+@UseGuards(TokenAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('user/list')
+  @SuperAdminOnly()
   listUsers(@Body() payload: ListUsersDto) {
     return this.usersService.listUsers(payload);
   }
 
   @Post('user/add')
+  @SuperAdminOnly()
   addUser(@Body() payload: CreateUserDto) {
     return this.usersService.createUser(payload);
   }
 
   @Post('user/update')
+  @SuperAdminOnly()
   updateUser(@Body() payload: UpdateUserDto) {
     return this.usersService.updateUser(payload);
   }
 
   @Post('user/delete')
+  @SuperAdminOnly()
   deleteUser(@Body() payload: UserIdDto) {
     return this.usersService.deleteUser(payload);
   }
 
   @Post('user/forbidden')
+  @SuperAdminOnly()
   forbidUser(@Body() payload: UserIdDto) {
     return this.usersService.forbidUser(payload);
   }
 
   @Post('user/using')
+  @SuperAdminOnly()
   enableUser(@Body() payload: UserIdDto) {
     return this.usersService.enableUser(payload);
   }
 
+  // 上传接口被教材、单元等多个业务页面共用，因此只要求登录，不限制角色。
   @Post('file/upload')
   @UseInterceptors(
     FileInterceptor('file', {

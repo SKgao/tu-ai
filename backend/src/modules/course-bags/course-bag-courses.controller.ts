@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { TokenAuthGuard } from '../auth/token-auth.guard';
 import { CourseBagCourseMutationDto } from './dto/course-bag-course.dto';
 import { CourseBagCoursesService } from './course-bag-courses.service';
@@ -31,12 +31,13 @@ export class CourseBagCoursesController {
     return this.courseBagCoursesService.updateCourseBagCourse(mergePayload(query, body));
   }
 
-  @Get('course/changeStatus')
+  // 写操作统一使用 POST；参数仍然从 query 读取，保持与前端既有调用一致。
+  @Post('course/changeStatus')
   changeCourseBagCourseStatus(@Query() payload: CourseBagCourseMutationDto) {
     return this.courseBagCoursesService.changeCourseBagCourseStatus(payload);
   }
 
-  @Get('course/delete/:id')
+  @Post('course/delete/:id')
   deleteCourseBagCourse(@Param('id', ParseIntPipe) id: number) {
     return this.courseBagCoursesService.deleteCourseBagCourse(id);
   }

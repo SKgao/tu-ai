@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { getJwtSecret } from '../../common/env';
 import { toOptionalString } from '../../common/parsers';
 import { hashPassword, isPasswordHash, verifyPassword } from '../../common/password';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -89,8 +90,11 @@ export class AuthService {
   }
 
   verifyToken(token: string) {
+    // 必须在 try 之外读取：配置缺失属于服务端错误，
+    // 不能被下面的 catch 吞成“登录已失效”。
+    const secret = getJwtSecret();
+
     try {
-      const secret = process.env.JWT_SECRET || 'tutu-admin-local-secret';
       const payload = jwt.verify(token, secret) as unknown as Partial<AuthTokenPayload>;
       if (!payload?.account || !payload?.roleId || !payload?.sub) {
         throw new UnauthorizedException('登录已失效');
@@ -102,7 +106,7 @@ export class AuthService {
   }
 
   private signToken(user: Pick<User, 'id' | 'account' | 'roleId'>) {
-    const secret = process.env.JWT_SECRET || 'tutu-admin-local-secret';
+    const secret = getJwtSecret();
     const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
     return jwt.sign(
       {

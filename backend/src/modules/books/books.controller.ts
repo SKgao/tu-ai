@@ -29,7 +29,7 @@ export class BooksController {
     return this.booksService.updateGrade(payload);
   }
 
-  @Get('grade/version/delete/:id')
+  @Post('grade/version/delete/:id')
   deleteGrade(@Param('id', ParseIntPipe) id: number) {
     return this.booksService.deleteGrade(id);
   }
@@ -51,7 +51,7 @@ export class BooksController {
     return this.booksService.updateVersion(payload);
   }
 
-  @Get('book/version/delete/:id')
+  @Post('book/version/delete/:id')
   deleteVersion(@Param('id', ParseIntPipe) id: number) {
     return this.booksService.deleteVersion(id);
   }

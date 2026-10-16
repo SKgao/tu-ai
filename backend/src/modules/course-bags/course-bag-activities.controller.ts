@@ -23,7 +23,7 @@ export class CourseBagActivitiesController {
     return this.courseBagActivitiesService.updateCourseBagActivity(payload);
   }
 
-  @Get('course/active/del/:id')
+  @Post('course/active/del/:id')
   deleteCourseBagActivity(@Param('id', ParseIntPipe) id: number) {
     return this.courseBagActivitiesService.deleteCourseBagActivity(id);
   }

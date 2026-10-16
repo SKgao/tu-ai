@@ -31,7 +31,7 @@ export class MembersController {
     return this.membersService.updateMemberLevel(payload);
   }
 
-  @Get('member/level/delete/:userLevel')
+  @Post('member/level/delete/:userLevel')
   deleteMemberLevel(@Param('userLevel', ParseIntPipe) userLevel: number) {
     return this.membersService.deleteMemberLevel(userLevel);
   }
@@ -51,12 +51,12 @@ export class MembersController {
     return this.membersService.listMemberFeedback(payload);
   }
 
-  @Get('member/startup/:id')
+  @Post('member/startup/:id')
   enableMember(@Param('id', ParseIntPipe) id: number) {
     return this.membersService.enableMember(id);
   }
 
-  @Get('member/forbidden/:id')
+  @Post('member/forbidden/:id')
   disableMember(@Param('id', ParseIntPipe) id: number) {
     return this.membersService.disableMember(id);
   }
