@@ -752,6 +752,11 @@
   grid-column: 1 / -1;
 }
 
+/* 时间范围选择器需要更宽的宽度，占两列 */
+.form-field--span-2 {
+  grid-column: span 2;
+}
+
 .upload-row {
   display: flex;
   flex-wrap: wrap;

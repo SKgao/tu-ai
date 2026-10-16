@@ -1,6 +1,7 @@
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
+import { formatDateTime } from '@/app/lib/dateTime';
 import { getStatusMeta } from '../utils/forms';
 import type { UserRecord } from '../types';
 
@@ -44,7 +45,7 @@ export function createUserColumns({
     { title: '姓名', dataIndex: 'name', render: (value) => String(value || '无') },
     { title: '性别', dataIndex: 'sex', render: (value) => (Number(value) === 1 ? '男' : Number(value) === 2 ? '女' : '未知') },
     { title: '角色', dataIndex: 'roleName', render: (_value, user) => String(user.roleName || user.roleid || user.roleId || '-') },
-    { title: '创建时间', dataIndex: 'createtime', render: (value) => String(value || '-') },
+    { title: '创建时间', dataIndex: 'createtime', render: (value) => formatDateTime(value) },
     {
       title: '状态',
       dataIndex: 'status',

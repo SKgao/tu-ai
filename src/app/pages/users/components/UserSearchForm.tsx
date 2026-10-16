@@ -1,6 +1,7 @@
-import { Button, DatePicker, Form, Input } from 'antd';
+import { Button, Form, Input } from 'antd';
 import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { DateTimeRangeField } from '@/app/components/forms/DateTimeRangeField';
 import { SearchFormActions } from '@/app/components/forms/SearchFormActions';
 import type { UserSearchValues } from '../types';
 
@@ -30,12 +31,7 @@ export function UserSearchForm({
         <Form.Item label="用户名" name="account">
           <Input placeholder="输入用户名" />
         </Form.Item>
-        <Form.Item label="开始时间" name="startTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item label="结束时间" name="endTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
+        <DateTimeRangeField form={form} />
         <Form.Item label=" ">
           <SearchFormActions loading={loading} onReset={onReset}>
             <Button type="primary" ghost icon={<PlusOutlined />} onClick={onCreate}>

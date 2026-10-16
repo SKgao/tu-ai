@@ -22,7 +22,8 @@ export async function updateSourceMaterial(payload: RequestPayload): Promise<Api
 }
 
 export async function removeSourceMaterial(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`source/delete/${id}`);
+  // 写操作统一走 POST（路径与原先保持一致）。
+  const response = await http.post<ApiEnvelope<boolean>>(`source/delete/${id}`);
   return response.data;
 }
 

@@ -22,7 +22,7 @@ export async function updateActivity(payload: RequestPayload): Promise<ApiEnvelo
 }
 
 export async function removeActivity(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`activity/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`activity/delete/${id}`);
   return response.data;
 }
 

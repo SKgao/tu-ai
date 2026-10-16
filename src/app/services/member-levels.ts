@@ -22,7 +22,7 @@ export async function updateMemberLevel(payload: RequestPayload): Promise<ApiEnv
 }
 
 export async function removeMemberLevel(userLevel: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`member/level/delete/${userLevel}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`member/level/delete/${userLevel}`);
   return response.data;
 }
 

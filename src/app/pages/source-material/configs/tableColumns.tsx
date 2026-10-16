@@ -1,5 +1,6 @@
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { formatDateTime } from '@/app/lib/dateTime';
 import type { SourceMaterialRecord } from '../types';
 
 type CreateSourceMaterialColumnsOptions = {
@@ -45,7 +46,7 @@ export function createSourceMaterialColumns({
     },
     { title: '单次释义', dataIndex: 'translation', render: (value) => String(value || '[]') },
     { title: '多次释义', dataIndex: 'explainsArray', render: (value) => String(value || '[]') },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => String(value || '-') },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
     {
       title: '操作',
       key: 'actions',

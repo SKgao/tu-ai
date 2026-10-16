@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { formatDateTime } from '@/app/lib/dateTime';
 import type { UnitRecord } from '../types';
 
 type CreateUnitColumnsOptions = {
@@ -59,7 +60,7 @@ export function createUnitColumns({
       dataIndex: 'canLock',
       render: (value) => <Tag color={isUnlocked(value) ? 'success' : 'warning'}>{isUnlocked(value) ? '已解锁' : '已锁定'}</Tag>,
     },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
     {
       title: '详情',
       key: 'details',

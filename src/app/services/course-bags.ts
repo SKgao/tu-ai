@@ -28,7 +28,7 @@ export async function changeCourseBagStatus(payload: RequestPayload): Promise<Ap
 }
 
 export async function removeCourseBag(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`bag/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`bag/delete/${id}`);
   return response.data;
 }
 

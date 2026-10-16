@@ -1,4 +1,5 @@
 import { Button, Card, Descriptions, Image, Popconfirm, Space, Table, Typography } from 'antd';
+import { formatDateTime } from '@/app/lib/dateTime';
 import { createSubjectResourceColumns } from '../configs/tableColumns';
 import type { SubjectDetailRecord, SubjectResourceRecord } from '../types';
 
@@ -50,7 +51,7 @@ export function SubjectDetailCard({
             <Descriptions.Item label="关卡 ID">{detailRecord.customsPassId ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="关卡名称">{detailRecord.customsPassName || '-'}</Descriptions.Item>
             <Descriptions.Item label="题目顺序">{detailRecord.sort ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">{detailRecord.createdAt || '-'}</Descriptions.Item>
+            <Descriptions.Item label="创建时间">{formatDateTime(detailRecord.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="题目内容" span={2}>
               {detailRecord.sourceIds || '-'}
             </Descriptions.Item>

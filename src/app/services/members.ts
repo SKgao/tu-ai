@@ -12,12 +12,12 @@ export async function listMemberFeedback(payload: RequestPayload = {}): Promise<
 }
 
 export async function enableMember(userId: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`member/startup/${userId}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`member/startup/${userId}`);
   return response.data;
 }
 
 export async function disableMember(userId: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`member/forbidden/${userId}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`member/forbidden/${userId}`);
   return response.data;
 }
 

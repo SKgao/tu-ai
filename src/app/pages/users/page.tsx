@@ -176,6 +176,11 @@ export function UserManagementPage() {
         return;
       }
 
+      if (!values.roleid) {
+        message.error('请选择角色');
+        return;
+      }
+
       if (values.password !== values.confirmPassword) {
         message.error('两次输入密码不一致');
         return;
@@ -196,6 +201,14 @@ export function UserManagementPage() {
           throw new Error('请填写用户名');
         }
 
+        if (!values.password) {
+          throw new Error('请填写密码');
+        }
+
+        if (!values.roleid) {
+          throw new Error('请选择角色');
+        }
+
         await createUser({
           account,
           password: values.password,
@@ -203,7 +216,7 @@ export function UserManagementPage() {
           phone: values.phone?.trim() || '',
           avatar: values.avatar?.trim() || '',
           status: values.status,
-          roleid: values.roleid ? Number(values.roleid) : undefined,
+          roleid: Number(values.roleid),
         });
       } else {
         await updateUser({

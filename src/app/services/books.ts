@@ -22,7 +22,7 @@ export async function updateGrade(payload: RequestPayload): Promise<ApiEnvelope<
 }
 
 export async function removeGrade(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`grade/version/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`grade/version/delete/${id}`);
   return response.data;
 }
 
@@ -42,7 +42,7 @@ export async function updateVersion(payload: RequestPayload): Promise<ApiEnvelop
 }
 
 export async function removeVersion(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`book/version/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`book/version/delete/${id}`);
   return response.data;
 }
 

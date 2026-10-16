@@ -93,7 +93,11 @@ export function UserModal({
             </>
           )}
 
-          <Form.Item label="角色" name="roleid">
+          <Form.Item
+            label="角色"
+            name="roleid"
+            rules={mode === 'create' ? [{ required: true, message: '请选择角色' }] : undefined}
+          >
             <Select
               allowClear
               placeholder="请选择角色"

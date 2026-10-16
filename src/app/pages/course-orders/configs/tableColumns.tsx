@@ -1,5 +1,6 @@
 import type { TableColumnsType } from 'antd';
 import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
+import { formatDateTime } from '@/app/lib/dateTime';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 import type { CourseOrderRecord } from '../types';
 
@@ -16,7 +17,7 @@ export function createCourseOrderColumns(): TableColumnsType<CourseOrderRecord> 
     },
     { title: '支付方式', dataIndex: 'payTypeName', render: (value) => String(value || '无') },
     { title: '支付状态', dataIndex: 'orderStatusDesc', render: (value) => String(value || '-') },
-    { title: '支付时间', dataIndex: 'payTime', render: (value) => String(value || '-') },
+    { title: '支付时间', dataIndex: 'payTime', render: (value) => formatDateTime(value) },
     {
       title: '第三方交易号',
       dataIndex: 'outNo',
@@ -30,6 +31,6 @@ export function createCourseOrderColumns(): TableColumnsType<CourseOrderRecord> 
       render: (value) => String(value || '无'),
     },
     { title: '活动名称', dataIndex: 'activityName', render: (value) => String(value || '无') },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => String(value || '-') },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
   ];
 }

@@ -1,6 +1,7 @@
-import { Button, DatePicker, Form, Input, Space, Typography } from 'antd';
+import { Button, Form, Input, Space, Typography } from 'antd';
 import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { DateTimeRangeField } from '@/app/components/forms/DateTimeRangeField';
 import type { SubjectSearchValues } from '../types';
 
 type SubjectSearchFormProps = {
@@ -47,12 +48,7 @@ export function SubjectSearchForm({
       onFinish={onSearch}
     >
       <div className="toolbar-grid">
-        <Form.Item label="开始时间" name="startTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item label="结束时间" name="endTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
+        <DateTimeRangeField form={form} />
         <Form.Item label="关卡名称" name="customsPassName">
           <Input placeholder="请输入关卡名称" />
         </Form.Item>

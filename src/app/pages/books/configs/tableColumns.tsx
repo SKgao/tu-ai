@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
+import { formatDateTime } from '@/app/lib/dateTime';
 import type { BookRecord, GradeRecord, ResourceType, VersionRecord } from '../types';
 
 type CreateBookColumnsOptions = {
@@ -54,7 +55,7 @@ export function createBookColumns({
       dataIndex: 'bookVersionName',
       render: (_value, record) => String(record.bookVersionName || record.bookVersionId || '-'),
     },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => String(value || '-') },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
     { title: '年级顺序', dataIndex: 'status', render: (value) => String(value ?? '-') },
     {
       title: '锁定状态',

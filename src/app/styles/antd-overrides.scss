@@ -66,6 +66,21 @@
   max-width: 240px;
 }
 
+/* 时间范围选择器占两列时，放开 240px 宽度上限（两个日期+时间需要更宽） */
+.toolbar-grid > .ant-form-item.form-field--span-2:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-control .ant-form-item-control-input-content > .ant-picker {
+  max-width: none;
+}
+
+/* 范围选择器：不显示标签（自身占位符已说明含义），整格宽度让给控件 */
+.toolbar-grid > .ant-form-item.form-field--span-2:not(.ant-form-item-hidden) > .ant-form-item-row {
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+}
+
+.toolbar-grid > .ant-form-item.form-field--span-2:not(.ant-form-item-hidden) > .ant-form-item-row > .ant-form-item-label {
+  display: none !important;
+}
+
 .toolbar-grid .ant-select-multiple .ant-select-selector,
 .form-grid .ant-select-multiple .ant-select-selector {
   align-items: center;

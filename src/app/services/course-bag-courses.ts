@@ -23,12 +23,12 @@ export async function updateCourseBagCourse(payload: RequestPayload): Promise<Ap
 }
 
 export async function changeCourseBagCourseStatus(payload: RequestPayload): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(appendQuery('course/changeStatus', payload));
+  const response = await http.post<ApiEnvelope<boolean>>(appendQuery('course/changeStatus', payload));
   return response.data;
 }
 
 export async function removeCourseBagCourse(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`course/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`course/delete/${id}`);
   return response.data;
 }
 

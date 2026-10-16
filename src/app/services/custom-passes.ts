@@ -6,11 +6,11 @@ export async function listSubjects(): Promise<ApiEntityList> {
   return response.data?.data?.data || [];
 }
 
-export async function listCustomPasses(payload: RequestPayload & { textbookId: string | number }): Promise<ApiEnvelope<ApiListResult>> {
+export async function listCustomPasses(payload: RequestPayload & { textbookId: string | number }): Promise<ApiListResult> {
   const response = await http.get<ApiEnvelope<ApiListResult>>(`pass/list/${payload.textbookId}`, {
     params: compactPayload(payload),
   });
-  return response.data || {};
+  return response.data?.data || {};
 }
 
 export async function createCustomPass(payload: RequestPayload): Promise<ApiEnvelope<boolean>> {
@@ -24,7 +24,7 @@ export async function updateCustomPass(payload: RequestPayload): Promise<ApiEnve
 }
 
 export async function removeCustomPass(payload: RequestPayload): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>('pass/delete', {
+  const response = await http.post<ApiEnvelope<boolean>>('pass/delete', undefined, {
     params: compactPayload(payload),
   });
   return response.data;

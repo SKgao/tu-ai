@@ -17,7 +17,7 @@ export async function updatePart(payload: RequestPayload): Promise<ApiEnvelope<b
 }
 
 export async function removePart(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`part/del/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`part/del/${id}`);
   return response.data;
 }
 

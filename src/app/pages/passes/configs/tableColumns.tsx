@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button, Image, Popconfirm, Space, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { formatDateTime } from '@/app/lib/dateTime';
 import type { PassRecord } from '../types';
 
 type CreatePassColumnsOptions = {
@@ -37,7 +38,7 @@ export function createPassColumns({
     { title: '闯关人数', dataIndex: 'customerNumber', render: (value) => value ?? '-' },
     { title: '关卡顺序', dataIndex: 'sort', render: (value) => value ?? '-' },
     { title: '平均分', dataIndex: 'totalScore', render: (value) => value ?? '-' },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => value || '-' },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
     {
       title: '详情',
       key: 'details',

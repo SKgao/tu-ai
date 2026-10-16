@@ -22,7 +22,7 @@ export async function updateCourseBagActivity(payload: RequestPayload): Promise<
 }
 
 export async function removeCourseBagActivity(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`course/active/del/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`course/active/del/${id}`);
   return response.data;
 }
 

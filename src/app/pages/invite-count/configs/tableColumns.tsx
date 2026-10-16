@@ -2,6 +2,7 @@ import { Image, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
 import { MaskedPhoneText } from '@/app/components/MaskedPhoneText';
+import { formatDateTime } from '@/app/lib/dateTime';
 import type { InviteRecord } from '../types';
 
 export function createInviteColumns(): TableColumnsType<InviteRecord> {
@@ -25,6 +26,6 @@ export function createInviteColumns(): TableColumnsType<InviteRecord> {
         ),
     },
     { title: '手机号', dataIndex: 'mobile', render: (value) => <MaskedPhoneText value={value} /> },
-    { title: '邀请时间', dataIndex: 'inviteTime', render: (value) => String(value || '-') },
+    { title: '邀请时间', dataIndex: 'inviteTime', render: (value) => formatDateTime(value) },
   ];
 }

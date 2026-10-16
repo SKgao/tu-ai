@@ -22,7 +22,7 @@ export async function updateUnit(payload: RequestPayload): Promise<ApiEnvelope<b
 }
 
 export async function removeUnit(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`unit/del/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`unit/del/${id}`);
   return response.data;
 }
 

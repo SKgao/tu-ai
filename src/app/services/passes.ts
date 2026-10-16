@@ -19,7 +19,7 @@ export async function updatePass(payload: RequestPayload): Promise<ApiEnvelope<b
 }
 
 export async function removePass(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`pass/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`pass/delete/${id}`);
   return response.data;
 }
 

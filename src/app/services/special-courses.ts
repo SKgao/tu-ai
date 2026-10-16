@@ -22,17 +22,17 @@ export async function updateSpecialCourse(payload: RequestPayload): Promise<ApiE
 }
 
 export async function removeSpecialCourse(textbookId: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`special-course/delete/${textbookId}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`special-course/delete/${textbookId}`);
   return response.data;
 }
 
 export async function upSpecialCourse(textbookId: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`special-course/up/${textbookId}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`special-course/up/${textbookId}`);
   return response.data;
 }
 
 export async function downSpecialCourse(textbookId: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`special-course/down/${textbookId}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`special-course/down/${textbookId}`);
   return response.data;
 }
 

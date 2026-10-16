@@ -1,5 +1,6 @@
 import { Button, Image, Popconfirm, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
+import { formatDateTime } from '@/app/lib/dateTime';
 import { formatCurrencyCent } from '@/app/lib/formatters';
 import type { ActivityRecord } from '../types';
 
@@ -55,9 +56,9 @@ export function createActivityColumns({
       ),
     },
     { title: '活动持续时间', dataIndex: 'activeExpireDays', render: (value) => String(value ?? '-') },
-    { title: '活动开始时间', dataIndex: 'beginAt', render: (value) => String(value || '-') },
-    { title: '活动结束时间', dataIndex: 'endAt', render: (value) => String(value || '-') },
-    { title: '创建时间', dataIndex: 'createdAt', render: (value) => String(value || '-') },
+    { title: '活动开始时间', dataIndex: 'beginAt', render: (value) => formatDateTime(value) },
+    { title: '活动结束时间', dataIndex: 'endAt', render: (value) => formatDateTime(value) },
+    { title: '创建时间', dataIndex: 'createdAt', render: (value) => formatDateTime(value) },
     {
       title: '操作',
       key: 'actions',

@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { clearAuthExpiredFlag } from '@/app/lib/authExpiry';
 import { selectAuthLogout, selectAuthUser, useAuthStore } from '@/app/stores/auth';
 import logo from '@/assets/logo.png';
 
@@ -73,6 +74,8 @@ export function AppLayout() {
               type="button"
               className="app-button app-button--ghost"
               onClick={() => {
+                // 主动退出不算「登录过期」，避免登录页误报
+                clearAuthExpiredFlag();
                 logout();
                 navigate('/login', { replace: true });
               }}

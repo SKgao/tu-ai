@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Form, Input } from 'antd';
 import type { FormProps } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { clearAuthExpiredFlag } from '@/app/lib/authExpiry';
 import { loginRequest } from '@/app/lib/http';
 import { selectAuthLogin, useAuthStore } from '@/app/stores/auth';
 import logo from '@/assets/logo.png';
@@ -35,6 +36,11 @@ function getRedirectPath(state: unknown): string {
   return typeof from === 'string' && from ? from : '/dashboard';
 }
 
+/** 是否是「登录过期被踢回登录页」，用于给出区别于主动退出的提示 */
+function isExpiredRedirect(state: unknown): boolean {
+  return typeof state === 'object' && !!state && (state as { expired?: unknown }).expired === true;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,6 +48,7 @@ export function LoginPage() {
   const [form] = Form.useForm<LoginFormValues>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [expiredNotice, setExpiredNotice] = useState(() => isExpiredRedirect(location.state));
 
   const handleSubmit: FormProps<LoginFormValues>['onFinish'] = async (values) => {
     setLoading(true);
@@ -57,6 +64,8 @@ export function LoginPage() {
       }
 
       login(token, result);
+      clearAuthExpiredFlag();
+      setExpiredNotice(false);
       navigate(getRedirectPath(location.state), { replace: true });
     } catch (submitError) {
       setError(getErrorMessage(submitError, '登录失败'));
@@ -76,6 +85,17 @@ export function LoginPage() {
             <p>新架构迁移入口</p>
           </div>
         </div>
+
+        {expiredNotice ? (
+          <Alert
+            className="login-card__alert"
+            type="warning"
+            showIcon
+            message="登录已失效，请重新登录"
+            closable
+            onClose={() => setExpiredNotice(false)}
+          />
+        ) : null}
 
         {error ? <Alert className="login-card__alert" type="error" showIcon message={error} /> : null}
 

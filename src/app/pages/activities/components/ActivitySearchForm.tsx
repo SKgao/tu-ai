@@ -1,6 +1,7 @@
-import { Button, DatePicker, Form, Select, Space } from 'antd';
+import { Button, Form, Select, Space } from 'antd';
 import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { DateTimeRangeField } from '@/app/components/forms/DateTimeRangeField';
 import { INITIAL_FILTERS } from '../utils/forms';
 import type { ActivityOptionRecord, ActivitySearchValues } from '../types';
 
@@ -26,12 +27,10 @@ export function ActivitySearchForm({
   return (
     <Form form={form} layout="vertical" initialValues={INITIAL_FILTERS} onFinish={onSearch}>
       <div className="toolbar-grid toolbar-grid--books">
-        <Form.Item label="活动开始时间" name="startTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item label="活动结束时间" name="endTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
+        <DateTimeRangeField
+          form={form}
+          placeholder={['活动开始时间', '活动结束时间']}
+        />
         <Form.Item label="活动筛选" name="id">
           <Select
             allowClear

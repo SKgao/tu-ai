@@ -27,7 +27,7 @@ export async function updateSubjectRecord(payload: RequestPayload): Promise<ApiE
 }
 
 export async function removeSubjectRecord(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`subject/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`subject/delete/${id}`);
   return response.data;
 }
 
@@ -53,7 +53,7 @@ export async function updateSubjectScenePic(payload: { id: number; scenePic: str
 }
 
 export async function removeSubjectScenePic(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`subject/del/pic/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`subject/del/pic/${id}`);
   return response.data;
 }
 

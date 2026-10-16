@@ -1,11 +1,11 @@
 import { type ApiEntityList, type ApiEnvelope, type ApiListResult, http } from '@/app/lib/http';
 import { compactPayload, createUploadFormData, type RequestOptions, type RequestPayload } from '@/app/lib/request';
 
-export async function listCustomPasses(payload: RequestPayload & { textbookId: string | number }): Promise<ApiEnvelope<ApiListResult>> {
+export async function listCustomPasses(payload: RequestPayload & { textbookId: string | number }): Promise<ApiListResult> {
   const response = await http.get<ApiEnvelope<ApiListResult>>(`pass/list/${payload.textbookId}`, {
     params: compactPayload(payload),
   });
-  return response.data || {};
+  return response.data?.data || {};
 }
 
 export async function listSessions(textbookId: number): Promise<ApiEntityList> {
@@ -24,7 +24,7 @@ export async function updateSession(payload: RequestPayload): Promise<ApiEnvelop
 }
 
 export async function removeSession(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`/session/delete/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`/session/delete/${id}`);
   return response.data;
 }
 
@@ -60,7 +60,7 @@ export async function listSessionCustomPasses(payload: {
 }
 
 export async function unbindSessionCustomPass(id: number): Promise<ApiEnvelope<boolean>> {
-  const response = await http.get<ApiEnvelope<boolean>>(`session/unbind/${id}`);
+  const response = await http.post<ApiEnvelope<boolean>>(`session/unbind/${id}`);
   return response.data;
 }
 

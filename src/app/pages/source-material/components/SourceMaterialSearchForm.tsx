@@ -1,6 +1,7 @@
-import { Button, DatePicker, Form, Input, Select, Space, Typography } from 'antd';
+import { Button, Form, Input, Select, Space, Typography } from 'antd';
 import type { FormInstance, FormProps } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { DateTimeRangeField } from '@/app/components/forms/DateTimeRangeField';
 import {
   EMPTY_IMPORT_FORM,
   IS_PRODUCTION_API,
@@ -55,12 +56,7 @@ export function SourceMaterialSearchForm({
       onFinish={onSearch}
     >
       <div className="toolbar-grid">
-        <Form.Item label="开始时间" name="startTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item label="结束时间" name="endTime">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
+        <DateTimeRangeField form={form} />
         <Form.Item label="素材内容" name="text">
           <Input placeholder="请输入素材内容" />
         </Form.Item>

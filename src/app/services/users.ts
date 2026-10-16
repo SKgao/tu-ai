@@ -7,6 +7,15 @@ type UserIdPayload = {
   id: number;
 };
 
+/**
+ * 创建用户必须显式指定角色，避免落到后端的超级管理员默认值上。
+ */
+type CreateUserPayload = {
+  account: string;
+  password: string;
+  roleid: number;
+} & RequestPayload;
+
 export async function listUsers(payload: UserPayload = {}): Promise<Record<string, unknown>> {
   const response = await http.post<ApiEnvelope<Record<string, unknown>>>('user/list', compactPayload(payload));
   return response.data?.data || {};
@@ -17,7 +26,7 @@ export async function listRoles(payload: UserPayload = {}): Promise<Record<strin
   return response.data?.data || [];
 }
 
-export async function createUser(payload: UserPayload): Promise<ApiEnvelope<boolean>> {
+export async function createUser(payload: CreateUserPayload): Promise<ApiEnvelope<boolean>> {
   const response = await http.post<ApiEnvelope<boolean>>('user/add', compactPayload(payload));
   return response.data;
 }
