@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CourseBagMutationDto } from './dto/course-bag.dto';
 import { CourseBagsService } from './course-bags.service';
 
@@ -11,7 +10,6 @@ function mergePayload<T extends object>(query: T, body: T) {
 }
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class CourseBagsController {
   constructor(private readonly courseBagsService: CourseBagsService) {}
 

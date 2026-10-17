@@ -1,11 +1,8 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { RolesGuard } from '../auth/roles.guard';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { SuperAdminOnly } from '../auth/roles.decorator';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
 import { RoleService } from './role.service';
 
 @Controller('role')
-@UseGuards(TokenAuthGuard, RolesGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 

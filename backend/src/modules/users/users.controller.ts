@@ -4,16 +4,15 @@ import {
   Post,
   Req,
   UploadedFile,
-  UseGuards,
+  
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { mkdirSync } from 'fs';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
 import { SuperAdminOnly } from '../auth/roles.decorator';
+import { ok } from '../../common/response';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersDto } from './dto/list-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -29,7 +28,6 @@ function buildUploadFilename(originalName: string) {
 }
 
 @Controller()
-@UseGuards(TokenAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -86,10 +84,6 @@ export class UsersController {
     @Req() request: { protocol: string; get(header: string): string | undefined },
   ) {
     const host = request.get('host') || 'localhost:3000';
-    return {
-      code: 0,
-      message: '上传成功',
-      data: `${request.protocol}://${host}/uploads/${file.filename}`,
-    };
+    return ok(`${request.protocol}://${host}/uploads/${file.filename}`, '上传成功');
   }
 }

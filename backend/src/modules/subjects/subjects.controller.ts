@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { ListSubjectsDto } from './dto/list-subjects.dto';
 import { ScenePicDto } from './dto/scene-pic.dto';
@@ -7,7 +6,6 @@ import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { SubjectsService } from './subjects.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class SubjectsController {
   constructor(private readonly subjectsService: SubjectsService) {}
 

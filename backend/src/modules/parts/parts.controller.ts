@@ -1,12 +1,10 @@
-import { Body, Controller, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CreatePartDto } from './dto/create-part.dto';
 import { ListPartsDto } from './dto/list-parts.dto';
 import { UpdatePartDto } from './dto/update-part.dto';
 import { PartsService } from './parts.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class PartsController {
   constructor(private readonly partsService: PartsService) {}
 

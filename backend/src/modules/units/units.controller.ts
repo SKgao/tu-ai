@@ -1,5 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CreateUnitDto } from './dto/create-unit.dto';
 import { ListUnitsDto } from './dto/list-units.dto';
 import { LockUnitDto } from './dto/lock-unit.dto';
@@ -7,7 +6,6 @@ import { UpdateUnitDto } from './dto/update-unit.dto';
 import { UnitsService } from './units.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class UnitsController {
   constructor(private readonly unitsService: UnitsService) {}
 

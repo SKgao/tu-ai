@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { ChangeActivityStatusDto } from './dto/change-activity-status.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -7,7 +6,6 @@ import { ListActivitiesDto } from './dto/list-activities.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 

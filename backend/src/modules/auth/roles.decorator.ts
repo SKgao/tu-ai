@@ -2,6 +2,15 @@ import { SetMetadata } from '@nestjs/common';
 
 export const ROLES_METADATA_KEY = 'authz:roles';
 export const SUPER_ADMIN_ONLY_KEY = 'authz:super-admin-only';
+export const IS_PUBLIC_KEY = 'authz:public';
+
+/**
+ * 标记接口为公开访问（无需登录）。
+ *
+ * 守卫是全局注册的，因此除显式标注 `@Public()` 的接口外，所有路由都必须带 token。
+ * 目前只有登录接口使用它。
+ */
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 /**
  * 限定允许访问的角色 ID，例如 `@Roles(1, 2)`。

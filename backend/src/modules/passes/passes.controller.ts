@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CreatePassDto } from './dto/create-pass.dto';
 import { DeletePassDto } from './dto/delete-pass.dto';
 import { ListPassesDto } from './dto/list-passes.dto';
@@ -7,7 +6,6 @@ import { UpdatePassDto } from './dto/update-pass.dto';
 import { PassesService } from './passes.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class PassesController {
   constructor(private readonly passesService: PassesService) {}
 

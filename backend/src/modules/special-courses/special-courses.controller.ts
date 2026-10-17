@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CreateCourseUserDto } from './dto/create-course-user.dto';
 import { ListCourseUsersDto } from './dto/list-course-users.dto';
 import { ListSpecialCoursesDto } from './dto/list-special-courses.dto';
@@ -7,7 +6,6 @@ import { SpecialCourseMutationDto } from './dto/special-course.dto';
 import { SpecialCoursesService } from './special-courses.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class SpecialCoursesController {
   constructor(private readonly specialCoursesService: SpecialCoursesService) {}
 

@@ -18,6 +18,8 @@ model User {
   name         String?
   sex          Int?
   status       Int      @default(1)
+  /// 每次退出登录自增，使该用户已签发的所有 token 立即失效
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   roleId       Int

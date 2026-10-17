@@ -1,10 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CourseBagActivitiesService } from './course-bag-activities.service';
 import { CourseBagActivityMutationDto } from './dto/course-bag-activity.dto';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class CourseBagActivitiesController {
   constructor(private readonly courseBagActivitiesService: CourseBagActivitiesService) {}
 

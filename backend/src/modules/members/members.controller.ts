@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { GrantVipDto } from './dto/grant-vip.dto';
 import { ListMemberFeedbackDto } from './dto/list-member-feedback.dto';
 import { ListMembersDto } from './dto/list-members.dto';
@@ -7,7 +6,6 @@ import { CreateMemberLevelDto, UpdateMemberLevelDto } from './dto/member-level.d
 import { MembersService } from './members.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 

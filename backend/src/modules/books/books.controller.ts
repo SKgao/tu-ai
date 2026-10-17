@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { normalizePrimitivePayload } from '../access/shared';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
 import { BookIdDto } from './dto/book-id.dto';
 import { CreateBookDto } from './dto/create-book.dto';
 import { ListBooksDto } from './dto/list-books.dto';
@@ -10,7 +9,6 @@ import { UpdateBookLockDto } from './dto/update-book-lock.dto';
 import { BooksService } from './books.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 

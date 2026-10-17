@@ -1,5 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
+import { Body, Controller, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CreateSourceMaterialDto } from './dto/create-source-material.dto';
 import { ImportSubjectSourcesDto } from './dto/import-subject-sources.dto';
 import { ListSourceMaterialsDto } from './dto/list-source-materials.dto';
@@ -7,7 +6,6 @@ import { UpdateSourceMaterialDto } from './dto/update-source-material.dto';
 import { SourceMaterialsService } from './source-materials.service';
 
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class SourceMaterialsController {
   constructor(private readonly sourceMaterialsService: SourceMaterialsService) {}
 

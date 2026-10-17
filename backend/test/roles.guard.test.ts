@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Roles, SuperAdminOnly } from '../src/modules/auth/roles.decorator';
+import { Public, Roles, SuperAdminOnly } from '../src/modules/auth/roles.decorator';
 import { RolesGuard } from '../src/modules/auth/roles.guard';
 import { getSuperAdminRoleIds, isSuperAdminRole } from '../src/common/roles';
 
@@ -17,6 +19,10 @@ class DemoController {
   limitedToOpsAndEditor() {}
 
   openToAnyLoggedInUser() {}
+
+  @Public()
+  @SuperAdminOnly()
+  publicEvenIfRoleRestricted() {}
 }
 
 function createContext(handler: () => void, roleId?: number): ExecutionContext {
@@ -85,4 +91,48 @@ test('SUPER_ADMIN_ROLE_IDS 非法值时回退到默认值 1', () => {
   } finally {
     process.env.SUPER_ADMIN_ROLE_IDS = '1';
   }
+});
+
+test('@Public 会跳过角色限制', () => {
+  assert.equal(
+    guard().canActivate(createContext(DemoController.prototype.publicEvenIfRoleRestricted, 9)),
+    true,
+  );
+});
+
+/**
+ * 守卫是全局注册的，因此「公开接口」是唯一的安全薄弱面：
+ * 多标一个 @Public() 就等于多一个不需要登录的入口。
+ * 这条测试把公开入口钉死在登录接口上。
+ */
+test('@Public() 只允许出现在登录接口', () => {
+  const root = join(__dirname, '..', 'src');
+
+  const walk = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out.push(...walk(full));
+      } else if (entry.name.endsWith('.controller.ts')) {
+        out.push(full);
+      }
+    }
+    return out;
+  };
+
+  const hits: string[] = [];
+  for (const file of walk(root)) {
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .forEach((line, index) => {
+        // 只看真正的装饰器行，避免把注释里提到的 @Public() 也算进来
+        if (line.trim().startsWith('@Public()')) {
+          hits.push(`${file}:${index + 1}`);
+        }
+      });
+  }
+
+  assert.equal(hits.length, 1, `@Public() 应只出现 1 次（登录接口），实际：${JSON.stringify(hits)}`);
+  assert.ok(hits[0].includes('auth.controller.ts'), `唯一的 @Public() 应在 auth.controller，实际：${hits[0]}`);
 });

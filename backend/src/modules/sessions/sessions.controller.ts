@@ -6,9 +6,8 @@ import {
   ParseIntPipe,
   Post,
   Query,
-  UseGuards,
+  
 } from '@nestjs/common';
-import { TokenAuthGuard } from '../auth/token-auth.guard';
 import { BindSessionCustomPassDto } from './dto/bind-session-custom-pass.dto';
 import { ChangeSessionCustomSortDto } from './dto/change-session-custom-sort.dto';
 import { ChangeSessionStatusDto } from './dto/change-session-status.dto';
@@ -24,7 +23,6 @@ import { SessionsService } from './sessions.service';
  * 该接口按 query 分流：有 `textbookId` 按教材过滤，有 `partsId` 按 Part 过滤，URL 不变，不在本模块。
  */
 @Controller()
-@UseGuards(TokenAuthGuard)
 export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
 
