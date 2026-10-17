@@ -4,6 +4,7 @@ import { App, Button, Card, Table, Typography } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { listLearningRecords } from '@/app/services/learning-record';
 import { createLearningRecordColumns } from './configs/tableColumns';
@@ -12,8 +13,6 @@ import type {
   LearningRecordListResult,
   LearningRecordQuery,
 } from './types';
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function LearningRecordPage() {
   const { message } = App.useApp();

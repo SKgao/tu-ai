@@ -17,7 +17,6 @@ import {
   downSpecialCourse,
   listBoughtSpecialCourses,
   listSpecialCourses,
-  listBooks,
   removeSpecialCourse,
   uploadAsset,
   updateSpecialCourse,
@@ -28,6 +27,13 @@ import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMultiUploadState } from '@/app/hooks/useMultiUploadState';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useBookDictionary,
+} from '@/app/stores/dictionaries';
 import { createSpecialCourseColumns } from './configs/tableColumns';
 import { useMemberCommerceOptionsStore } from '@/app/stores/memberCommerceOptions';
 import { SpecialCourseModal } from './components/SpecialCourseModal';
@@ -36,15 +42,12 @@ import { SpecialCourseSearchForm } from './components/SpecialCourseSearchForm';
 import {
   EMPTY_FORM,
   INITIAL_QUERY,
-  PAGE_SIZE_OPTIONS,
   buildPayload,
   buildSpecialCourseSearchFilters,
   normalizeSpecialCourseFormValues,
   validateSpecialCourseForm,
 } from './utils/forms';
 import type {
-  SpecialCourseBookListResult,
-  SpecialCourseBookOption,
   SpecialCourseFormValues,
   SpecialCourseListResult,
   SpecialCourseQuery,
@@ -52,10 +55,6 @@ import type {
   SpecialCourseSearchValues,
   SpecialCourseUploadField,
 } from './types';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function toWatchedString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
@@ -67,7 +66,9 @@ export function SpecialCourseManagementPage() {
   const [searchParams] = useSearchParams();
   const [searchForm] = Form.useForm<SpecialCourseSearchValues>();
   const [modalForm] = Form.useForm<SpecialCourseFormValues>();
-  const [books, setBooks] = useState<SpecialCourseBookOption[]>([]);
+  // 教材字典由全局 store 缓存（units / source-material / special-courses 共用，避免各自重复拉取）
+  const books = useBookDictionary(selectDictionaryItems);
+  const ensureBooks = useBookDictionary(selectDictionaryEnsure);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
@@ -118,19 +119,9 @@ export function SpecialCourseManagementPage() {
   });
 
   useMountEffect(() => {
-    async function loadBooksData() {
-      try {
-        const data = (await listBooks({
-          pageNum: 1,
-          pageSize: 1000,
-        })) as SpecialCourseBookListResult;
-        setBooks(Array.isArray(data?.data) ? data.data : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '课程教材列表加载失败'));
-      }
-    }
-
-    loadBooksData();
+    void ensureBooks().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '课程教材列表加载失败'));
+    });
   });
 
   const handleSearch: FormProps<SpecialCourseSearchValues>['onFinish'] = (values) => {
@@ -198,6 +189,7 @@ export function SpecialCourseManagementPage() {
       }
 
       message.success(courseModal.mode === 'create' ? '精品课程创建成功' : '精品课程更新成功');
+      useMemberCommerceOptionsStore.getState().invalidateCourseResources();
       courseModal.setOpen(false);
       await reload().catch(() => {});
       await refreshCourseOptions().catch(() => {});
@@ -213,6 +205,7 @@ export function SpecialCourseManagementPage() {
     try {
       await removeSpecialCourse(Number(course.textbookId));
       message.success('精品课程已删除');
+      useMemberCommerceOptionsStore.getState().invalidateCourseResources();
       await reload().catch(() => {});
       await refreshCourseOptions().catch(() => {});
     } catch (error) {
@@ -231,6 +224,7 @@ export function SpecialCourseManagementPage() {
         await upSpecialCourse(Number(course.textbookId));
       }
       message.success('课程状态更新成功');
+      useMemberCommerceOptionsStore.getState().invalidateCourseResources();
       await reload().catch(() => {});
       await refreshCourseOptions().catch(() => {});
     } catch (error) {

@@ -7,8 +7,6 @@ import type {
   GradeRecord,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 export const EMPTY_BOOK_FORM: BookFormValues = {
   id: undefined,
   name: '',

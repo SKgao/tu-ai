@@ -11,14 +11,21 @@ import type { FormProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useSubjectTypeDictionary,
+} from '@/app/stores/dictionaries';
+import {
   addSingleSubject,
   createCustomPass,
   listCustomPasses,
-  listSubjects,
   removeCustomPass,
   updateCustomPass,
   uploadAsset,
@@ -27,33 +34,17 @@ import { CustomPassModal } from './components/CustomPassModal';
 import { CustomPassToolbar } from './components/CustomPassToolbar';
 import { TopicModal } from './components/TopicModal';
 import { createCustomPassColumns } from './configs/tableColumns';
-import {
-  PAGE_SIZE_OPTIONS,
-  normalizePassFormValues,
-} from './utils/forms';
+import { normalizePassFormValues } from './utils/forms';
 import type {
   CustomPassFormValues,
   CustomPassListResult,
   CustomPassQuery,
   CustomPassRecord,
-  CustomPassSubjectOption,
   CustomPassUploadTarget,
   TopicFormValues,
   TopicUploadField,
   UploadRequestOptions,
 } from './types';
-
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function CustomPassManagementPage() {
   const { message } = App.useApp();
@@ -64,7 +55,9 @@ export function CustomPassManagementPage() {
   const textbookId = searchParams.get('textbookId') || '';
   const sessionId = searchParams.get('sessionId') || '';
   const partsId = searchParams.get('partsId') || '';
-  const [subjects, setSubjects] = useState<CustomPassSubjectOption[]>([]);
+  // 题型字典由全局 store 缓存（subjects / passes / custom-passes 共用，避免各自重复拉取）
+  const subjects = useSubjectTypeDictionary(selectDictionaryItems);
+  const ensureSubjects = useSubjectTypeDictionary(selectDictionaryEnsure);
   const [topicOpen, setTopicOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -105,19 +98,15 @@ export function CustomPassManagementPage() {
   });
 
   useEffect(() => {
-    async function loadSubjectTypes() {
-      try {
-        const data = await listSubjects();
-        setSubjects(Array.isArray(data) ? (data as CustomPassSubjectOption[]) : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '题型列表加载失败'));
-      }
+    // 只在存在 partsId（即「添加题目」入口可用）时才加载题型字典
+    if (!partsId) {
+      return;
     }
 
-    if (partsId) {
-      void loadSubjectTypes();
-    }
-  }, [partsId, message]);
+    void ensureSubjects().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '题型列表加载失败'));
+    });
+  }, [ensureSubjects, message, partsId]);
 
   async function handleUpload(
     options: UploadRequestOptions,

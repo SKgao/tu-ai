@@ -5,17 +5,24 @@ import type { FormProps, UploadFile, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useBookDictionary,
+} from '@/app/stores/dictionaries';
 import {
   batchDownloadSourceMaterialAudio,
   batchRemoveSourceMaterials,
   batchSyncSourceMaterials,
   createSourceMaterial,
   importSubjectSources,
-  listBooks,
   listSourceMaterials,
   removeSourceMaterial,
   updateSourceMaterial,
@@ -27,15 +34,12 @@ import { SourceMaterialSearchForm } from './components/SourceMaterialSearchForm'
 import { createSourceMaterialColumns } from './configs/tableColumns';
 import {
   EMPTY_MATERIAL_FORM,
-  PAGE_SIZE_OPTIONS,
   buildSourceMaterialSearchFilters,
   getFileBaseName,
   normalizeMaterialFormValues,
 } from './utils/forms';
 import type {
   ImportSourceMaterialFormValues,
-  SourceMaterialBookListResult,
-  SourceMaterialBookOption,
   SourceMaterialFormValues,
   SourceMaterialListResult,
   SourceMaterialQuery,
@@ -45,17 +49,6 @@ import type {
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 type UploadField = 'icon' | 'audio';
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 function getImportFileName(file: UploadFile): string | undefined {
   return file.name || file.originFileObj?.name;
@@ -74,7 +67,9 @@ export function SourceMaterialManagementPage() {
   const [searchForm] = Form.useForm<SourceMaterialSearchValues>();
   const [materialForm] = Form.useForm<SourceMaterialFormValues>();
   const [importForm] = Form.useForm<ImportSourceMaterialFormValues>();
-  const [books, setBooks] = useState<SourceMaterialBookOption[]>([]);
+  // 教材字典由全局 store 缓存（units / source-material / special-courses 共用，避免各自重复拉取）
+  const books = useBookDictionary(selectDictionaryItems);
+  const ensureBooks = useBookDictionary(selectDictionaryEnsure);
   const [selectedIds, setSelectedIds] = useState<Key[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [importResult, setImportResult] = useState('');
@@ -119,19 +114,9 @@ export function SourceMaterialManagementPage() {
   });
 
   useMountEffect(() => {
-    async function loadBookOptions() {
-      try {
-        const data = (await listBooks({
-          pageNum: 1,
-          pageSize: 100,
-        })) as SourceMaterialBookListResult;
-        setBooks(Array.isArray(data?.data) ? data.data : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '教材列表加载失败'));
-      }
-    }
-
-    return loadBookOptions();
+    void ensureBooks().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '教材列表加载失败'));
+    });
   });
 
   async function handleUpload(options: UploadRequestOptions, field: UploadField): Promise<void> {

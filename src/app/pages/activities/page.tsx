@@ -16,6 +16,9 @@ import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { createActivityColumns } from './configs/tableColumns';
 import { ActivityModal } from './components/ActivityModal';
 import { ActivitySearchForm } from './components/ActivitySearchForm';
@@ -23,7 +26,6 @@ import {
   buildActivityPayload,
   buildActivitySearchFilters,
   INITIAL_QUERY,
-  PAGE_SIZE_OPTIONS,
   normalizeActivityFormValues,
   validateActivityForm,
 } from './utils/forms';
@@ -43,14 +45,6 @@ import type {
 import type { FormProps, UploadProps } from 'antd';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: unknown): string {
-  return typeof file === 'object' && file && 'name' in file && typeof file.name === 'string' ? file.name : '文件';
-}
 
 export function ActivityManagementPage() {
   const { message } = App.useApp();
@@ -175,6 +169,7 @@ export function ActivityManagementPage() {
       }
 
       message.success(activityModal.mode === 'create' ? '活动创建成功' : '活动更新成功');
+      useMemberCommerceOptionsStore.getState().invalidateActivityResources();
       activityModal.setOpen(false);
       await reload().catch(() => {});
       await refreshActivityFilterOptions().catch(() => {});
@@ -190,6 +185,7 @@ export function ActivityManagementPage() {
     try {
       await removeActivity(Number(activity.id));
       message.success('活动已删除');
+      useMemberCommerceOptionsStore.getState().invalidateActivityResources();
       await reload().catch(() => {});
       await refreshActivityFilterOptions().catch(() => {});
     } catch (submitError) {
@@ -207,6 +203,7 @@ export function ActivityManagementPage() {
         status: Number(status),
       });
       message.success('活动状态更新成功');
+      useMemberCommerceOptionsStore.getState().invalidateActivityResources();
       await reload().catch(() => {});
       await refreshActivityFilterOptions().catch(() => {});
     } catch (submitError) {

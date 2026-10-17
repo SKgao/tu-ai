@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Card, Form, Table, Typography } from 'antd';
 import type { FormProps } from 'antd';
@@ -7,7 +7,7 @@ import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMultiUploadState } from '@/app/hooks/useMultiUploadState';
-import { listCourseBags } from '@/app/services/course-bags';
+import { getErrorMessage } from '@/app/lib/errors';
 import {
   createCourseBagActivity,
   listCourseBagActivities,
@@ -15,6 +15,11 @@ import {
   uploadAsset,
   updateCourseBagActivity,
 } from '@/app/services/course-bag-activities';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useCourseBagDictionary,
+} from '@/app/stores/dictionaries';
 import { CourseBagActivityModal } from './components/CourseBagActivityModal';
 import type { UploadRequestOptions } from './components/CourseBagActivityModal';
 import { CourseBagActivityToolbar } from './components/CourseBagActivityToolbar';
@@ -33,10 +38,6 @@ import type {
   CourseBagActivityUploadField,
   CourseBagOption,
 } from './types';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function toWatchedString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
@@ -67,8 +68,11 @@ export function CourseBagActivityManagementPage() {
   const [form] = Form.useForm<CourseBagActivityFormValues>();
   const courseId = searchParams.get('id') || '';
   const courseName = searchParams.get('courseName') || '';
+  // 课程包字典由全局 store 缓存（course-bag-courses / course-bag-activities 共用，避免重复拉取）
+  const bags = useCourseBagDictionary(selectDictionaryItems);
+  const ensureBags = useCourseBagDictionary(selectDictionaryEnsure);
+  const courseOptions = useMemo(() => extractCourseOptions(bags), [bags]);
   const [activities, setActivities] = useState<CourseBagActivityRecord[]>([]);
-  const [courseOptions, setCourseOptions] = useState<CourseBagOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -111,16 +115,9 @@ export function CourseBagActivityManagementPage() {
   }, [courseId, message]);
 
   useMountEffect(() => {
-    async function loadCourseOptions() {
-      try {
-        const bags = await listCourseBags();
-        setCourseOptions(extractCourseOptions(bags));
-      } catch (error) {
-        message.error(getErrorMessage(error, '课程选项加载失败'));
-      }
-    }
-
-    return loadCourseOptions();
+    void ensureBags().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '课程选项加载失败'));
+    });
   });
 
   useEffect(() => {

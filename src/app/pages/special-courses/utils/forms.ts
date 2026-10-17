@@ -39,8 +39,6 @@ export const INITIAL_QUERY: SpecialCourseQuery = {
   pageSize: 20,
 };
 
-export const PAGE_SIZE_OPTIONS: number[] = [20, 50, 100];
-
 export const COURSE_STATUS_OPTIONS: SpecialCourseSelectOption[] = [
   { value: '1', label: '正常' },
   { value: '2', label: '下架' },

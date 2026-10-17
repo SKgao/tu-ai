@@ -7,6 +7,8 @@ import { createMenu, listMenus, removeMenu, updateMenu } from '@/app/services/me
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
 import { MenuModal } from './components/MenuModal';
 import { MenuSearchForm } from './components/MenuSearchForm';
 import { createMenuColumns } from './configs/tableColumns';
@@ -41,8 +43,6 @@ const INITIAL_QUERY: MenuQuery = {
   pageSize: 10,
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 const MENU_SCOPE_OPTIONS: MenuSelectOption[] = [
   { value: '1', label: '左侧菜单' },
   { value: '2', label: '按钮' },
@@ -54,10 +54,6 @@ const STATUS_OPTIONS: MenuSelectOption[] = [
   { value: '2', label: '不可用' },
   { value: '3', label: '删除' },
 ];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function normalizeMenuFormValues(menu?: MenuRecord | null): MenuFormValues {
   if (!menu) {

@@ -5,8 +5,6 @@ import type {
   TopicUploadOption,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 export const EMPTY_PASS_FORM: CustomPassFormValues = {
   id: undefined,
   textbookId: undefined,

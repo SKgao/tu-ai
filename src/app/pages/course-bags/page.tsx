@@ -7,6 +7,8 @@ import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import { getErrorMessage } from '@/app/lib/errors';
+import { useCourseBagDictionary } from '@/app/stores/dictionaries';
 import {
   changeCourseBagStatus,
   createCourseBag,
@@ -21,10 +23,6 @@ import { EMPTY_COURSE_BAG_FORM, normalizeCourseBagFormValues } from './utils/for
 import type { CourseBagFormValues, CourseBagListResult, CourseBagRecord } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export function CourseBagManagementPage() {
   const { message } = App.useApp();
@@ -116,6 +114,7 @@ export function CourseBagManagementPage() {
       }
 
       message.success(bagModal.mode === 'create' ? '课程包创建成功' : '课程包更新成功');
+      useCourseBagDictionary.getState().invalidate();
       bagModal.setOpen(false);
       await loadBags();
     } catch (error) {
@@ -133,6 +132,7 @@ export function CourseBagManagementPage() {
         status: Number(bag.status) === 1 ? 2 : 1,
       });
       message.success('课程包状态更新成功');
+      useCourseBagDictionary.getState().invalidate();
       await loadBags();
     } catch (error) {
       message.error(getErrorMessage(error, '课程包状态更新失败'));
@@ -146,6 +146,7 @@ export function CourseBagManagementPage() {
     try {
       await removeCourseBag(Number(bag.id));
       message.success('课程包已删除');
+      useCourseBagDictionary.getState().invalidate();
       await loadBags();
     } catch (error) {
       message.error(getErrorMessage(error, '课程包删除失败'));

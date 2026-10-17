@@ -7,7 +7,9 @@ import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
 import { toApiDateTime } from '@/app/lib/dateTime';
+import { getErrorMessage } from '@/app/lib/errors';
 import { listMemberInfos } from '@/app/services/member-info';
 import {
   selectMemberLevelOptions,
@@ -21,8 +23,6 @@ import type {
   MemberInfoSearchValues,
   MemberLevelFilterOption,
 } from './types';
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const INITIAL_FILTERS: MemberInfoSearchValues = {
   registerStartTime: undefined,
@@ -62,10 +62,6 @@ function normalizeSearchValues(values: MemberInfoSearchValues): Partial<MemberIn
     tutuNumber: values.tutuNumber?.trim() || '',
     mobile: values.mobile?.trim() || '',
   };
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function normalizeLevelOptions(items: Record<string, unknown>[]): MemberLevelFilterOption[] {

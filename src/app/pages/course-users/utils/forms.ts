@@ -21,8 +21,6 @@ export const INITIAL_COURSE_USER_FILTERS: CourseUserSearchValues = {
   sex: undefined,
 };
 
-export const COURSE_USER_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-
 export const COURSE_USER_SEX_OPTIONS: CourseUserSexOption[] = [
   { value: '1', label: '男' },
   { value: '2', label: '女' },

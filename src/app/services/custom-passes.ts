@@ -1,10 +1,5 @@
-import { type ApiEntityList, type ApiEnvelope, type ApiListResult, http } from '@/app/lib/http';
+import { type ApiEnvelope, type ApiListResult, http } from '@/app/lib/http';
 import { compactPayload, createUploadFormData, type RequestOptions, type RequestPayload } from '@/app/lib/request';
-
-export async function listSubjects(): Promise<ApiEntityList> {
-  const response = await http.get<ApiEnvelope<{ data?: ApiEntityList }>>('pass/subject');
-  return response.data?.data?.data || [];
-}
 
 export async function listCustomPasses(payload: RequestPayload & { textbookId: string | number }): Promise<ApiListResult> {
   const response = await http.get<ApiEnvelope<ApiListResult>>(`pass/list/${payload.textbookId}`, {

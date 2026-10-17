@@ -5,6 +5,8 @@ import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { useMemberCommerceOptionsStore } from '@/app/stores/memberCommerceOptions';
 import {
   createMemberLevel,
@@ -24,14 +26,6 @@ import {
 } from './utils/forms';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: unknown): string {
-  return typeof file === 'object' && file && 'name' in file && typeof file.name === 'string' ? file.name : '文件';
-}
 
 export function MemberLevelManagementPage() {
   const { message } = App.useApp();
@@ -125,6 +119,7 @@ export function MemberLevelManagementPage() {
       }
 
       message.success(levelModal.mode === 'create' ? '会员等级创建成功' : '会员等级更新成功');
+      useMemberCommerceOptionsStore.getState().invalidateMemberLevelResources();
       levelModal.setOpen(false);
       await loadLevels();
       await refreshMemberLevelResources().catch(() => {});
@@ -140,6 +135,7 @@ export function MemberLevelManagementPage() {
     try {
       await removeMemberLevel(Number(level.userLevel));
       message.success('会员等级已删除');
+      useMemberCommerceOptionsStore.getState().invalidateMemberLevelResources();
       startTransition(() => {
         setLevels((current) => current.filter((item) => item.userLevel !== level.userLevel));
       });

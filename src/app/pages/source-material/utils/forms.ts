@@ -7,7 +7,6 @@ import type {
   SourceMaterialSearchValues,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
 export const IS_PRODUCTION_API = false;
 
 export const EMPTY_MATERIAL_FORM: SourceMaterialFormValues = {

@@ -19,6 +19,8 @@ import {
   updateSession,
   uploadAsset,
 } from '@/app/services/sessions';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { BoundCustomPassModal } from './components/BoundCustomPassModal';
 import { SessionModal } from './components/SessionModal';
 import { SessionToolbar } from './components/SessionToolbar';
@@ -34,17 +36,6 @@ import type {
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function SessionManagementPage() {
   const { message } = App.useApp();

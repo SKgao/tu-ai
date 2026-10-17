@@ -35,8 +35,6 @@ export const INITIAL_QUERY: ActivityQuery = {
   pageSize: 10,
 };
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 export const ACTIVITY_TYPE_OPTIONS = [
   { value: '1', label: '购买活动' },
   { value: '2', label: '分享活动' },

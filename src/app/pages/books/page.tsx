@@ -5,18 +5,19 @@ import { PlusOutlined } from '@ant-design/icons';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
 import { toApiDateTime } from '@/app/lib/dateTime';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { useFormModal } from '@/app/hooks/useFormModal';
-import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import { useBookDictionary } from '@/app/stores/dictionaries';
 import {
   createBook,
   createGrade,
   createVersion,
   listBooks,
-  listGrades,
-  listVersions,
   lockBook,
   removeBook,
   removeGrade,
@@ -30,6 +31,8 @@ import { createBookColumns, createResourceColumns } from './configs/tableColumns
 import { BookModal } from './components/BookModal';
 import { BookSearchForm } from './components/BookSearchForm';
 import { ResourceModal } from './components/ResourceModal';
+import { useBookGradeVersionData } from './hooks/useBookGradeVersionData';
+import { useResourceModal } from './hooks/useResourceModal';
 import type {
   BookFormValues,
   BookListResult,
@@ -42,23 +45,9 @@ import type {
   ResourceType,
   VersionRecord,
 } from './types';
-import {
-  EMPTY_BOOK_FORM,
-  EMPTY_RESOURCE_FORM,
-  PAGE_SIZE_OPTIONS,
-  normalizeBookFormValues,
-  normalizeResourceFormValues,
-} from './utils/forms';
+import { EMPTY_BOOK_FORM, normalizeBookFormValues } from './utils/forms';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: unknown): string {
-  return typeof file === 'object' && file && 'name' in file && typeof file.name === 'string' ? file.name : '文件';
-}
 
 function isResourceType(value: BookTabKey): value is ResourceType {
   return value === 'grade' || value === 'version';
@@ -70,15 +59,34 @@ export function BookManagementPage() {
   const [searchForm] = Form.useForm<BookSearchValues>();
   const [bookForm] = Form.useForm<BookFormValues>();
   const [resourceForm] = Form.useForm<ResourceFormValues>();
-  const [grades, setGrades] = useState<GradeRecord[]>([]);
-  const [versions, setVersions] = useState<VersionRecord[]>([]);
-  const [resourceLoading, setResourceLoading] = useState(false);
-  const [resourceModalOpen, setResourceModalOpen] = useState(false);
-  const [resourceType, setResourceType] = useState<ResourceType>('grade');
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
     useUploadState();
+
+  // 年级 / 教材版本列表的状态与加载逻辑都在 hook 内（含首次加载）。
+  const {
+    grades,
+    versions,
+    loading: resourceLoading,
+    setLoading: setResourceLoading,
+    reloadGrades: loadGradesData,
+    reloadVersions: loadVersionsData,
+    reloadAll,
+  } = useBookGradeVersionData({
+    onError: (errorMessage) => message.error(errorMessage),
+  });
+
+  // 资源弹窗（新增 / 编辑年级或教材版本）的开关状态；表单实例仍由页面持有。
+  const {
+    resourceModalOpen,
+    resourceType,
+    switchResourceTab,
+    openResourceModal,
+    closeResourceModal,
+    closeResourceModalAfterSubmit,
+  } = useResourceModal({ form: resourceForm, submitting });
+
   const bookModal = useFormModal<BookRecord>({
     submitting,
     onOpenCreate: () => {
@@ -116,45 +124,6 @@ export function BookManagementPage() {
     onError: (errorMessage) => message.error(errorMessage || '教材列表加载失败'),
   });
 
-  async function loadGradesData(): Promise<void> {
-    const data = await listGrades();
-    setGrades(Array.isArray(data) ? (data as GradeRecord[]) : []);
-  }
-
-  async function loadVersionsData(): Promise<void> {
-    const data = await listVersions();
-    setVersions(Array.isArray(data) ? (data as VersionRecord[]) : []);
-  }
-
-  useMountEffect(() => {
-    async function loadResources() {
-      setResourceLoading(true);
-      try {
-        await Promise.all([loadGradesData(), loadVersionsData()]);
-      } catch (loadError) {
-        message.error(getErrorMessage(loadError, '基础资源加载失败'));
-      } finally {
-        setResourceLoading(false);
-      }
-    }
-
-    return loadResources();
-  });
-
-  function openResourceModal(type: ResourceType, item?: GradeRecord | VersionRecord): void {
-    setResourceType(type);
-    resourceForm.setFieldsValue(normalizeResourceFormValues(type, item));
-    setResourceModalOpen(true);
-  }
-
-  function closeResourceModal(): void {
-    if (submitting) {
-      return;
-    }
-
-    setResourceModalOpen(false);
-  }
-
   const handleBookSearch: FormProps<BookSearchValues>['onFinish'] = (values) => {
     applyFilters({
       startTime: toApiDateTime(values.startTime),
@@ -178,24 +147,21 @@ export function BookManagementPage() {
 
   async function refreshActiveTab(): Promise<void> {
     try {
+      setResourceLoading(true);
       if (activeTab === 'book') {
-        setResourceLoading(true);
-        await Promise.all([reload().catch(() => {}), loadGradesData(), loadVersionsData()]);
-        setResourceLoading(false);
+        await Promise.all([reload().catch(() => {}), reloadAll()]);
         return;
       }
 
-      setResourceLoading(true);
       if (activeTab === 'grade') {
         await loadGradesData();
-        setResourceLoading(false);
         return;
       }
 
       await loadVersionsData();
-      setResourceLoading(false);
     } catch (loadError) {
       message.error(getErrorMessage(loadError, '数据加载失败'));
+    } finally {
       setResourceLoading(false);
     }
   }
@@ -249,8 +215,9 @@ export function BookManagementPage() {
       }
 
       message.success(bookModal.mode === 'create' ? '教材创建成功' : '教材更新成功');
+      useBookDictionary.getState().invalidate();
       bookModal.setOpen(false);
-      await Promise.all([reload().catch(() => {}), loadGradesData(), loadVersionsData()]);
+      await Promise.all([reload().catch(() => {}), reloadAll()]);
     } catch (submitError) {
       message.error(getErrorMessage(submitError, '教材提交失败'));
     } finally {
@@ -300,7 +267,7 @@ export function BookManagementPage() {
             ? '教材版本更新成功'
             : '教材版本创建成功',
       );
-      setResourceModalOpen(false);
+      closeResourceModalAfterSubmit();
     } catch (submitError) {
       message.error(getErrorMessage(submitError, '资源提交失败'));
     } finally {
@@ -313,6 +280,7 @@ export function BookManagementPage() {
     try {
       await removeBook(Number(book.id));
       message.success('教材已删除');
+      useBookDictionary.getState().invalidate();
       if (books.length === 1 && query.pageNum > 1) {
         setPageNum(query.pageNum - 1);
       } else {
@@ -394,8 +362,7 @@ export function BookManagementPage() {
             const nextTab = key as BookTabKey;
             setActiveTab(nextTab);
             if (isResourceType(nextTab)) {
-              setResourceType(nextTab);
-              resourceForm.setFieldsValue({ ...EMPTY_RESOURCE_FORM });
+              switchResourceTab(nextTab);
             }
           }}
           items={tabItems}

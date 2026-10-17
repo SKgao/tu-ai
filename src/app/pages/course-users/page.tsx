@@ -9,6 +9,8 @@ import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
 import { createCourseUserColumns } from './configs/tableColumns';
 import { CourseUserGrantModal } from './components/CourseUserGrantModal';
 import { CourseUserSearchForm } from './components/CourseUserSearchForm';
@@ -18,7 +20,6 @@ import {
 } from '@/app/stores/memberCommerceOptions';
 import {
   buildCourseUserSearchFilters,
-  COURSE_USER_PAGE_SIZE_OPTIONS,
   COURSE_USER_SEX_OPTIONS,
   EMPTY_COURSE_USER_FORM,
   INITIAL_COURSE_USER_FILTERS,
@@ -31,10 +32,6 @@ import type {
   CourseUserRecord,
   CourseUserSearchValues,
 } from './types';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export function CourseUserManagementPage() {
   const { message } = App.useApp();
@@ -181,7 +178,7 @@ export function CourseUserManagementPage() {
           pagination={buildAntdTablePagination({
             query,
             totalCount,
-            pageSizeOptions: COURSE_USER_PAGE_SIZE_OPTIONS,
+            pageSizeOptions: PAGE_SIZE_OPTIONS,
             setPageNum,
             setPageSize,
           })}

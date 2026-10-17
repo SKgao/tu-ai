@@ -6,8 +6,6 @@ import type {
   UserStatusMeta,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 export const EMPTY_CREATE_FORM: UserFormValues = {
   account: '',
   password: '',

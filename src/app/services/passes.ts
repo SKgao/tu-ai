@@ -1,4 +1,4 @@
-import { type ApiEntityList, type ApiEnvelope, type ApiListResult, http } from '@/app/lib/http';
+import { type ApiEnvelope, type ApiListResult, http } from '@/app/lib/http';
 import { compactPayload, createUploadFormData, type RequestOptions, type RequestPayload } from '@/app/lib/request';
 
 export async function createPass(payload: RequestPayload): Promise<ApiEnvelope<boolean>> {
@@ -21,11 +21,6 @@ export async function updatePass(payload: RequestPayload): Promise<ApiEnvelope<b
 export async function removePass(id: number): Promise<ApiEnvelope<boolean>> {
   const response = await http.post<ApiEnvelope<boolean>>(`pass/delete/${id}`);
   return response.data;
-}
-
-export async function listSubjects(): Promise<ApiEntityList> {
-  const response = await http.get<ApiEnvelope<{ data?: ApiEntityList }>>('pass/subject');
-  return response.data?.data?.data || [];
 }
 
 export async function uploadAsset(file: Blob, options: RequestOptions = {}): Promise<string> {

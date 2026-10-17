@@ -8,16 +8,23 @@ import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import {
   createUser,
   deleteUser,
   enableUser,
   forbidUser,
-  listRoles,
   listUsers,
   updateUser,
   uploadFile,
 } from '@/app/services/users';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useRoleDictionary,
+} from '@/app/stores/dictionaries';
 import { PasswordModal } from './components/PasswordModal';
 import { UserModal } from './components/UserModal';
 import { UserSearchForm } from './components/UserSearchForm';
@@ -25,14 +32,12 @@ import { createUserColumns } from './configs/tableColumns';
 import {
   EMPTY_CREATE_FORM,
   EMPTY_PASSWORD_FORM,
-  PAGE_SIZE_OPTIONS,
   buildUserSearchFilters,
   isValidPhoneNumber,
   normalizeEditFormValues,
 } from './utils/forms';
 import type {
   PasswordFormValues,
-  RoleOption,
   UserFormValues,
   UserListResult,
   UserQuery,
@@ -42,21 +47,16 @@ import type {
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: unknown): string {
-  return typeof file === 'object' && file && 'name' in file && typeof file.name === 'string' ? file.name : '文件';
-}
-
 export function UserManagementPage() {
   const { message } = App.useApp();
   const [searchForm] = Form.useForm<UserSearchValues>();
   const [userForm] = Form.useForm<UserFormValues>();
   const [passwordForm] = Form.useForm<PasswordFormValues>();
-  const [roles, setRoles] = useState<RoleOption[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
+  // 角色字典由全局 store 缓存（users / roles 页共用，roles 页是 CRUD 拥有者，只负责失效）
+  const roles = useRoleDictionary(selectDictionaryItems);
+  const ensureRoles = useRoleDictionary(selectDictionaryEnsure);
+  // 保留 rolesLoading 语义：加载中驱动 extra 文案与 UserModal 的角色下拉 loading
+  const rolesLoading = useRoleDictionary((state) => state.loading);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -97,20 +97,10 @@ export function UserManagementPage() {
     onError: (errorMessage: string) => message.error(errorMessage || '用户列表加载失败'),
   });
 
-  async function loadRoleList(): Promise<void> {
-    setRolesLoading(true);
-    try {
-      const data = await listRoles();
-      setRoles(Array.isArray(data) ? (data as RoleOption[]) : []);
-    } catch (loadError) {
-      message.error(getErrorMessage(loadError, '角色列表加载失败'));
-    } finally {
-      setRolesLoading(false);
-    }
-  }
-
   useMountEffect(() => {
-    void loadRoleList();
+    void ensureRoles().catch((loadError: unknown) => {
+      message.error(getErrorMessage(loadError, '角色列表加载失败'));
+    });
   });
 
   function openPasswordModal(user: UserRecord): void {

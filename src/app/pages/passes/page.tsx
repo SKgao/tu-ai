@@ -5,9 +5,13 @@ import type { FormProps, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useSubjectTypeDictionary,
+} from '@/app/stores/dictionaries';
+import {
   createPass,
   listPasses,
-  listSubjects,
   removePass,
   updatePass,
   uploadAsset,
@@ -17,30 +21,21 @@ import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { PassModal } from './components/PassModal';
 import { PassToolbar } from './components/PassToolbar';
 import { createPassColumns } from './configs/tableColumns';
-import { PAGE_SIZE_OPTIONS, normalizePassFormValues } from './utils/forms';
+import { normalizePassFormValues } from './utils/forms';
 import type {
   PassFormValues,
   PassListResult,
   PassQuery,
   PassRecord,
-  PassSubjectOption,
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function PassManagementPage() {
   const { message } = App.useApp();
@@ -49,7 +44,9 @@ export function PassManagementPage() {
   const [form] = Form.useForm<PassFormValues>();
   const partsId = searchParams.get('partsId') || '';
   const textbookId = searchParams.get('textbookId') || '';
-  const [subjects, setSubjects] = useState<PassSubjectOption[]>([]);
+  // 题型字典由全局 store 缓存（subjects / passes / custom-passes 共用，避免各自重复拉取）
+  const subjects = useSubjectTypeDictionary(selectDictionaryItems);
+  const ensureSubjects = useSubjectTypeDictionary(selectDictionaryEnsure);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
@@ -88,16 +85,9 @@ export function PassManagementPage() {
   });
 
   useMountEffect(() => {
-    async function loadSubjectOptions() {
-      try {
-        const data = await listSubjects();
-        setSubjects(Array.isArray(data) ? (data as PassSubjectOption[]) : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '题型列表加载失败'));
-      }
-    }
-
-    return loadSubjectOptions();
+    void ensureSubjects().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '题型列表加载失败'));
+    });
   });
 
   async function handleUpload(options: UploadRequestOptions): Promise<void> {

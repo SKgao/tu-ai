@@ -8,8 +8,6 @@ import type {
   MemberSelectOption,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS: number[] = [10, 20, 50, 100];
-
 export const INITIAL_MEMBER_FILTERS: MemberSearchValues = {
   registerStartTime: undefined,
   registerEndTime: undefined,

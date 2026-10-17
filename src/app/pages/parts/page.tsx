@@ -15,13 +15,13 @@ import { useFormModal } from '@/app/hooks/useFormModal';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { PartModal } from './components/PartModal';
 import { PartToolbar } from './components/PartToolbar';
 import { createPartColumns } from './configs/tableColumns';
-import {
-  PAGE_SIZE_OPTIONS,
-  normalizePartFormValues,
-} from './utils/forms';
+import { normalizePartFormValues } from './utils/forms';
 import type {
   PartFormValues,
   PartListResult,
@@ -30,17 +30,6 @@ import type {
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function PartManagementPage() {
   const { message } = App.useApp();

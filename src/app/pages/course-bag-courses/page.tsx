@@ -7,14 +7,20 @@ import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import {
   changeCourseBagCourseStatus,
   createCourseBagCourse,
-  listCourseBags,
   removeCourseBagCourse,
   uploadAsset,
   updateCourseBagCourse,
 } from '@/app/services/course-bag-courses';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useCourseBagDictionary,
+} from '@/app/stores/dictionaries';
 import { CourseBagCourseModal } from './components/CourseBagCourseModal';
 import { createCourseBagCourseColumns } from './configs/tableColumns';
 import {
@@ -28,17 +34,6 @@ import type {
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function CourseBagCourseManagementPage() {
   const { message } = App.useApp();
@@ -47,6 +42,9 @@ export function CourseBagCourseManagementPage() {
   const [form] = Form.useForm<CourseBagCourseFormValues>();
   const bagId = searchParams.get('id') || '';
   const bagTitle = searchParams.get('title') || '';
+  // 课程包字典由全局 store 缓存（course-bag-courses / course-bag-activities 共用，避免重复拉取）
+  const bags = useCourseBagDictionary(selectDictionaryItems);
+  const ensureBags = useCourseBagDictionary(selectDictionaryEnsure);
   const [courses, setCourses] = useState<CourseBagCourseListResult>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -86,16 +84,18 @@ export function CourseBagCourseManagementPage() {
 
     setLoading(true);
     try {
-      const bags = await listCourseBags();
-      const currentBag = (Array.isArray(bags) ? bags : []).find((item) => String(item.id) === String(bagId));
-      const bagCourses = currentBag?.textBookDOS;
+      // 课程包字典由全局 store 缓存（course-bag-courses / course-bag-activities 共用）；
+      // bagId 变化时仍要 ensure（命中缓存时不会重复发请求）。
+      await ensureBags();
+      const currentBag = bags.find((item) => String(item.id) === String(bagId));
+      const bagCourses = (currentBag as { textBookDOS?: unknown } | undefined)?.textBookDOS;
       setCourses(Array.isArray(bagCourses) ? bagCourses : []);
     } catch (error) {
       message.error(getErrorMessage(error, '课程包课程列表加载失败'));
     } finally {
       setLoading(false);
     }
-  }, [bagId, message]);
+  }, [bagId, bags, ensureBags, message]);
 
   useEffect(() => {
     loadCourses();

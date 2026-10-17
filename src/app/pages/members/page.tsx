@@ -5,6 +5,7 @@ import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { disableMember, enableMember, grantMemberVip } from '@/app/services/members';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { getErrorMessage } from '@/app/lib/errors';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useMemberManagementData } from './hooks/useMemberManagementData';
@@ -19,9 +20,9 @@ import {
 import {
   INITIAL_FEEDBACK_FILTERS,
   INITIAL_MEMBER_FILTERS,
-  PAGE_SIZE_OPTIONS,
   toMemberLevelSelectOptions,
 } from './utils/forms';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
 import type {
   MemberFeedbackQuery,
   MemberFeedbackRecord,
@@ -33,10 +34,6 @@ import type {
   MemberTabKey,
   VipGrantFormValues,
 } from './types';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export function MemberManagementPage() {
   const { message, modal } = App.useApp();

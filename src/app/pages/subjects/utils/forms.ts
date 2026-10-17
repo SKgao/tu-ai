@@ -6,8 +6,6 @@ import type {
   SubjectSearchValues,
 } from '../types';
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 export const EMPTY_SUBJECT_FORM: SubjectFormValues = {
   id: undefined,
   customsPassId: undefined,

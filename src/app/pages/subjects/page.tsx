@@ -6,17 +6,24 @@ import type { Key } from 'react';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { useUploadState } from '@/app/hooks/useUploadState';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useSubjectTypeDictionary,
+} from '@/app/stores/dictionaries';
 import {
   addSingleSubject,
   batchRemoveSubjectRecords,
   createSubjectScenePic,
   getSubjectRecordDetail,
   listSubjectRecords,
-  listSubjects,
   removeSubjectRecord,
   removeSubjectScenePic,
   updateSubjectRecord,
@@ -28,7 +35,6 @@ import { SubjectModal } from './components/SubjectModal';
 import { SubjectSearchForm } from './components/SubjectSearchForm';
 import { createSubjectColumns } from './configs/tableColumns';
 import {
-  PAGE_SIZE_OPTIONS,
   buildSearch,
   buildSubjectSearchFilters,
   isScenePassId,
@@ -42,22 +48,10 @@ import type {
   SubjectRecord,
   SubjectResourceRecord,
   SubjectSearchValues,
-  SubjectTypeOption,
   SubjectUploadField,
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 export function SubjectsManagementPage() {
   const { message } = App.useApp();
@@ -99,7 +93,9 @@ export function SubjectsManagementPage() {
   });
   const [detailRecord, setDetailRecord] = useState<SubjectDetailRecord | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [subjectTypes, setSubjectTypes] = useState<SubjectTypeOption[]>([]);
+  // 题型字典由全局 store 缓存（subjects / passes / custom-passes 共用，避免各自重复拉取）
+  const subjectTypes = useSubjectTypeDictionary(selectDictionaryItems);
+  const ensureSubjectTypes = useSubjectTypeDictionary(selectDictionaryEnsure);
   const [selectedIds, setSelectedIds] = useState<Key[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -144,16 +140,9 @@ export function SubjectsManagementPage() {
   }, [routeCustomsPassId, searchForm, setQuery]);
 
   useMountEffect(() => {
-    async function loadSubjectTypes() {
-      try {
-        const data = await listSubjects();
-        setSubjectTypes(Array.isArray(data) ? (data as SubjectTypeOption[]) : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '题型列表加载失败'));
-      }
-    }
-
-    return loadSubjectTypes();
+    void ensureSubjectTypes().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '题型列表加载失败'));
+    });
   });
 
   useEffect(() => {

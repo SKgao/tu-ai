@@ -3,10 +3,12 @@ import type { Key } from 'react';
 import { App, Button, Card, Form, Popconfirm, Space, Table, Typography } from 'antd';
 import type { FormProps, TableColumnsType, TreeProps } from 'antd';
 import { renderCopyableIdValue } from '@/app/components/CopyableIdText';
+import { getErrorMessage } from '@/app/lib/errors';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { useFormModal } from '@/app/hooks/useFormModal';
 import { useMountEffect } from '@/app/hooks/useMountEffect';
+import { useRoleDictionary } from '@/app/stores/dictionaries';
 import {
   createRole,
   getRoleMenus,
@@ -28,10 +30,6 @@ import { INITIAL_ROLE_FILTERS } from './utils/forms';
 import { flattenRoleMenuIds, transformRoleTreeData } from './utils/tree';
 
 type TreeCheckedKeys = Parameters<NonNullable<TreeProps['onCheck']>>[0];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function normalizeCheckedKeys(nextCheckedKeys: TreeCheckedKeys): Key[] {
   return Array.isArray(nextCheckedKeys) ? nextCheckedKeys : nextCheckedKeys.checked;
@@ -124,6 +122,7 @@ export function RoleManagementPage() {
     try {
       await createRole(name);
       message.success('角色创建成功');
+      useRoleDictionary.getState().invalidate();
       createModal.setOpen(false);
       await loadRoles();
     } catch (submitError) {
@@ -138,6 +137,7 @@ export function RoleManagementPage() {
     try {
       await removeRole(Number(role.id));
       message.success('角色已删除');
+      useRoleDictionary.getState().invalidate();
       setRoles((current) => current.filter((item) => item.id !== role.id));
     } catch (submitError) {
       message.error(getErrorMessage(submitError, '角色删除失败'));

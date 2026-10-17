@@ -5,9 +5,16 @@ import type { FormInstance, FormProps, UploadProps } from 'antd';
 import { PageHeaderCard } from '@/app/components/page/PageHeaderCard';
 import { PageToolbarCard } from '@/app/components/page/PageToolbarCard';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
+import { getUploadFileName } from '@/app/lib/upload';
+import {
+  selectDictionaryEnsure,
+  selectDictionaryItems,
+  useBookDictionary,
+} from '@/app/stores/dictionaries';
 import {
   createUnit,
-  listBooks,
   listUnits,
   lockUnit,
   removeUnit,
@@ -23,13 +30,10 @@ import { UnitSearchForm } from './components/UnitSearchForm';
 import { createUnitColumns } from './configs/tableColumns';
 import {
   EMPTY_UNIT_FORM,
-  PAGE_SIZE_OPTIONS,
   buildUnitSearchFilters,
   normalizeUnitFormValues,
 } from './utils/forms';
 import type {
-  UnitBookListResult,
-  UnitBookOption,
   UnitFormValues,
   UnitListResult,
   UnitQuery,
@@ -38,17 +42,6 @@ import type {
 } from './types';
 
 type UploadRequestOptions = Parameters<NonNullable<UploadProps['customRequest']>>[0];
-type UploadRequestFile = UploadRequestOptions['file'];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getUploadFileName(file: UploadRequestFile): string {
-  return typeof file === 'object' && file !== null && 'name' in file && typeof file.name === 'string' && file.name
-    ? file.name
-    : '文件';
-}
 
 function getSelectedTextbookId(form: FormInstance<UnitSearchValues>): string | undefined {
   const value = form.getFieldValue('textBookId');
@@ -62,7 +55,9 @@ export function UnitManagementPage() {
   const [searchForm] = Form.useForm<UnitSearchValues>();
   const [modalForm] = Form.useForm<UnitFormValues>();
   const initialTextbookId = searchParams.get('textbookId') || searchParams.get('textBookId') || '';
-  const [books, setBooks] = useState<UnitBookOption[]>([]);
+  // 教材字典由全局 store 缓存（units / source-material / special-courses 共用，避免各自重复拉取）
+  const books = useBookDictionary(selectDictionaryItems);
+  const ensureBooks = useBookDictionary(selectDictionaryEnsure);
   const [submitting, setSubmitting] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const { uploadState, resetUploadState, setUploading, setUploadSuccess, setUploadError } =
@@ -112,19 +107,9 @@ export function UnitManagementPage() {
   );
 
   useMountEffect(() => {
-    async function loadBookOptions() {
-      try {
-        const data = (await listBooks({
-          pageNum: 1,
-          pageSize: 1000,
-        })) as UnitBookListResult;
-        setBooks(Array.isArray(data?.data) ? data.data : []);
-      } catch (error) {
-        message.error(getErrorMessage(error, '教材列表加载失败'));
-      }
-    }
-
-    return loadBookOptions();
+    void ensureBooks().catch((error: unknown) => {
+      message.error(getErrorMessage(error, '教材列表加载失败'));
+    });
   });
 
   const handleSearch: FormProps<UnitSearchValues>['onFinish'] = (values) => {

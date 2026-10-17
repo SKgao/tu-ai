@@ -3,6 +3,7 @@ import { Alert, Button, Form, Input } from 'antd';
 import type { FormProps } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { clearAuthExpiredFlag } from '@/app/lib/authExpiry';
+import { getErrorMessage } from '@/app/lib/errors';
 import { loginRequest } from '@/app/lib/http';
 import { selectAuthLogin, useAuthStore } from '@/app/stores/auth';
 import logo from '@/assets/logo.png';
@@ -22,10 +23,6 @@ type LoginEnvelope = Awaited<ReturnType<typeof loginRequest>> & {
   token?: string;
   data?: LoginResponsePayload;
 };
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function getRedirectPath(state: unknown): string {
   if (typeof state !== 'object' || !state || !('from' in state)) {

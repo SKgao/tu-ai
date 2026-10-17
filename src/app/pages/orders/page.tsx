@@ -8,6 +8,8 @@ import { useMountEffect } from '@/app/hooks/useMountEffect';
 import { listOrders } from '@/app/services/orders';
 import { useRemoteTable } from '@/app/hooks/useRemoteTable';
 import { buildAntdTablePagination } from '@/app/lib/antdTable';
+import { PAGE_SIZE_OPTIONS } from '@/app/lib/constants';
+import { getErrorMessage } from '@/app/lib/errors';
 import { createOrderColumns } from './configs/tableColumns';
 import {
   selectOrderFilterOptions,
@@ -37,8 +39,6 @@ const INITIAL_QUERY: OrderQuery = {
   pageSize: 10,
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
 const PAY_TYPE_OPTIONS = [
   { value: '1', label: '微信' },
   { value: '2', label: '支付宝' },
@@ -50,10 +50,6 @@ const ORDER_STATUS_OPTIONS = [
   { value: '3', label: '用户取消' },
   { value: '4', label: '超时关闭' },
 ];
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function normalizeSearchValues(values: OrderFilterValues): Partial<OrderQuery> {
   return {
