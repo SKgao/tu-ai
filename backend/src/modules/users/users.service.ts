@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
 import { hashPassword } from '../../common/password';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange } from '../../prisma/where';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -38,17 +39,13 @@ export class UsersService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((user) => this.serializeUser(user)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '用户列表获取成功',
-      data: {
-        data: rows.map((user) => this.serializeUser(user)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createUser(payload: CreateUserDto) {
@@ -88,11 +85,7 @@ export class UsersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '用户创建成功',
-      data: true,
-    };
+    return ok(true, '用户创建成功');
   }
 
   async updateUser(payload: UpdateUserDto) {
@@ -155,11 +148,7 @@ export class UsersService {
       data,
     });
 
-    return {
-      code: 0,
-      message: '用户更新成功',
-      data: true,
-    };
+    return ok(true, '用户更新成功');
   }
 
   async deleteUser(payload: UserIdDto) {
@@ -171,11 +160,7 @@ export class UsersService {
       data: { status: 3 },
     });
 
-    return {
-      code: 0,
-      message: '用户删除成功',
-      data: true,
-    };
+    return ok(true, '用户删除成功');
   }
 
   async forbidUser(payload: UserIdDto) {
@@ -195,11 +180,7 @@ export class UsersService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message,
-      data: true,
-    };
+    return ok(true, message);
   }
 
   private async assertUserExists(id: number) {

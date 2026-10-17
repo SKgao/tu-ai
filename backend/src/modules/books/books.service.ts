@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { BookVersion, Course, Grade, Prisma } from '@prisma/client';
 import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, dateRange, eq } from '../../prisma/where';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -23,11 +24,10 @@ export class BooksService {
       orderBy: [{ status: 'asc' }, { id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '年级列表获取成功',
-      data: rows.map((item) => this.serializeGrade(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeGrade(item)),
+      '年级列表获取成功',
+    );
   }
 
   async createGrade(name: unknown) {
@@ -46,11 +46,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '年级创建成功',
-      data: true,
-    };
+    return ok(true, '年级创建成功');
   }
 
   async updateGrade(payload: UpdateGradeDto) {
@@ -71,11 +67,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '年级更新成功',
-      data: true,
-    };
+    return ok(true, '年级更新成功');
   }
 
   async deleteGrade(id: number) {
@@ -86,11 +78,7 @@ export class BooksService {
       where: { id: gradeId },
     });
 
-    return {
-      code: 0,
-      message: '年级删除成功',
-      data: true,
-    };
+    return ok(true, '年级删除成功');
   }
 
   async listVersions() {
@@ -98,11 +86,10 @@ export class BooksService {
       orderBy: [{ id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '教材版本列表获取成功',
-      data: rows.map((item) => this.serializeBookVersion(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeBookVersion(item)),
+      '教材版本列表获取成功',
+    );
   }
 
   async createVersion(name: unknown) {
@@ -121,11 +108,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '教材版本创建成功',
-      data: true,
-    };
+    return ok(true, '教材版本创建成功');
   }
 
   async updateVersion(payload: UpdateBookVersionDto) {
@@ -145,11 +128,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '教材版本更新成功',
-      data: true,
-    };
+    return ok(true, '教材版本更新成功');
   }
 
   async deleteVersion(id: number) {
@@ -160,11 +139,7 @@ export class BooksService {
       where: { id: versionId },
     });
 
-    return {
-      code: 0,
-      message: '教材版本删除成功',
-      data: true,
-    };
+    return ok(true, '教材版本删除成功');
   }
 
   async listBooks(payload: ListBooksDto = {}) {
@@ -195,17 +170,13 @@ export class BooksService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeBook(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '教材列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeBook(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createBook(payload: CreateBookDto) {
@@ -242,11 +213,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '教材创建成功',
-      data: true,
-    };
+    return ok(true, '教材创建成功');
   }
 
   async updateBook(payload: UpdateBookDto) {
@@ -273,11 +240,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: '教材更新成功',
-      data: true,
-    };
+    return ok(true, '教材更新成功');
   }
 
   async deleteBook(id: number) {
@@ -294,11 +257,7 @@ export class BooksService {
       where: { textbookId },
     });
 
-    return {
-      code: 0,
-      message: '教材删除成功',
-      data: true,
-    };
+    return ok(true, '教材删除成功');
   }
 
   async updateBookLock(payload: UpdateBookLockDto) {
@@ -319,11 +278,7 @@ export class BooksService {
       },
     });
 
-    return {
-      code: 0,
-      message: canLock === 1 ? '教材解锁成功' : '教材锁定成功',
-      data: true,
-    };
+    return ok(true, canLock === 1 ? '教材解锁成功' : '教材锁定成功');
   }
 
   private async assertGradeExists(id: number) {

@@ -12,6 +12,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange, eq, inArray } from '../../prisma/where';
 import { CreateSourceMaterialDto } from './dto/create-source-material.dto';
@@ -46,17 +47,13 @@ export class SourceMaterialsService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeSourceMaterial(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '素材列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeSourceMaterial(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createSourceMaterial(payload: CreateSourceMaterialDto) {
@@ -75,11 +72,7 @@ export class SourceMaterialsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '素材创建成功',
-      data: true,
-    };
+    return ok(true, '素材创建成功');
   }
 
   /**
@@ -113,22 +106,14 @@ export class SourceMaterialsService {
       data,
     });
 
-    return {
-      code: 0,
-      message: '素材更新成功',
-      data: true,
-    };
+    return ok(true, '素材更新成功');
   }
 
   async deleteSourceMaterial(id: number) {
     await this.assertSourceMaterialExists(id);
     await this.prisma.sourceMaterial.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: '素材删除成功',
-      data: true,
-    };
+    return ok(true, '素材删除成功');
   }
 
   /** 批量删除：请求体是裸 number[]。 */

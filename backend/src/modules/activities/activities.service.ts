@@ -7,6 +7,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { composeWhere, eq } from '../../prisma/where';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChangeActivityStatusDto } from './dto/change-activity-status.dto';
@@ -40,17 +41,13 @@ export class ActivitiesService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeActivity(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '活动列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeActivity(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async listActivityOptions() {
@@ -65,11 +62,7 @@ export class ActivitiesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '活动选项获取成功',
-      data: rows,
-    };
+    return ok(rows, '活动选项获取成功');
   }
 
   async createActivity(payload: CreateActivityDto) {
@@ -82,11 +75,7 @@ export class ActivitiesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '活动创建成功',
-      data: true,
-    };
+    return ok(true, '活动创建成功');
   }
 
   async updateActivity(payload: UpdateActivityDto) {
@@ -99,11 +88,7 @@ export class ActivitiesService {
       data,
     });
 
-    return {
-      code: 0,
-      message: '活动更新成功',
-      data: true,
-    };
+    return ok(true, '活动更新成功');
   }
 
   async deleteActivity(id: number) {
@@ -114,11 +99,7 @@ export class ActivitiesService {
       where: { id: activityId },
     });
 
-    return {
-      code: 0,
-      message: '活动删除成功',
-      data: true,
-    };
+    return ok(true, '活动删除成功');
   }
 
   async changeStatus(payload: ChangeActivityStatusDto) {
@@ -134,11 +115,7 @@ export class ActivitiesService {
       },
     });
 
-    return {
-      code: 0,
-      message: status === 1 ? '活动已启动' : '活动已关闭',
-      data: true,
-    };
+    return ok(true, status === 1 ? '活动已启动' : '活动已关闭');
   }
 
   private buildActivityWhere(payload: ListActivitiesDto): Prisma.ActivityWhereInput {

@@ -7,6 +7,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange, eq, nested } from '../../prisma/where';
 import { CreateCourseUserDto } from './dto/create-course-user.dto';
@@ -43,17 +44,13 @@ export class SpecialCoursesService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeSpecialCourse(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '精品课程列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeSpecialCourse(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async listBoughtSpecialCourses(userId: number) {
@@ -91,11 +88,7 @@ export class SpecialCoursesService {
     );
 
     if (!textbookIds.length) {
-      return {
-        code: 0,
-        message: '已购精品课程列表获取成功',
-        data: [],
-      };
+      return ok([], '已购精品课程列表获取成功');
     }
 
     const courses = await this.prisma.specialCourse.findMany({
@@ -107,11 +100,10 @@ export class SpecialCoursesService {
       orderBy: [{ textbookId: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '已购精品课程列表获取成功',
-      data: courses.map((item) => this.serializeSpecialCourse(item)),
-    };
+    return ok(
+      courses.map((item) => this.serializeSpecialCourse(item)),
+      '已购精品课程列表获取成功',
+    );
   }
 
   async createSpecialCourse(payload: SpecialCourseMutationDto) {
@@ -130,11 +122,7 @@ export class SpecialCoursesService {
       data: this.buildSpecialCourseMutationData(payload, textbookId),
     });
 
-    return {
-      code: 0,
-      message: '精品课程创建成功',
-      data: true,
-    };
+    return ok(true, '精品课程创建成功');
   }
 
   async updateSpecialCourse(payload: SpecialCourseMutationDto) {
@@ -146,11 +134,7 @@ export class SpecialCoursesService {
       data: this.buildSpecialCourseMutationData(payload, textbookId),
     });
 
-    return {
-      code: 0,
-      message: '精品课程更新成功',
-      data: true,
-    };
+    return ok(true, '精品课程更新成功');
   }
 
   async deleteSpecialCourse(textbookId: number) {
@@ -160,11 +144,7 @@ export class SpecialCoursesService {
       where: { textbookId },
     });
 
-    return {
-      code: 0,
-      message: '精品课程删除成功',
-      data: true,
-    };
+    return ok(true, '精品课程删除成功');
   }
 
   async changeSpecialCourseStatus(textbookId: number, status: number) {
@@ -175,11 +155,7 @@ export class SpecialCoursesService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message: status === 1 ? '精品课程已上架' : '精品课程已下架',
-      data: true,
-    };
+    return ok(true, status === 1 ? '精品课程已上架' : '精品课程已下架');
   }
 
   async listSpecialCourseOptions() {
@@ -192,11 +168,7 @@ export class SpecialCoursesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '精品课程选项获取成功',
-      data: rows,
-    };
+    return ok(rows, '精品课程选项获取成功');
   }
 
   async listCourseUsers(payload: ListCourseUsersDto = {}) {
@@ -231,17 +203,13 @@ export class SpecialCoursesService {
         .filter((item): item is number => item !== null),
     );
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeCourseUser(item as CourseOrderItem, specialCourseMap)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '已买课程列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeCourseUser(item as CourseOrderItem, specialCourseMap)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createCourseUser(payload: CreateCourseUserDto) {
@@ -353,11 +321,7 @@ export class SpecialCoursesService {
       });
     });
 
-    return {
-      code: 0,
-      message: '精品课程开通成功',
-      data: true,
-    };
+    return ok(true, '精品课程开通成功');
   }
 
   private buildSpecialCourseMutationData(payload: SpecialCourseMutationDto, textbookId: number) {

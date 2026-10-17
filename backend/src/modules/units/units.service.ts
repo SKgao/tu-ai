@@ -7,6 +7,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, dateRange, eq } from '../../prisma/where';
 import { CreateUnitDto } from './dto/create-unit.dto';
@@ -45,17 +46,13 @@ export class UnitsService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeUnit(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '单元列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeUnit(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createUnit(payload: CreateUnitDto) {
@@ -73,11 +70,7 @@ export class UnitsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '单元创建成功',
-      data: true,
-    };
+    return ok(true, '单元创建成功');
   }
 
   async updateUnit(payload: UpdateUnitDto) {
@@ -97,22 +90,14 @@ export class UnitsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '单元更新成功',
-      data: true,
-    };
+    return ok(true, '单元更新成功');
   }
 
   async deleteUnit(id: number) {
     await this.assertUnitExists(id);
     await this.prisma.unit.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: '单元删除成功',
-      data: true,
-    };
+    return ok(true, '单元删除成功');
   }
 
   async lockUnit(payload: LockUnitDto) {
@@ -125,11 +110,7 @@ export class UnitsService {
       data: { canLock },
     });
 
-    return {
-      code: 0,
-      message: canLock === 1 ? '单元已解锁' : '单元已锁定',
-      data: true,
-    };
+    return ok(true, canLock === 1 ? '单元已解锁' : '单元已锁定');
   }
 
   private async assertUnitExists(id: number) {

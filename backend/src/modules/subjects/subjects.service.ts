@@ -7,6 +7,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange, eq, nested } from '../../prisma/where';
 import { CreateSubjectDto } from './dto/create-subject.dto';
@@ -63,17 +64,13 @@ export class SubjectsService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeSubject(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '题目列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeSubject(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createSubject(payload: CreateSubjectDto) {
@@ -97,11 +94,7 @@ export class SubjectsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '题目创建成功',
-      data: true,
-    };
+    return ok(true, '题目创建成功');
   }
 
   /**
@@ -131,11 +124,7 @@ export class SubjectsService {
       data,
     });
 
-    return {
-      code: 0,
-      message: '题目更新成功',
-      data: true,
-    };
+    return ok(true, '题目更新成功');
   }
 
   /** 注意路径拼写是 `decs`（前端既有拼写错误），返回**单个对象**而非数组。 */
@@ -149,25 +138,20 @@ export class SubjectsService {
       throw new BadRequestException('题目不存在');
     }
 
-    return {
-      code: 0,
-      message: '题目详情获取成功',
-      data: {
+    return ok(
+      {
         ...this.serializeSubject(row),
         sourceVOS: await this.loadSourceVOS(row.sourceIds),
       },
-    };
+      '题目详情获取成功',
+    );
   }
 
   async deleteSubject(id: number) {
     await this.assertSubjectExists(id);
     await this.prisma.subject.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: '题目删除成功',
-      data: true,
-    };
+    return ok(true, '题目删除成功');
   }
 
   /** 批量删除的 body 是裸 `number[]`（全局 ValidationPipe 会跳过原生数组，故 controller 不套 DTO）。 */
@@ -179,11 +163,7 @@ export class SubjectsService {
 
     await this.prisma.subject.deleteMany({ where: { id: { in: normalized } } });
 
-    return {
-      code: 0,
-      message: '题目批量删除成功',
-      data: true,
-    };
+    return ok(true, '题目批量删除成功');
   }
 
   async createScenePic(payload: ScenePicDto) {
@@ -206,11 +186,7 @@ export class SubjectsService {
       data: { sceneGraph: null },
     });
 
-    return {
-      code: 0,
-      message: '场景图删除成功',
-      data: true,
-    };
+    return ok(true, '场景图删除成功');
   }
 
   private async writeSceneGraph(payload: ScenePicDto, message: string) {
@@ -222,11 +198,7 @@ export class SubjectsService {
       data: { sceneGraph: this.normalizeSceneGraph(payload.scenePic) },
     });
 
-    return {
-      code: 0,
-      message,
-      data: true,
-    };
+    return ok(true, message);
   }
 
   private async assertSubjectExists(id: number) {

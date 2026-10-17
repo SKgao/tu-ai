@@ -6,6 +6,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePassDto } from './dto/create-pass.dto';
 import { DeletePassDto } from './dto/delete-pass.dto';
@@ -49,17 +50,13 @@ export class PassesService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializePass(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '关卡列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializePass(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createPass(payload: CreatePassDto) {
@@ -82,11 +79,7 @@ export class PassesService {
         },
       });
 
-      return {
-        code: 0,
-        message: '关卡创建成功',
-        data: true,
-      };
+      return ok(true, '关卡创建成功');
     }
 
     // 小关卡：id 由客户端指定，且必须携带 textbookId
@@ -106,11 +99,7 @@ export class PassesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '小关卡创建成功',
-      data: true,
-    };
+    return ok(true, '小关卡创建成功');
   }
 
   async updatePass(payload: UpdatePassDto) {
@@ -150,11 +139,7 @@ export class PassesService {
       data,
     });
 
-    return {
-      code: 0,
-      message: '关卡更新成功',
-      data: true,
-    };
+    return ok(true, '关卡更新成功');
   }
 
   /** 关卡页：`pass/delete/:id` */
@@ -162,11 +147,7 @@ export class PassesService {
     await this.assertPassExists(id);
     await this.prisma.pass.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: '关卡删除成功',
-      data: true,
-    };
+    return ok(true, '关卡删除成功');
   }
 
   /**
@@ -185,16 +166,15 @@ export class PassesService {
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '题型列表获取成功',
-      data: {
+    return ok(
+      {
         data: rows.map((item) => ({
           id: item.id,
           name: item.name,
         })),
       },
-    };
+      '题型列表获取成功',
+    );
   }
 
   private resolveKind(partsId: unknown, textbookId: unknown): 'part' | 'textbook' {

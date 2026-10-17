@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseBagCourseMutationDto } from './dto/course-bag-course.dto';
 
@@ -26,11 +27,7 @@ export class CourseBagCoursesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '课程包课程创建成功',
-      data: true,
-    };
+    return ok(true, '课程包课程创建成功');
   }
 
   async updateCourseBagCourse(payload: CourseBagCourseMutationDto) {
@@ -47,11 +44,7 @@ export class CourseBagCoursesService {
       },
     });
 
-    return {
-      code: 0,
-      message: '课程包课程更新成功',
-      data: true,
-    };
+    return ok(true, '课程包课程更新成功');
   }
 
   async changeCourseBagCourseStatus(payload: CourseBagCourseMutationDto) {
@@ -68,11 +61,7 @@ export class CourseBagCoursesService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message: status === 1 ? '课程已启用' : '课程已禁用',
-      data: true,
-    };
+    return ok(true, status === 1 ? '课程已启用' : '课程已禁用');
   }
 
   async deleteCourseBagCourse(id: number) {
@@ -83,11 +72,7 @@ export class CourseBagCoursesService {
       where: { id: courseId },
     });
 
-    return {
-      code: 0,
-      message: '课程删除成功',
-      data: true,
-    };
+    return ok(true, '课程删除成功');
   }
 
   private async getNextCourseBagCourseId() {

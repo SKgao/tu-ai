@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CourseBag, CourseBagCourse } from '@prisma/client';
 import { requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseBagMutationDto } from './dto/course-bag.dto';
 
@@ -22,11 +23,10 @@ export class CourseBagsService {
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '课程包列表获取成功',
-      data: rows.map((item) => this.serializeCourseBag(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeCourseBag(item)),
+      '课程包列表获取成功',
+    );
   }
 
   async createCourseBag(payload: CourseBagMutationDto) {
@@ -48,11 +48,7 @@ export class CourseBagsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '课程包创建成功',
-      data: true,
-    };
+    return ok(true, '课程包创建成功');
   }
 
   async updateCourseBag(payload: CourseBagMutationDto) {
@@ -82,11 +78,7 @@ export class CourseBagsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '课程包更新成功',
-      data: true,
-    };
+    return ok(true, '课程包更新成功');
   }
 
   async changeCourseBagStatus(payload: CourseBagMutationDto) {
@@ -103,11 +95,7 @@ export class CourseBagsService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message: status === 1 ? '课程包已启用' : '课程包已禁用',
-      data: true,
-    };
+    return ok(true, status === 1 ? '课程包已启用' : '课程包已禁用');
   }
 
   async deleteCourseBag(id: number) {
@@ -118,11 +106,7 @@ export class CourseBagsService {
       where: { id: bagId },
     });
 
-    return {
-      code: 0,
-      message: '课程包删除成功',
-      data: true,
-    };
+    return ok(true, '课程包删除成功');
   }
 
   private async assertCourseBagExists(id: number) {

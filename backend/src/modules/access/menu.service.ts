@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { contains } from '../../prisma/where';
 import { normalizePrimitivePayload } from './shared';
@@ -42,23 +43,19 @@ export class MenuService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((menu) => ({
+        ...menu,
+        parentId: menu.parentId ?? 0,
+        createdAt: menu.createdAt.toISOString(),
+        updatedAt: menu.updatedAt.toISOString(),
+        name: menu.menuName,
+      })),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '菜单列表获取成功',
-      data: {
-        data: rows.map((menu) => ({
-          ...menu,
-          parentId: menu.parentId ?? 0,
-          createdAt: menu.createdAt.toISOString(),
-          updatedAt: menu.updatedAt.toISOString(),
-          name: menu.menuName,
-        })),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createMenu(payload: MenuMutationPayload) {
@@ -67,11 +64,7 @@ export class MenuService {
       data: normalized,
     });
 
-    return {
-      code: 0,
-      message: '菜单创建成功',
-      data: true,
-    };
+    return ok(true, '菜单创建成功');
   }
 
   async updateMenu(payload: MenuMutationPayload) {
@@ -89,11 +82,7 @@ export class MenuService {
       throw new BadRequestException('菜单不存在');
     }
 
-    return {
-      code: 0,
-      message: '菜单更新成功',
-      data: true,
-    };
+    return ok(true, '菜单更新成功');
   }
 
   async deleteMenu(payload: unknown) {
@@ -131,11 +120,7 @@ export class MenuService {
       }),
     ]);
 
-    return {
-      code: 0,
-      message: '菜单删除成功',
-      data: true,
-    };
+    return ok(true, '菜单删除成功');
   }
 
   private normalizeMenuPayload(payload: MenuMutationPayload) {

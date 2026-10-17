@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CourseBagActivity, CourseBagCourse } from '@prisma/client';
 import { parseDate, requireNumber, requireText, toOptionalString } from '../../common/parsers';
+import { ok } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourseBagActivityMutationDto } from './dto/course-bag-activity.dto';
 
@@ -23,11 +24,10 @@ export class CourseBagActivitiesService {
       orderBy: [{ id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '课程活动列表获取成功',
-      data: rows.map((item) => this.serializeActivity(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeActivity(item)),
+      '课程活动列表获取成功',
+    );
   }
 
   async createCourseBagActivity(payload: CourseBagActivityMutationDto) {
@@ -47,11 +47,7 @@ export class CourseBagActivitiesService {
       data: this.buildActivityMutationData(payload, textbookId),
     });
 
-    return {
-      code: 0,
-      message: '课程活动创建成功',
-      data: true,
-    };
+    return ok(true, '课程活动创建成功');
   }
 
   async updateCourseBagActivity(payload: CourseBagActivityMutationDto) {
@@ -72,11 +68,7 @@ export class CourseBagActivitiesService {
       data: this.buildActivityMutationData(payload, activity.textbookId),
     });
 
-    return {
-      code: 0,
-      message: '课程活动更新成功',
-      data: true,
-    };
+    return ok(true, '课程活动更新成功');
   }
 
   async deleteCourseBagActivity(id: number) {
@@ -93,11 +85,7 @@ export class CourseBagActivitiesService {
       where: { id: activityId },
     });
 
-    return {
-      code: 0,
-      message: '课程活动删除成功',
-      data: true,
-    };
+    return ok(true, '课程活动删除成功');
   }
 
   private buildActivityMutationData(payload: CourseBagActivityMutationDto, textbookId: number) {

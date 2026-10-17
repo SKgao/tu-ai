@@ -6,6 +6,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, eq, nested } from '../../prisma/where';
 import { BindSessionCustomPassDto } from './dto/bind-session-custom-pass.dto';
@@ -35,11 +36,10 @@ export class SessionsService {
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '大关卡列表获取成功',
-      data: rows.map((item) => this.serializeSession(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeSession(item)),
+      '大关卡列表获取成功',
+    );
   }
 
   /** 新增大关卡：`id` 由客户端提交，需自行校验不存在 */
@@ -69,11 +69,7 @@ export class SessionsService {
       throw error;
     }
 
-    return {
-      code: 0,
-      message: '大关卡创建成功',
-      data: true,
-    };
+    return ok(true, '大关卡创建成功');
   }
 
   async updateSession(payload: UpdateSessionDto) {
@@ -93,11 +89,7 @@ export class SessionsService {
       },
     });
 
-    return {
-      code: 0,
-      message: '大关卡更新成功',
-      data: true,
-    };
+    return ok(true, '大关卡更新成功');
   }
 
   /**
@@ -112,11 +104,7 @@ export class SessionsService {
       this.prisma.session.deleteMany({ where: { id } }),
     ]);
 
-    return {
-      code: 0,
-      message: '大关卡删除成功',
-      data: true,
-    };
+    return ok(true, '大关卡删除成功');
   }
 
   /** 启停大关卡：只改 `Session.status`（1=启用，2=禁用） */
@@ -133,11 +121,7 @@ export class SessionsService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message: status === SESSION_STATUS_ENABLED ? '大关卡已启用' : '大关卡已禁用',
-      data: true,
-    };
+    return ok(true, status === SESSION_STATUS_ENABLED ? '大关卡已启用' : '大关卡已禁用');
   }
 
   /**
@@ -176,11 +160,7 @@ export class SessionsService {
       throw error;
     }
 
-    return {
-      code: 0,
-      message: '小关卡绑定成功',
-      data: true,
-    };
+    return ok(true, '小关卡绑定成功');
   }
 
   /**
@@ -204,11 +184,10 @@ export class SessionsService {
       orderBy: [{ sort: 'asc' }, { id: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '已绑定小关卡列表获取成功',
-      data: rows.map((item) => this.serializeBoundCustomPass(item)),
-    };
+    return ok(
+      rows.map((item) => this.serializeBoundCustomPass(item)),
+      '已绑定小关卡列表获取成功',
+    );
   }
 
   /** 解绑：`id` 是绑定行 id（`SessionCustomPass.id`） */
@@ -216,11 +195,7 @@ export class SessionsService {
     await this.assertBindingExists(id);
     await this.prisma.sessionCustomPass.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: '小关卡解绑成功',
-      data: true,
-    };
+    return ok(true, '小关卡解绑成功');
   }
 
   /** 调整绑定顺序：`id` 是绑定行 id，只改关系行的 sort */
@@ -234,11 +209,7 @@ export class SessionsService {
       data: { sort },
     });
 
-    return {
-      code: 0,
-      message: '小关卡排序更新成功',
-      data: true,
-    };
+    return ok(true, '小关卡排序更新成功');
   }
 
   private async assertCourseExists(textbookId: number) {

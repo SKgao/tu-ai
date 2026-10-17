@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Activity, Course, Order, Prisma } from '@prisma/client';
 import { toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, eq, nested } from '../../prisma/where';
 import { ListOrdersDto } from './dto/list-orders.dto';
@@ -53,17 +54,13 @@ export class OrdersService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((order) => this.serializeOrder(order)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: mode === 'course' ? '课程订单列表获取成功' : '订单列表获取成功',
-      data: {
-        data: rows.map((order) => this.serializeOrder(order)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   private buildOrderWhere(payload: ListOrdersDto, mode: OrderListMode): Prisma.OrderWhereInput {
@@ -111,11 +108,7 @@ export class OrdersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '课程选项获取成功',
-      data: rows,
-    };
+    return ok(rows, '课程选项获取成功');
   }
 
   private serializeOrder(order: OrderListItem) {

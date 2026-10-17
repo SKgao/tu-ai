@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { requireNumber, requireText, toOptionalString } from '../../common/parsers';
+import { ok } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { contains } from '../../prisma/where';
 import { buildMenuTree, normalizePrimitivePayload } from './shared';
@@ -33,16 +34,15 @@ export class RoleService {
       },
     });
 
-    return {
-      code: 0,
-      message: '角色列表获取成功',
-      data: roles.map((role) => ({
+    return ok(
+      roles.map((role) => ({
         id: role.id,
         name: role.name,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
       })),
-    };
+      '角色列表获取成功',
+    );
   }
 
   async createRole(payload: unknown) {
@@ -64,11 +64,7 @@ export class RoleService {
       },
     });
 
-    return {
-      code: 0,
-      message: '角色创建成功',
-      data: true,
-    };
+    return ok(true, '角色创建成功');
   }
 
   async deleteRole(payload: unknown) {
@@ -94,11 +90,7 @@ export class RoleService {
       },
     });
 
-    return {
-      code: 0,
-      message: '角色删除成功',
-      data: true,
-    };
+    return ok(true, '角色删除成功');
   }
 
   async getRoleMenus(roleId: number) {
@@ -120,10 +112,8 @@ export class RoleService {
     }
 
     const menus = role.roleMenus.map((item) => item.menu);
-    return {
-      code: 0,
-      message: '角色菜单获取成功',
-      data: buildMenuTree(menus, (menu) => ({
+    return ok(
+      buildMenuTree(menus, (menu) => ({
         id: menu.id,
         parentId: menu.parentId ?? 0,
         name: menu.menuName,
@@ -137,7 +127,8 @@ export class RoleService {
         createdAt: menu.createdAt.toISOString(),
         updatedAt: menu.updatedAt.toISOString(),
       })),
-    };
+      '角色菜单获取成功',
+    );
   }
 
   getCurrentRoleMenus(roleId: number) {
@@ -189,10 +180,6 @@ export class RoleService {
       }),
     ]);
 
-    return {
-      code: 0,
-      message: '角色授权成功',
-      data: true,
-    };
+    return ok(true, '角色授权成功');
   }
 }

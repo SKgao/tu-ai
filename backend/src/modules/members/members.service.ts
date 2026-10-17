@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Member, MemberFeedback, MemberLevel, Prisma } from '@prisma/client';
 import { parseDate, requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, contains, dateRange, eq, inArray, nested } from '../../prisma/where';
 import { GrantVipDto } from './dto/grant-vip.dto';
@@ -25,11 +26,10 @@ export class MembersService {
       orderBy: [{ userLevel: 'asc' }],
     });
 
-    return {
-      code: 0,
-      message: '会员等级列表获取成功',
-      data: levels.map((level) => this.serializeMemberLevel(level)),
-    };
+    return ok(
+      levels.map((level) => this.serializeMemberLevel(level)),
+      '会员等级列表获取成功',
+    );
   }
 
   async listMemberLevelOptions() {
@@ -41,11 +41,7 @@ export class MembersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '会员等级选项获取成功',
-      data: levels,
-    };
+    return ok(levels, '会员等级选项获取成功');
   }
 
   async createMemberLevel(payload: CreateMemberLevelDto) {
@@ -72,11 +68,7 @@ export class MembersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '会员等级创建成功',
-      data: true,
-    };
+    return ok(true, '会员等级创建成功');
   }
 
   async updateMemberLevel(payload: UpdateMemberLevelDto) {
@@ -125,11 +117,7 @@ export class MembersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '会员等级更新成功',
-      data: true,
-    };
+    return ok(true, '会员等级更新成功');
   }
 
   async deleteMemberLevel(payload: number | string) {
@@ -160,11 +148,7 @@ export class MembersService {
       }),
     ]);
 
-    return {
-      code: 0,
-      message: '会员等级删除成功',
-      data: true,
-    };
+    return ok(true, '会员等级删除成功');
   }
 
   async listMembers(payload: ListMembersDto = {}) {
@@ -186,17 +170,13 @@ export class MembersService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((member) => this.serializeMember(member)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '会员列表获取成功',
-      data: {
-        data: rows.map((member) => this.serializeMember(member)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async listMemberFeedback(payload: ListMemberFeedbackDto = {}) {
@@ -236,17 +216,13 @@ export class MembersService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeFeedback(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '会员反馈列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializeFeedback(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async enableMember(payload: number | string) {
@@ -294,11 +270,7 @@ export class MembersService {
       },
     });
 
-    return {
-      code: 0,
-      message: '会员开通成功',
-      data: true,
-    };
+    return ok(true, '会员开通成功');
   }
 
   private buildMemberWhere(payload: ListMembersDto): Prisma.MemberWhereInput {
@@ -374,11 +346,7 @@ export class MembersService {
       data: { status },
     });
 
-    return {
-      code: 0,
-      message,
-      data: true,
-    };
+    return ok(true, message);
   }
 
   private serializeMemberLevel(level: MemberLevel) {

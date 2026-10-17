@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { LearningRecord, Member, MemberInvite } from '@prisma/client';
 import { requireNumber, toOptionalNumber } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 
 /**
@@ -57,14 +58,15 @@ export class MemberRecordsService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
 
-    return {
-      code: 0,
-      message: '邀请明细获取成功',
-      data: {
+    // ⚠️ 非标准结构：该接口没有 totalPages/pageNum/pageSize（前端自己做客户端分页），
+    // 只换外层信封，绝不能补分页字段，否则改变接口契约。
+    return ok(
+      {
         data: rows.map((item) => this.serializeInvite(item)),
         totalCount: rows.length,
       },
-    };
+      '邀请明细获取成功',
+    );
   }
 
   async listLearningRecords(payload: ListLearningRecordsPayload = {}) {
@@ -105,17 +107,13 @@ export class MemberRecordsService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializeLearningRecord(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: '学习记录获取成功',
-      data: {
-        data: rows.map((item) => this.serializeLearningRecord(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   /**

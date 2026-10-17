@@ -7,6 +7,7 @@ import {
   toOptionalNumber,
   toOptionalString,
 } from '../../common/parsers';
+import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { composeWhere, dateRange, eq } from '../../prisma/where';
 import { CreatePartDto } from './dto/create-part.dto';
@@ -39,17 +40,13 @@ export class PartsService {
       }),
     ]);
 
-    return {
-      code: 0,
+    return paginate({
+      items: rows.map((item) => this.serializePart(item)),
+      totalCount,
+      pageNum,
+      pageSize,
       message: 'Part 列表获取成功',
-      data: {
-        data: rows.map((item) => this.serializePart(item)),
-        totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
-        pageNum,
-        pageSize,
-      },
-    };
+    });
   }
 
   async createPart(payload: CreatePartDto) {
@@ -68,11 +65,7 @@ export class PartsService {
       },
     });
 
-    return {
-      code: 0,
-      message: 'Part 创建成功',
-      data: true,
-    };
+    return ok(true, 'Part 创建成功');
   }
 
   /**
@@ -111,22 +104,14 @@ export class PartsService {
       data,
     });
 
-    return {
-      code: 0,
-      message: 'Part 更新成功',
-      data: true,
-    };
+    return ok(true, 'Part 更新成功');
   }
 
   async deletePart(id: number) {
     await this.assertPartExists(id);
     await this.prisma.part.deleteMany({ where: { id } });
 
-    return {
-      code: 0,
-      message: 'Part 删除成功',
-      data: true,
-    };
+    return ok(true, 'Part 删除成功');
   }
 
   private async assertPartExists(id: number) {
