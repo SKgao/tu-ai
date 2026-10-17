@@ -107,9 +107,37 @@ npm run db:setup
 
 ```bash
 npm run prisma:generate
-npm run db:push
+npm run db:migrate      # prisma migrate deploy，按 migrations/ 建表
 npm run db:seed
 ```
+
+#### 数据库变更流程
+
+项目使用 **Prisma migrations**（`prisma/migrations/`），不再使用 `db push`。
+
+改完 `prisma/schema.prisma` 后：
+
+```bash
+npm run db:migrate:dev   # 生成本地迁移文件并应用到开发库，同时重新生成 client
+```
+
+提交代码时**必须把生成的 `prisma/migrations/xxxx_xxx/` 一起提交**。
+
+部署到其它环境（生产 / 测试 / CI）时只跑：
+
+```bash
+npm run db:migrate       # prisma migrate deploy，只应用已有迁移，不会生成也不会丢数据
+```
+
+排查环境差异：
+
+```bash
+npm run db:migrate:status
+```
+
+> 早期版本用 `prisma db push` 直接同步结构，没有版本化历史、无法回滚、多环境会漂移，
+> 现已用 `20261017223528_init` 基线迁移替代。新增历史库接入时，先
+> `prisma migrate resolve --applied 20261017223528_init` 做一次 baseline。
 
 ## 启动方式
 
@@ -146,7 +174,9 @@ npm run start
 npm run db:up
 npm run db:down
 npm run prisma:generate
-npm run db:push
+npm run db:migrate          # 应用已有迁移（部署用）
+npm run db:migrate:dev      # 开发时生成并应用新迁移
+npm run db:migrate:status   # 查看迁移状态 / 是否漂移
 npm run db:seed
 npm run db:setup
 ```
