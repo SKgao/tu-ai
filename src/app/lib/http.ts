@@ -81,3 +81,18 @@ export async function loginRequest(payload: LoginPayload): Promise<ApiEnvelope<L
   const response = await http.post<ApiEnvelope<LoginResponse>>('user/login', payload);
   return response.data;
 }
+
+/**
+ * 通知服务端注销：服务端会自增 tokenVersion，让该用户已签发的 token 立即失效。
+ *
+ * 这里显式传 token，而不是依赖请求拦截器去 store 里读——调用方通常在发请求后
+ * 立刻清空本地登录态，拦截器可能已经读不到 token 了。
+ */
+export async function logoutRequest(token: string): Promise<ApiEnvelope<boolean>> {
+  const response = await http.post<ApiEnvelope<boolean>>(
+    'user/logout',
+    {},
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return response.data;
+}

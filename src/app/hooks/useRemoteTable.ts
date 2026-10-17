@@ -87,6 +87,14 @@ export function useRemoteTable<TQuery extends RemoteTableQuery, TResult, TItem =
   const getItemsRef = useRef(getItems);
   const getTotalCountRef = useRef(getTotalCount);
   const onErrorRef = useRef(onError);
+  /**
+   * 最近一次请求的序号，用于丢弃「过期响应」。
+   *
+   * 没有它的时候：快速切换筛选 / 翻页 / 连续点搜索，先发出的请求可能后返回，
+   * 结果会把新数据覆盖成旧数据，`loading` 也会被提前置为 false
+   * （表格内容和筛选条件对不上、spinner 提前消失）。
+   */
+  const latestRequestIdRef = useRef(0);
 
   requestRef.current = request;
   getItemsRef.current = getItems;
@@ -112,14 +120,26 @@ export function useRemoteTable<TQuery extends RemoteTableQuery, TResult, TItem =
       }
 
       setLoading(true);
+
+      // 每次请求自增序号；回包时只有「最新那一次」才允许写状态
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatest = () => requestId === latestRequestIdRef.current;
+
       try {
         const result = await requestRef.current(nextQuery);
         const nextItems = resolveItems(result, getItemsRef.current);
         const nextTotalCount = resolveTotalCount(result, nextItems, getTotalCountRef.current);
 
+        // 过期响应：只返回不给调用方用，绝不覆盖更新的数据
+        if (!isLatest()) {
+          return { data: nextItems, totalCount: nextTotalCount, result };
+        }
+
         setData(nextItems);
         setTotalCount(nextTotalCount);
         setError('');
+        setLoading(false);
 
         return {
           data: nextItems,
@@ -127,13 +147,18 @@ export function useRemoteTable<TQuery extends RemoteTableQuery, TResult, TItem =
           result,
         };
       } catch (requestError) {
+        // 过期请求的失败同样忽略：后续那次请求会给出最终结果，
+        // 否则用户会为一次已被取代的请求看到误导性的报错。
+        if (!isLatest()) {
+          return { data: [], totalCount: 0 };
+        }
+
         const message =
           requestError instanceof Error && requestError.message ? requestError.message : '列表加载失败';
         setError(message);
         onErrorRef.current?.(message, requestError);
-        throw requestError;
-      } finally {
         setLoading(false);
+        throw requestError;
       }
     },
     [enabled, query],

@@ -1,6 +1,12 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearAuthExpiredFlag } from '@/app/lib/authExpiry';
-import { selectAuthLogout, selectAuthUser, useAuthStore } from '@/app/stores/auth';
+import { logoutRequest } from '@/app/lib/http';
+import {
+  getStoredAuthToken,
+  selectAuthLogout,
+  selectAuthUser,
+  useAuthStore,
+} from '@/app/stores/auth';
 import logo from '@/assets/logo.png';
 
 type MenuItem = {
@@ -76,6 +82,13 @@ export function AppLayout() {
               onClick={() => {
                 // 主动退出不算「登录过期」，避免登录页误报
                 clearAuthExpiredFlag();
+                // 先拿到 token 再清本地态：这个请求要让服务端把 tokenVersion 自增，
+                // 否则旧 token 在服务端仍然有效（最长 7 天）。
+                // 失败不阻塞退出——本地登录态照常清空。
+                const token = getStoredAuthToken();
+                if (token) {
+                  void logoutRequest(token).catch(() => {});
+                }
                 logout();
                 navigate('/login', { replace: true });
               }}

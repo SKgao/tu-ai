@@ -66,6 +66,20 @@ function normalizeItems<T extends ApiEntity>(items: unknown): T[] {
   return Array.isArray(items) ? (items as T[]) : [];
 }
 
+/**
+ * 每个 key 的在途请求与请求序号。
+ *
+ * 旧实现有两个缺陷，这里一并修掉：
+ *  1. `if (loading) return items` 排在 `force` 之前 → 首屏未加载完时
+ *     调用 `{ force: true }` 会直接拿到旧数据（新建的选项不出现）。
+ *  2. 并发调用会重复发请求（无在途去重）。
+ *
+ * 现在的语义：非强制调用复用同一个在途请求；强制调用一定重新发起；
+ * 用序号保证只有最新一次请求能写状态，避免先发后到的响应覆盖新数据。
+ */
+const inflightRequests = new Map<ResourceKey, Promise<unknown>>();
+const requestIds = new Map<ResourceKey, number>();
+
 async function loadResource<T extends ApiEntity>(
   set: StoreSetState,
   get: StoreGetState,
@@ -76,13 +90,19 @@ async function loadResource<T extends ApiEntity>(
   const { force = false } = options;
   const resource = get()[key];
 
-  if (resource.loading) {
-    return resource.items as T[];
-  }
-
+  // 有缓存且不强制刷新 → 直接复用
   if (resource.loaded && !force) {
     return resource.items as T[];
   }
+
+  // 正在加载且不强制 → 复用在途请求，避免并发重复请求
+  const existing = inflightRequests.get(key);
+  if (existing && !force) {
+    return existing as Promise<T[]>;
+  }
+
+  const currentId = (requestIds.get(key) ?? 0) + 1;
+  requestIds.set(key, currentId);
 
   set((state) => ({
     [key]: {
@@ -92,28 +112,46 @@ async function loadResource<T extends ApiEntity>(
     },
   }));
 
-  try {
-    const items = normalizeItems<T>(await request());
-    set(() => ({
-      [key]: {
-        items,
-        loading: false,
-        loaded: true,
-        error: '',
-      },
-    }));
-    return items;
-  } catch (error) {
-    const message = error instanceof Error && error.message ? error.message : '选项加载失败';
-    set((state) => ({
-      [key]: {
-        ...state[key],
-        loading: false,
-        error: message,
-      },
-    }));
-    throw error;
-  }
+  const pending = (async () => {
+    try {
+      const items = normalizeItems<T>(await request());
+
+      // 只有最新那次请求允许写状态
+      if (currentId === requestIds.get(key)) {
+        set(() => ({
+          [key]: {
+            items,
+            loading: false,
+            loaded: true,
+            error: '',
+          },
+        }));
+      }
+
+      return items;
+    } catch (error) {
+      const message = error instanceof Error && error.message ? error.message : '选项加载失败';
+
+      if (currentId === requestIds.get(key)) {
+        set((state) => ({
+          [key]: {
+            ...state[key],
+            loading: false,
+            error: message,
+          },
+        }));
+      }
+
+      throw error;
+    } finally {
+      if (currentId === requestIds.get(key)) {
+        inflightRequests.delete(key);
+      }
+    }
+  })();
+
+  inflightRequests.set(key, pending);
+  return pending;
 }
 
 export const selectOrderFilterOptions = (state: MemberCommerceOptionsState) => ({
@@ -211,11 +249,23 @@ export const useMemberCommerceOptionsStore = create<MemberCommerceOptionsState>(
 
   invalidate(keys) {
     const targetKeys = Array.isArray(keys) ? keys : [keys];
+    // 同时作废在途请求，避免失效后旧响应又把数据写回来
+    targetKeys.forEach((key) => {
+      requestIds.set(key, (requestIds.get(key) ?? 0) + 1);
+      inflightRequests.delete(key);
+    });
     set((state) => {
       const nextState: Partial<MemberCommerceOptionsState> = {};
       targetKeys.forEach((key) => {
         if (state[key]) {
-          nextState[key] = createResourceState();
+          // 只标记失效，**保留既有 items**：
+          // 若这里清空，写操作成功后下拉会有一段时间是空列表（等重新请求返回）。
+          // 保留旧数据 + loaded=false，既有 UI 不闪，下一次 ensure 会重新拉取。
+          nextState[key] = {
+            ...state[key],
+            loaded: false,
+            error: '',
+          };
         }
       });
       return nextState;
