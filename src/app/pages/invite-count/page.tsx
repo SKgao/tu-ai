@@ -64,7 +64,7 @@ export function InviteCountPage() {
 
       <Card title="邀请用户列表" extra={<Typography.Text type="secondary">共 {inviteList.length} 条记录</Typography.Text>}>
         <Table<InviteRecord>
-          rowKey={(row, index) => `${row.tutuNumber || 'invite'}-${index}`}
+          rowKey={(row) => `${row.tutuNumber || 'invite'}-${row.inviteTime || ''}`}
           columns={columns}
           dataSource={inviteList}
           loading={loading}

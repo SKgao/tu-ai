@@ -88,7 +88,7 @@ export function PassModal({
             <Input placeholder="可直接粘贴图片 URL" />
           </Form.Item>
           <Form.Item label="上传关卡图片" className="form-field--full">
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
               <Upload
                 accept="image/*"
                 maxCount={1}

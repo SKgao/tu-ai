@@ -81,7 +81,7 @@ export function SubjectDetailCard({
           </Space>
 
           <Table
-            rowKey={(resource, index) => `${resource.id || resource.text || 'resource'}-${index}`}
+            rowKey={(resource) => String(resource.id ?? resource.text ?? 'resource')}
             columns={createSubjectResourceColumns()}
             dataSource={detailResources}
             pagination={false}

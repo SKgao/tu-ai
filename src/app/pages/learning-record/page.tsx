@@ -66,7 +66,7 @@ export function LearningRecordPage() {
 
       <Card title="学习记录列表" extra={<Typography.Text type="secondary">共 {totalCount} 条记录</Typography.Text>}>
         <Table<LearningRecord>
-          rowKey={(row, index) => `${row.textbookName || 'record'}-${index}`}
+          rowKey={(row) => `${row.textbookName || 'record'}-${row.createdAt || ''}`}
           columns={columns}
           dataSource={records}
           loading={loading}

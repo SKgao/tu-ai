@@ -125,7 +125,7 @@ export function MemberLevelModal({
           </Form.Item>
 
           <Form.Item label="上传图标" className="form-field--full">
-            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
               <Upload
                 accept="image/*"
                 maxCount={1}

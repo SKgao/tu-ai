@@ -170,7 +170,7 @@ export function CourseUserManagementPage() {
         }
       >
         <Table<CourseUserRecord>
-          rowKey={(row, index) => `${String(row.tutuNumber || 'course-user')}-${index}`}
+          rowKey={(row) => `${String(row.textbookId || 'course')}-${String(row.tutuNumber || '')}-${String(row.buyAt || '')}`}
           columns={columns}
           dataSource={users}
           loading={loading}
