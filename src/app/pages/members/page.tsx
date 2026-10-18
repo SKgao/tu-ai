@@ -42,6 +42,10 @@ export function MemberManagementPage() {
   const [vipForm] = Form.useForm<VipGrantFormValues>();
   const [activeTab, setActiveTab] = useState<MemberTabKey>('members');
   const [vipSubmitting, setVipSubmitting] = useState(false);
+  // 「开通会员」弹窗里要显示的目标会员名。
+  // 由这里传进去，而不是让弹窗在渲染期用 form.getFieldValue 读——
+  // 弹窗关闭时里面的 <Form> 并未挂载，渲染期读 form 会触发 antd 警告。
+  const [vipTargetName, setVipTargetName] = useState('');
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const levelOptions = useMemberCommerceOptionsStore(selectMemberLevelOptions);
   const ensureMemberLevelOptions = useMemberCommerceOptionsStore(
@@ -50,14 +54,15 @@ export function MemberManagementPage() {
   const vipModal = useFormModal<MemberRecord>({
     submitting: vipSubmitting,
     onOpenEdit: (member) => {
+      setVipTargetName(member.realName || String(member.tutuNumber || member.userId || ''));
       vipForm.setFieldsValue({
         userId: String(member.tutuNumber || member.userId || ''),
-        realName: member.realName || '',
         userLevel: undefined,
       });
     },
     onClose: () => {
       vipForm.resetFields();
+      setVipTargetName('');
     },
   });
   const memberLevelOptions = useMemo(() => toMemberLevelSelectOptions(levelOptions), [levelOptions]);
@@ -198,7 +203,7 @@ export function MemberManagementPage() {
                     onRefresh={() => reloadCurrentTab().catch(() => {})}
                   />
                   <Table<MemberFeedbackRecord>
-                    rowKey={(row, index) => `${row.tutuNumber || 'feedback'}-${index}`}
+                    rowKey={(row) => String(row.id ?? row.tutuNumber ?? 'feedback')}
                     columns={feedbackColumns}
                     dataSource={feedbackTable.data}
                     loading={feedbackTable.loading}
@@ -223,6 +228,7 @@ export function MemberManagementPage() {
         form={vipForm}
         submitting={vipSubmitting}
         levelOptions={memberLevelOptions}
+        targetName={vipTargetName}
         onCancel={vipModal.close}
         onSubmit={handleVipSubmit}
       />

@@ -7,6 +7,14 @@ type VipGrantModalProps = {
   form: FormInstance<VipGrantFormValues>;
   submitting: boolean;
   levelOptions: MemberLevelSelectOption[];
+  /**
+   * 目标会员的显示名，由父组件传入。
+   *
+   * 不能在渲染期用 `form.getFieldValue()` 读取：弹窗关闭时内部的 `<Form>`
+   * 并未挂载，此时读 form 会触发 antd 的
+   * "Instance created by useForm is not connected to any Form element" 警告。
+   */
+  targetName?: string;
   onCancel: () => void;
   onSubmit: FormProps<VipGrantFormValues>['onFinish'];
 };
@@ -16,6 +24,7 @@ export function VipGrantModal({
   form,
   submitting,
   levelOptions,
+  targetName,
   onCancel,
   onSubmit,
 }: VipGrantModalProps) {
@@ -32,7 +41,7 @@ export function VipGrantModal({
       keyboard={!submitting}
     >
       <Typography.Paragraph type="secondary">
-        给 {form.getFieldValue('realName') || form.getFieldValue('userId') || '当前用户'} 开通会员等级。
+        给 {targetName || '当前用户'} 开通会员等级。
       </Typography.Paragraph>
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item name="userId" hidden>

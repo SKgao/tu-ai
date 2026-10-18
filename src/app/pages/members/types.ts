@@ -95,7 +95,6 @@ export type MemberFeedbackSearchValues = {
 
 export type VipGrantFormValues = {
   userId: string;
-  realName?: string;
   userLevel?: string;
 };
 
