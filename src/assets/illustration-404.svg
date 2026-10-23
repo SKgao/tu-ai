@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="280" viewBox="0 0 360 280" fill="none" role="img" aria-label="页面不存在插画">
+  <defs>
+    <linearGradient id="bg404" x1="20" y1="10" x2="340" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF5FF"/>
+      <stop offset="1" stop-color="#F8FBFF"/>
+    </linearGradient>
+    <linearGradient id="body404" x1="128" y1="108" x2="232" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFC57F"/>
+      <stop offset="1" stop-color="#FF9848"/>
+    </linearGradient>
+    <linearGradient id="lens404" x1="240" y1="164" x2="292" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DDF1FF"/>
+      <stop offset="1" stop-color="#BFE3FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="352" height="272" rx="36" fill="url(#bg404)"/>
+  <circle cx="62" cy="64" r="20" fill="#D8EBFF"/>
+  <circle cx="308" cy="52" r="9" fill="#FFE1BF"/>
+  <path d="M46 132c-9 0-16 7-16 16" stroke="#C9E1F8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M318 140c9 0 16 7 16 16" stroke="#C9E1F8" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="182" cy="240" rx="98" ry="14" fill="#DCEBF8"/>
+  <path d="M62 218c18-20 34-10 48-26 10-12 22-12 32-4" stroke="#B7D6F1" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 13"/>
+  <path d="M128 160c0-28 23-52 52-52s52 24 52 52v24c0 28-23 48-52 48s-52-20-52-48z" fill="url(#body404)"/>
+  <path d="M168 110c0-14 5-22 12-22s12 8 12 22" fill="#FFB166"/>
+  <circle cx="180" cy="82" r="8" fill="#FFD9A6"/>
+  <circle cx="128" cy="166" r="12" fill="#FFB166"/>
+  <circle cx="232" cy="166" r="12" fill="#FFB166"/>
+  <ellipse cx="162" cy="160" rx="12" ry="14" fill="#FFFFFF"/>
+  <ellipse cx="202" cy="160" rx="12" ry="14" fill="#FFFFFF"/>
+  <circle cx="159" cy="163" r="6" fill="#3C4B5C"/>
+  <circle cx="199" cy="163" r="6" fill="#3C4B5C"/>
+  <circle cx="157" cy="160" r="2" fill="#FFFFFF"/>
+  <circle cx="197" cy="160" r="2" fill="#FFFFFF"/>
+  <ellipse cx="142" cy="184" rx="9" ry="5" fill="#FF7E58" fill-opacity=".45"/>
+  <ellipse cx="222" cy="184" rx="9" ry="5" fill="#FF7E58" fill-opacity=".45"/>
+  <ellipse cx="182" cy="187" rx="7" ry="9" fill="#8A4416"/>
+  <path d="M132 184c-14 4-24 14-24 26" stroke="#FF9D50" stroke-width="13" stroke-linecap="round"/>
+  <path d="M230 180c20 2 32 14 34 28" stroke="#FF9D50" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="268" cy="196" r="34" fill="url(#lens404)" stroke="#4B9BE0" stroke-width="8"/>
+  <circle cx="268" cy="196" r="23" fill="#FFFFFF" fill-opacity=".45"/>
+  <path d="M243 222l-13 13" stroke="#3F8ED4" stroke-width="10" stroke-linecap="round"/>
+  <path d="M253 186c8-8 20-10 30-4" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  <text x="78" y="104" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#7DB6E8">?</text>
+  <text x="252" y="86" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#95C4EC">?</text>
+  <text x="292" y="126" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#B4D5F0">?</text>
+  <path d="M96 158l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#FFD18B"/>
+  <path d="M304 170l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#FFE0B5"/>
+</svg>

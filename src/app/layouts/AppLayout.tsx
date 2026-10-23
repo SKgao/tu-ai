@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearAuthExpiredFlag } from '@/app/lib/authExpiry';
 import { logoutRequest } from '@/app/lib/http';
 import {
@@ -7,41 +8,26 @@ import {
   selectAuthUser,
   useAuthStore,
 } from '@/app/stores/auth';
+import { RouteGuard } from '@/app/routes/RouteGuard';
+import { useMenuStore } from '@/app/stores/menus';
 import logo from '@/assets/logo.png';
-
-type MenuItem = {
-  key: string;
-  label: string;
-};
-
-const menuItems: MenuItem[] = [
-  { key: '/dashboard', label: '工作台' },
-  { key: '/activities', label: '活动管理' },
-  { key: '/special-courses', label: '精品课程' },
-  { key: '/course-bags', label: '课程包管理' },
-  { key: '/users', label: '用户管理' },
-  { key: '/roles', label: '角色管理' },
-  { key: '/members', label: '会员管理' },
-  { key: '/member-info', label: '会员信息' },
-  { key: '/menus', label: '菜单管理' },
-  { key: '/member-levels', label: '会员等级' },
-  { key: '/orders', label: '订单管理' },
-  { key: '/course-orders', label: '课程订单' },
-  { key: '/books', label: '教材管理' },
-  { key: '/units', label: '单元管理' },
-  { key: '/parts', label: 'Part 管理' },
-  { key: '/passes', label: '关卡管理' },
-  { key: '/subjects', label: '题目管理' },
-  { key: '/source-material', label: '素材管理' },
-  { key: '/custom-passes', label: '小关卡管理' },
-  { key: '/sessions', label: '大关卡管理' },
-  { key: '/migration', label: '迁移看板' },
-];
+import { SidebarMenu } from './SidebarMenu';
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const logout = useAuthStore(selectAuthLogout);
   const user = useAuthStore(selectAuthUser);
+  const menuItems = useMenuStore((state) => state.items);
+  const menusLoading = useMenuStore((state) => state.loading);
+  const menusError = useMenuStore((state) => state.error);
+  const ensureMenus = useMenuStore((state) => state.ensure);
+  const reloadMenus = useMenuStore((state) => state.reload);
+  const clearMenus = useMenuStore((state) => state.clear);
+
+  useEffect(() => {
+    void ensureMenus(user?.id);
+  }, [ensureMenus, user?.id]);
 
   return (
     <div className="app-shell">
@@ -54,18 +40,15 @@ export function AppLayout() {
           </div>
         </Link>
         <nav className="app-nav">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.key}
-              to={item.key}
-              className={({ isActive }) =>
-                isActive ? 'app-nav__item app-nav__item--active' : 'app-nav__item'
-              }
-            >
-              <span className="app-nav__dot" />
-              {item.label}
-            </NavLink>
-          ))}
+          <SidebarMenu
+            items={menuItems}
+            pathname={location.pathname}
+            loading={menusLoading}
+            error={menusError}
+            onRetry={() => {
+              void reloadMenus();
+            }}
+          />
         </nav>
       </aside>
       <div className="app-shell__main">
@@ -89,6 +72,7 @@ export function AppLayout() {
                 if (token) {
                   void logoutRequest(token).catch(() => {});
                 }
+                clearMenus();
                 logout();
                 navigate('/login', { replace: true });
               }}
@@ -98,7 +82,9 @@ export function AppLayout() {
           </div>
         </header>
         <main className="app-shell__content">
-          <Outlet />
+          <RouteGuard>
+            <Outlet />
+          </RouteGuard>
         </main>
       </div>
     </div>

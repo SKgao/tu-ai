@@ -72,7 +72,7 @@ export class UsersService {
       throw new BadRequestException('角色不存在');
     }
 
-    await this.prisma.user.create({
+    const created = await this.prisma.user.create({
       data: {
         account,
         username: account,
@@ -84,6 +84,18 @@ export class UsersService {
         roleId,
       },
     });
+
+    // 新用户默认继承角色菜单，之后可在「用户管理 → 授权」里单独调整。
+    const roleMenus = await this.prisma.roleMenu.findMany({
+      where: { roleId },
+      select: { menuId: true },
+    });
+    if (roleMenus.length) {
+      await this.prisma.userMenu.createMany({
+        data: roleMenus.map((item) => ({ userId: created.id, menuId: item.menuId })),
+        skipDuplicates: true,
+      });
+    }
 
     return ok(true, '用户创建成功');
   }

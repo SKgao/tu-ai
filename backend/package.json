@@ -15,6 +15,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:status": "prisma migrate status",
     "db:seed": "prisma db seed",
+    "db:sync-menus": "tsx prisma/sync-menus.ts",
     "db:setup": "npm run prisma:generate && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {

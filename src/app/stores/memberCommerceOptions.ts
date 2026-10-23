@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { ApiEntity, ApiEntityList } from '@/app/lib/http';
-import { listActivityOptions } from '@/app/services/activities';
-import { listMemberLevelOptions, listMemberLevels } from '@/app/services/member-levels';
-import { listSpecialCourseOptions } from '@/app/services/special-courses';
+import { listActivityOptions } from '@/app/services/course/activities';
+import { listMemberLevelOptions, listMemberLevels } from '@/app/services/member/member-levels';
+import { listSpecialCourseOptions } from '@/app/services/course/special-courses';
 
 type ResourceState<T extends ApiEntity = ApiEntity> = {
   items: T[];

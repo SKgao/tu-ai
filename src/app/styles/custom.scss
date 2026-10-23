@@ -102,11 +102,93 @@
   box-shadow: inset 0 0 0 1px rgba(125, 188, 238, 0.3);
 }
 
-.app-nav__dot {
-  width: 8px;
-  height: 8px;
+.app-nav__icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex: none;
+  opacity: 0.9;
+}
+
+.app-nav__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-nav__hint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.app-nav__retry {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 999px;
-  background: currentColor;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.app-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-nav__group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-nav__group-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.app-nav__group-toggle--active {
+  background: rgba(63, 148, 226, 0.16);
+  color: #fff;
+}
+
+.app-nav__group-label {
+  flex: 1;
+}
+
+.app-nav__chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.app-nav__chevron--open {
+  transform: rotate(225deg);
 }
 
 .app-badge {
@@ -1004,5 +1086,139 @@
   .surface-card,
   .login-card {
     padding: 20px;
+  }
+}
+
+.menu-icon-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-icon-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(47, 136, 219, 0.1);
+  color: #2f88db;
+  font-size: 15px;
+}
+
+.menu-auth-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-page {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 36px;
+}
+
+.error-page__card {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  width: min(940px, 100%);
+  padding: 48px 56px;
+  border-radius: 32px;
+  border: 1px solid rgba(63, 148, 226, 0.12);
+  background: linear-gradient(135deg, #ffffff 0%, #f6fbff 100%);
+  box-shadow: 0 24px 60px rgba(24, 52, 92, 0.1);
+}
+
+.error-page__art-wrap {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: 340px;
+}
+
+.error-page__art {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 18px 24px rgba(52, 104, 160, 0.12));
+}
+
+.error-page__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-page__code {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(63, 148, 226, 0.12);
+  color: #2563a8;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.error-page__title {
+  margin: 16px 0 10px;
+  color: #14213d;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.error-page__desc {
+  max-width: 460px;
+  margin: 0 0 12px;
+  color: #4c5b70;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.error-page__from {
+  margin: 0 0 14px;
+  color: #7a8798;
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.error-page__from code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(20, 33, 61, 0.06);
+  color: #3f4d61;
+}
+
+.error-page__hint {
+  margin: 0 0 22px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(63, 148, 226, 0.08);
+  color: #2b5f8f;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .error-page__card {
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px 24px 36px;
+    text-align: center;
+  }
+
+  .error-page__art-wrap {
+    width: min(280px, 80%);
+  }
+
+  .error-page__desc {
+    margin-inline: auto;
+  }
+
+  .error-page__title {
+    font-size: 24px;
   }
 }

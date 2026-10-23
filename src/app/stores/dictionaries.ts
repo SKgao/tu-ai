@@ -1,8 +1,8 @@
 import type { ApiEntity } from '@/app/lib/http';
-import { listCourseBags } from '@/app/services/course-bags';
-import { listRoles } from '@/app/services/roles';
-import { listSubjects } from '@/app/services/subjects';
-import { listBooks } from '@/app/services/units';
+import { listCourseBags } from '@/app/services/course/course-bags';
+import { listRoles } from '@/app/services/system/roles';
+import { listSubjects } from '@/app/services/material/subjects';
+import { listBooks } from '@/app/services/material/units';
 import { createDictionaryStore, type DictionaryOption } from './dictionary';
 
 /**

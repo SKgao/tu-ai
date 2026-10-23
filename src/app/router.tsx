@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter, useLocation } from 'react-router-dom';
 
 function lazyNamed<TModule extends Record<string, unknown>, TKey extends keyof TModule>(
   loader: () => Promise<TModule>,
@@ -20,78 +20,186 @@ const ProtectedRoute = lazyNamed(
 );
 const AppLayout = lazyNamed(() => import('@/app/layouts/AppLayout'), 'AppLayout');
 const LoginPage = lazyNamed(() => import('@/app/pages/login/page'), 'LoginPage');
-const ActivityManagementPage = lazyNamed(
-  () => import('@/app/pages/activities/page'),
-  'ActivityManagementPage',
+const DashboardPage = lazyNamed(() => import('@/app/pages/dashboard/page'), 'DashboardPage');
+const ForbiddenPage = lazyNamed(
+  () => import('@/app/pages/errors/ForbiddenPage'),
+  'ForbiddenPage',
 );
+const NotFoundPage = lazyNamed(() => import('@/app/pages/errors/NotFoundPage'), 'NotFoundPage');
+
+// 课程模块
 const SpecialCourseManagementPage = lazyNamed(
-  () => import('@/app/pages/special-courses/page'),
+  () => import('@/app/pages/course/special-courses/page'),
   'SpecialCourseManagementPage',
 );
 const CourseBagManagementPage = lazyNamed(
-  () => import('@/app/pages/course-bags/page'),
+  () => import('@/app/pages/course/course-bags/page'),
   'CourseBagManagementPage',
 );
 const CourseBagCourseManagementPage = lazyNamed(
-  () => import('@/app/pages/course-bag-courses/page'),
+  () => import('@/app/pages/course/course-bag-courses/page'),
   'CourseBagCourseManagementPage',
 );
 const CourseBagActivityManagementPage = lazyNamed(
-  () => import('@/app/pages/course-bag-activities/page'),
+  () => import('@/app/pages/course/course-bag-activities/page'),
   'CourseBagActivityManagementPage',
 );
-const DashboardPage = lazyNamed(() => import('@/app/pages/dashboard/page'), 'DashboardPage');
-const MigrationPage = lazyNamed(() => import('@/app/pages/migration/page'), 'MigrationPage');
-const UserManagementPage = lazyNamed(() => import('@/app/pages/users/page'), 'UserManagementPage');
-const RoleManagementPage = lazyNamed(() => import('@/app/pages/roles/page'), 'RoleManagementPage');
-const MemberManagementPage = lazyNamed(() => import('@/app/pages/members/page'), 'MemberManagementPage');
-const MemberInfoManagementPage = lazyNamed(
-  () => import('@/app/pages/member-info/page'),
-  'MemberInfoManagementPage',
-);
-const MenuManagementPage = lazyNamed(() => import('@/app/pages/menus/page'), 'MenuManagementPage');
-const InviteCountPage = lazyNamed(() => import('@/app/pages/invite-count/page'), 'InviteCountPage');
-const LearningRecordPage = lazyNamed(
-  () => import('@/app/pages/learning-record/page'),
-  'LearningRecordPage',
+const ActivityManagementPage = lazyNamed(
+  () => import('@/app/pages/course/activities/page'),
+  'ActivityManagementPage',
 );
 const CourseUserManagementPage = lazyNamed(
-  () => import('@/app/pages/course-users/page'),
+  () => import('@/app/pages/course/course-users/page'),
   'CourseUserManagementPage',
 );
-const CourseOrderManagementPage = lazyNamed(
-  () => import('@/app/pages/course-orders/page'),
-  'CourseOrderManagementPage',
+
+// 会员模块
+const MemberManagementPage = lazyNamed(
+  () => import('@/app/pages/member/members/page'),
+  'MemberManagementPage',
+);
+const MemberInfoManagementPage = lazyNamed(
+  () => import('@/app/pages/member/member-info/page'),
+  'MemberInfoManagementPage',
 );
 const MemberLevelManagementPage = lazyNamed(
-  () => import('@/app/pages/member-levels/page'),
+  () => import('@/app/pages/member/member-levels/page'),
   'MemberLevelManagementPage',
 );
-const OrderManagementPage = lazyNamed(() => import('@/app/pages/orders/page'), 'OrderManagementPage');
-const BookManagementPage = lazyNamed(() => import('@/app/pages/books/page'), 'BookManagementPage');
-const UnitManagementPage = lazyNamed(() => import('@/app/pages/units/page'), 'UnitManagementPage');
-const PartManagementPage = lazyNamed(() => import('@/app/pages/parts/page'), 'PartManagementPage');
-const PassManagementPage = lazyNamed(() => import('@/app/pages/passes/page'), 'PassManagementPage');
+const InviteCountPage = lazyNamed(
+  () => import('@/app/pages/member/invite-count/page'),
+  'InviteCountPage',
+);
+const LearningRecordPage = lazyNamed(
+  () => import('@/app/pages/member/learning-record/page'),
+  'LearningRecordPage',
+);
+
+// 教材模块
+const BookManagementPage = lazyNamed(
+  () => import('@/app/pages/material/books/page'),
+  'BookManagementPage',
+);
+const UnitManagementPage = lazyNamed(
+  () => import('@/app/pages/material/units/page'),
+  'UnitManagementPage',
+);
+const PartManagementPage = lazyNamed(
+  () => import('@/app/pages/material/parts/page'),
+  'PartManagementPage',
+);
+const PassManagementPage = lazyNamed(
+  () => import('@/app/pages/material/passes/page'),
+  'PassManagementPage',
+);
 const SubjectsManagementPage = lazyNamed(
-  () => import('@/app/pages/subjects/page'),
+  () => import('@/app/pages/material/subjects/page'),
   'SubjectsManagementPage',
 );
-const SourceMaterialManagementPage = lazyNamed(
-  () => import('@/app/pages/source-material/page'),
-  'SourceMaterialManagementPage',
-);
 const CustomPassManagementPage = lazyNamed(
-  () => import('@/app/pages/custom-passes/page'),
+  () => import('@/app/pages/material/custom-passes/page'),
   'CustomPassManagementPage',
 );
 const SessionManagementPage = lazyNamed(
-  () => import('@/app/pages/sessions/page'),
+  () => import('@/app/pages/material/sessions/page'),
   'SessionManagementPage',
+);
+const SourceMaterialManagementPage = lazyNamed(
+  () => import('@/app/pages/material/source-material/page'),
+  'SourceMaterialManagementPage',
+);
+
+// 订单模块
+const OrderManagementPage = lazyNamed(
+  () => import('@/app/pages/order/orders/page'),
+  'OrderManagementPage',
+);
+const CourseOrderManagementPage = lazyNamed(
+  () => import('@/app/pages/order/course-orders/page'),
+  'CourseOrderManagementPage',
+);
+
+// 系统模块
+const UserManagementPage = lazyNamed(
+  () => import('@/app/pages/system/users/page'),
+  'UserManagementPage',
+);
+const RoleManagementPage = lazyNamed(
+  () => import('@/app/pages/system/roles/page'),
+  'RoleManagementPage',
+);
+const MenuManagementPage = lazyNamed(
+  () => import('@/app/pages/system/menus/page'),
+  'MenuManagementPage',
+);
+const MigrationPage = lazyNamed(
+  () => import('@/app/pages/system/migration/page'),
+  'MigrationPage',
 );
 
 function withSuspense(node: ReactNode) {
   return <Suspense fallback={<div className="route-skeleton" />}>{node}</Suspense>;
 }
+
+// 旧地址重定向：保留已有的收藏和外部跳转，同时带上原查询参数
+function LegacyRedirect({ to }: { to: string }) {
+  const location = useLocation();
+  return <Navigate to={{ pathname: to, search: location.search }} replace />;
+}
+
+// 未匹配到任何页面时跳到 404，同时把原地址带到错误页展示
+function NotFoundRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to="/404"
+      replace
+      state={{ from: `${location.pathname}${location.search}` }}
+    />
+  );
+}
+
+const legacyRedirects: Array<{ from: string; to: string }> = [
+  { from: 'specialCourse', to: '/course/special-courses' },
+  { from: 'special-courses', to: '/course/special-courses' },
+  { from: 'courseBag/bags', to: '/course/course-bags' },
+  { from: 'course-bags', to: '/course/course-bags' },
+  { from: 'courseBag/course', to: '/course/course-bag-courses' },
+  { from: 'course-bag-courses', to: '/course/course-bag-courses' },
+  { from: 'courseBag/activity', to: '/course/course-bag-activities' },
+  { from: 'course-bag-activities', to: '/course/course-bag-activities' },
+  { from: 'activity', to: '/course/activities' },
+  { from: 'activities', to: '/course/activities' },
+  { from: 'couUser', to: '/course/course-users' },
+  { from: 'course-users', to: '/course/course-users' },
+  { from: 'member', to: '/member/members' },
+  { from: 'members', to: '/member/members' },
+  { from: 'memberInfo', to: '/member/member-info' },
+  { from: 'member-info', to: '/member/member-info' },
+  { from: 'memberLevel', to: '/member/member-levels' },
+  { from: 'member-levels', to: '/member/member-levels' },
+  { from: 'inviteCount', to: '/member/invite-count' },
+  { from: 'invite-count', to: '/member/invite-count' },
+  { from: 'learningRecord', to: '/member/learning-record' },
+  { from: 'learning-record', to: '/member/learning-record' },
+  { from: 'books', to: '/material/books' },
+  { from: 'units', to: '/material/units' },
+  { from: 'parts', to: '/material/parts' },
+  { from: 'passes', to: '/material/passes' },
+  { from: 'subjects', to: '/material/subjects' },
+  { from: 'custom-passes', to: '/material/custom-passes' },
+  { from: 'sessions', to: '/material/sessions' },
+  { from: 'sourceMaterial', to: '/material/source-material' },
+  { from: 'source-material', to: '/material/source-material' },
+  { from: 'order', to: '/order/orders' },
+  { from: 'orders', to: '/order/orders' },
+  { from: 'couOrder', to: '/order/course-orders' },
+  { from: 'course-orders', to: '/order/course-orders' },
+  { from: 'users', to: '/system/users' },
+  { from: 'roles', to: '/system/roles' },
+  { from: 'menus', to: '/system/menus' },
+  { from: 'migration', to: '/system/migration' },
+];
 
 export const router = createBrowserRouter([
   {
@@ -106,79 +214,79 @@ export const router = createBrowserRouter([
         element: withSuspense(<AppLayout />),
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: '/dashboard', element: withSuspense(<DashboardPage />) },
-          { path: '/activities', element: withSuspense(<ActivityManagementPage />) },
-          { path: '/activity', element: withSuspense(<ActivityManagementPage />) },
-          { path: '/special-courses', element: withSuspense(<SpecialCourseManagementPage />) },
-          { path: '/specialCourse', element: withSuspense(<SpecialCourseManagementPage />) },
-          { path: '/course-bags', element: withSuspense(<CourseBagManagementPage />) },
-          { path: '/courseBag/bags', element: withSuspense(<CourseBagManagementPage />) },
+          { path: 'dashboard', element: withSuspense(<DashboardPage />) },
+          { path: '403', element: withSuspense(<ForbiddenPage />) },
+          { path: '404', element: withSuspense(<NotFoundPage />) },
           {
-            path: '/course-bag-courses',
-            element: withSuspense(<CourseBagCourseManagementPage />),
+            path: 'course',
+            children: [
+              { path: 'special-courses', element: withSuspense(<SpecialCourseManagementPage />) },
+              { path: 'course-bags', element: withSuspense(<CourseBagManagementPage />) },
+              {
+                path: 'course-bag-courses',
+                element: withSuspense(<CourseBagCourseManagementPage />),
+              },
+              {
+                path: 'course-bag-activities',
+                element: withSuspense(<CourseBagActivityManagementPage />),
+              },
+              { path: 'activities', element: withSuspense(<ActivityManagementPage />) },
+              { path: 'course-users', element: withSuspense(<CourseUserManagementPage />) },
+            ],
           },
           {
-            path: '/courseBag/course',
-            element: withSuspense(<CourseBagCourseManagementPage />),
+            path: 'member',
+            children: [
+              { path: 'members', element: withSuspense(<MemberManagementPage />) },
+              { path: 'member-info', element: withSuspense(<MemberInfoManagementPage />) },
+              { path: 'member-levels', element: withSuspense(<MemberLevelManagementPage />) },
+              { path: 'invite-count', element: withSuspense(<InviteCountPage />) },
+              { path: 'learning-record', element: withSuspense(<LearningRecordPage />) },
+            ],
           },
           {
-            path: '/course-bag-activities',
-            element: withSuspense(<CourseBagActivityManagementPage />),
+            path: 'material',
+            children: [
+              { path: 'books', element: withSuspense(<BookManagementPage />) },
+              { path: 'units', element: withSuspense(<UnitManagementPage />) },
+              { path: 'parts', element: withSuspense(<PartManagementPage />) },
+              { path: 'passes', element: withSuspense(<PassManagementPage />) },
+              { path: 'subjects', element: withSuspense(<SubjectsManagementPage />) },
+              { path: 'custom-passes', element: withSuspense(<CustomPassManagementPage />) },
+              { path: 'sessions', element: withSuspense(<SessionManagementPage />) },
+              {
+                path: 'source-material',
+                element: withSuspense(<SourceMaterialManagementPage />),
+              },
+            ],
           },
           {
-            path: '/courseBag/activity',
-            element: withSuspense(<CourseBagActivityManagementPage />),
-          },
-          { path: '/users', element: withSuspense(<UserManagementPage />) },
-          { path: '/roles', element: withSuspense(<RoleManagementPage />) },
-          { path: '/members', element: withSuspense(<MemberManagementPage />) },
-          { path: '/member', element: withSuspense(<MemberManagementPage />) },
-          {
-            path: '/member-info',
-            element: withSuspense(<MemberInfoManagementPage />),
-          },
-          { path: '/memberInfo', element: withSuspense(<MemberInfoManagementPage />) },
-          { path: '/menus', element: withSuspense(<MenuManagementPage />) },
-          { path: '/invite-count', element: withSuspense(<InviteCountPage />) },
-          { path: '/inviteCount', element: withSuspense(<InviteCountPage />) },
-          { path: '/learning-record', element: withSuspense(<LearningRecordPage />) },
-          { path: '/learningRecord', element: withSuspense(<LearningRecordPage />) },
-          { path: '/course-users', element: withSuspense(<CourseUserManagementPage />) },
-          { path: '/couUser', element: withSuspense(<CourseUserManagementPage />) },
-          { path: '/course-orders', element: withSuspense(<CourseOrderManagementPage />) },
-          { path: '/couOrder', element: withSuspense(<CourseOrderManagementPage />) },
-          {
-            path: '/member-levels',
-            element: withSuspense(<MemberLevelManagementPage />),
-          },
-          { path: '/memberLevel', element: withSuspense(<MemberLevelManagementPage />) },
-          { path: '/orders', element: withSuspense(<OrderManagementPage />) },
-          { path: '/order', element: withSuspense(<OrderManagementPage />) },
-          { path: '/books', element: withSuspense(<BookManagementPage />) },
-          { path: '/units', element: withSuspense(<UnitManagementPage />) },
-          { path: '/parts', element: withSuspense(<PartManagementPage />) },
-          { path: '/passes', element: withSuspense(<PassManagementPage />) },
-          { path: '/subjects', element: withSuspense(<SubjectsManagementPage />) },
-          {
-            path: '/source-material',
-            element: withSuspense(<SourceMaterialManagementPage />),
+            path: 'order',
+            children: [
+              { path: 'orders', element: withSuspense(<OrderManagementPage />) },
+              { path: 'course-orders', element: withSuspense(<CourseOrderManagementPage />) },
+            ],
           },
           {
-            path: '/sourceMaterial',
-            element: withSuspense(<SourceMaterialManagementPage />),
+            path: 'system',
+            children: [
+              { path: 'users', element: withSuspense(<UserManagementPage />) },
+              { path: 'roles', element: withSuspense(<RoleManagementPage />) },
+              { path: 'menus', element: withSuspense(<MenuManagementPage />) },
+              { path: 'migration', element: withSuspense(<MigrationPage />) },
+            ],
           },
-          {
-            path: '/custom-passes',
-            element: withSuspense(<CustomPassManagementPage />),
-          },
-          { path: '/sessions', element: withSuspense(<SessionManagementPage />) },
-          { path: '/migration', element: withSuspense(<MigrationPage />) },
+          ...legacyRedirects.map(({ from, to }) => ({
+            path: from,
+            element: <LegacyRedirect to={to} />,
+          })),
+          { path: '*', element: <NotFoundRedirect /> },
         ],
       },
     ],
   },
   {
     path: '*',
-    element: <Navigate to="/dashboard" replace />,
+    element: <Navigate to="/404" replace />,
   },
 ]);

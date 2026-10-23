@@ -24,6 +24,7 @@ model User {
   updatedAt    DateTime @updatedAt
   roleId       Int
   role         Role     @relation(fields: [roleId], references: [id])
+  userMenus    UserMenu[]
 }
 
 model MemberLevel {
@@ -298,6 +299,19 @@ model Menu {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   roleMenus  RoleMenu[]
+  userMenus  UserMenu[]
+}
+
+/// 用户级菜单授权：存在记录时以本表为准（超管仍然看全部菜单）
+model UserMenu {
+  userId    Int
+  menuId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([userId, menuId])
+  @@index([menuId])
 }
 
 model RoleMenu {

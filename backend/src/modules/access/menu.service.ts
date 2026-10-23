@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Menu } from '@prisma/client';
 import { requireNumber, requireText, toOptionalNumber, toOptionalString } from '../../common/parsers';
+import { isSuperAdminRole } from '../../common/roles';
 import { ok, paginate } from '../../common/response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { contains } from '../../prisma/where';
-import { normalizePrimitivePayload } from './shared';
+import { buildMenuTree, normalizePrimitivePayload } from './shared';
 
 type MenuListPayload = {
   menuName?: string;
@@ -21,6 +23,12 @@ type MenuMutationPayload = {
   menuScope?: number;
   url?: string;
   status?: number;
+};
+
+type UserMenuPayload = {
+  userId?: number;
+  id?: number;
+  menuIds?: number[];
 };
 
 @Injectable()
@@ -58,6 +66,114 @@ export class MenuService {
     });
   }
 
+  /** 左侧导航：当前登录用户可见的菜单树（超管不受用户授权限制）。 */
+  async getCurrentUserMenus(userId: number, roleId: number) {
+    const menus = await this.prisma.menu.findMany({
+      where: { status: 1 },
+      orderBy: [{ sortValue: 'asc' }, { id: 'asc' }],
+    });
+
+    let allowedIds: Set<number>;
+    if (isSuperAdminRole(roleId)) {
+      allowedIds = new Set(menus.map((menu) => menu.id));
+    } else {
+      const userMenus = await this.prisma.userMenu.findMany({
+        where: { userId },
+        select: { menuId: true },
+      });
+      allowedIds = this.withAncestorIds(
+        userMenus.map((item) => item.menuId),
+        menus,
+      );
+    }
+
+    return ok(this.toTree(menus.filter((menu) => allowedIds.has(menu.id))), '菜单获取成功');
+  }
+
+  /** 菜单管理：完整菜单树（含停用菜单）。 */
+  async getMenuTree() {
+    const menus = await this.prisma.menu.findMany({
+      orderBy: [{ sortValue: 'asc' }, { id: 'asc' }],
+    });
+
+    return ok(this.toTree(menus), '菜单树获取成功');
+  }
+
+  /** 用户授权：完整可授权菜单树 + 该用户已勾选的菜单 ID。 */
+  async getUserMenuAuth(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, roleId: true },
+    });
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    const menus = await this.prisma.menu.findMany({
+      where: { status: 1 },
+      orderBy: [{ sortValue: 'asc' }, { id: 'asc' }],
+    });
+    const userMenus = await this.prisma.userMenu.findMany({
+      where: { userId },
+      select: { menuId: true },
+    });
+
+    const isSuperAdmin = isSuperAdminRole(user.roleId);
+    const checkedIds = isSuperAdmin
+      ? menus.map((menu) => menu.id)
+      : userMenus.map((item) => item.menuId);
+
+    return ok(
+      {
+        tree: this.toTree(menus),
+        checkedIds,
+        isSuperAdmin,
+      },
+      '用户菜单授权获取成功',
+    );
+  }
+
+  /** 保存用户菜单授权；只勾子菜单时会自动补齐父级目录。 */
+  async setUserMenuAuth(payload: UserMenuPayload) {
+    const userId = requireNumber(payload.userId ?? payload.id, '缺少用户 ID');
+    const menuIds = Array.isArray(payload.menuIds)
+      ? Array.from(
+          new Set(
+            payload.menuIds.map(Number).filter((id) => Number.isInteger(id) && id > 0),
+          ),
+        )
+      : [];
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    const allMenus = await this.prisma.menu.findMany({
+      select: { id: true, parentId: true },
+    });
+    const menuIdSet = new Set(allMenus.map((menu) => menu.id));
+    const invalidIds = menuIds.filter((id) => !menuIdSet.has(id));
+    if (invalidIds.length) {
+      throw new BadRequestException('部分菜单不存在');
+    }
+
+    const allowedIds = this.withAncestorIds(menuIds, allMenus);
+
+    await this.prisma.$transaction([
+      this.prisma.userMenu.deleteMany({ where: { userId } }),
+      this.prisma.userMenu.createMany({
+        data: Array.from(allowedIds).map((menuId) => ({ userId, menuId })),
+        skipDuplicates: true,
+      }),
+    ]);
+
+    return ok(true, '用户菜单授权成功');
+  }
+
   async createMenu(payload: MenuMutationPayload) {
     const normalized = this.normalizeMenuPayload(payload);
     await this.prisma.menu.create({
@@ -69,6 +185,19 @@ export class MenuService {
 
   async updateMenu(payload: MenuMutationPayload) {
     const id = requireNumber(payload.id, '缺少菜单 ID');
+
+    if (payload.parentId !== undefined) {
+      const parentId = toOptionalNumber(payload.parentId) || null;
+      if (parentId === id) {
+        throw new BadRequestException('父级菜单不能是自己');
+      }
+      if (parentId) {
+        const descendants = await this.collectDescendantIds(id);
+        if (descendants.includes(parentId)) {
+          throw new BadRequestException('父级菜单不能是当前菜单的子级');
+        }
+      }
+    }
 
     const updates = this.normalizeMenuUpdatePayload(payload);
     const updated = await this.prisma.menu.updateMany({
@@ -111,6 +240,13 @@ export class MenuService {
           },
         },
       }),
+      this.prisma.userMenu.deleteMany({
+        where: {
+          menuId: {
+            in: menuIds,
+          },
+        },
+      }),
       this.prisma.menu.deleteMany({
         where: {
           id: {
@@ -121,6 +257,42 @@ export class MenuService {
     ]);
 
     return ok(true, '菜单删除成功');
+  }
+
+  private toTree(menus: Menu[]) {
+    return buildMenuTree(menus, (menu) => ({
+      id: menu.id,
+      parentId: menu.parentId ?? 0,
+      name: menu.menuName,
+      menuName: menu.menuName,
+      path: menu.path,
+      icon: menu.icon,
+      menuScope: menu.menuScope,
+      url: menu.url,
+      status: menu.status,
+      sortValue: menu.sortValue,
+      createdAt: menu.createdAt.toISOString(),
+      updatedAt: menu.updatedAt.toISOString(),
+    }));
+  }
+
+  /** 补齐父级，避免只授权子菜单时在侧边栏里变成一级菜单。 */
+  private withAncestorIds(
+    ids: number[],
+    menus: Array<{ id: number; parentId: number | null }>,
+  ): Set<number> {
+    const parentMap = new Map(menus.map((menu) => [menu.id, menu.parentId]));
+    const result = new Set<number>(ids);
+
+    ids.forEach((id) => {
+      let parentId = parentMap.get(id) ?? null;
+      while (parentId && parentMap.has(parentId) && !result.has(parentId)) {
+        result.add(parentId);
+        parentId = parentMap.get(parentId) ?? null;
+      }
+    });
+
+    return result;
   }
 
   private normalizeMenuPayload(payload: MenuMutationPayload) {
@@ -159,7 +331,7 @@ export class MenuService {
       updates.icon = toOptionalString(payload.icon) || '';
     }
     if (payload.menuScope !== undefined) {
-      updates.menuScope = toOptionalNumber(payload.menuScope) ?? 1;
+      updates.menuScope = toOptionalNumber(payload.menuScope, 1) ?? 1;
     }
     if (payload.url !== undefined) {
       updates.url = toOptionalString(payload.url) || '';

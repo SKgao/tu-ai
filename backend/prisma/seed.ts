@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/common/password';
+import { syncMenus, syncUserMenus } from './menu-seed';
 
 const prisma = new PrismaClient();
 
@@ -27,79 +28,6 @@ async function main() {
   const opsPasswordHash = await hashPassword('ops123456');
   const editorPasswordHash = await hashPassword('editor123456');
 
-  const menuSeeds = [
-    {
-      menuName: '用户管理',
-      parentId: null,
-      path: '/userSetting',
-      icon: 'team',
-      menuScope: 1,
-      url: 'user/list',
-      status: 1,
-      sortValue: 10,
-    },
-    {
-      menuName: '角色管理',
-      parentId: null,
-      path: '/roleSetting',
-      icon: 'user-add',
-      menuScope: 1,
-      url: 'role/list',
-      status: 1,
-      sortValue: 20,
-    },
-    {
-      menuName: '菜单管理',
-      parentId: null,
-      path: '/authMenu',
-      icon: 'bars',
-      menuScope: 1,
-      url: 'menu/list',
-      status: 1,
-      sortValue: 30,
-    },
-    {
-      menuName: '教材管理',
-      parentId: null,
-      path: '/teachingManage/book',
-      icon: 'book',
-      menuScope: 1,
-      url: 'book/list',
-      status: 1,
-      sortValue: 40,
-    },
-    {
-      menuName: 'App版本控制',
-      parentId: null,
-      path: '/appverUpdate',
-      icon: 'reload',
-      menuScope: 1,
-      url: 'app/version/page',
-      status: 1,
-      sortValue: 50,
-    },
-    {
-      menuName: '会员管理',
-      parentId: null,
-      path: '/memberSetting',
-      icon: 'crown',
-      menuScope: 1,
-      url: 'member/list',
-      status: 1,
-      sortValue: 60,
-    },
-    {
-      menuName: '订单管理',
-      parentId: null,
-      path: '/orderSetting',
-      icon: 'shopping-cart',
-      menuScope: 1,
-      url: 'order/list',
-      status: 1,
-      sortValue: 70,
-    },
-  ];
-
   const adminRole = await prisma.role.upsert({
     where: { name: '超级管理员' },
     update: {},
@@ -118,52 +46,7 @@ async function main() {
     create: { name: '内容编辑' },
   });
 
-  const menus = [];
-  for (const menu of menuSeeds) {
-    const saved = await prisma.menu.upsert({
-      where: { path: menu.path },
-      update: {
-        menuName: menu.menuName,
-        parentId: menu.parentId,
-        icon: menu.icon,
-        menuScope: menu.menuScope,
-        url: menu.url,
-        status: menu.status,
-        sortValue: menu.sortValue,
-      },
-      create: menu,
-    });
-    menus.push(saved);
-  }
-
-  await prisma.roleMenu.deleteMany({});
-
-  await prisma.roleMenu.createMany({
-    data: menus.map((menu) => ({
-      roleId: adminRole.id,
-      menuId: menu.id,
-    })),
-  });
-
-  const opsMenus = menus.filter((menu) =>
-    ['/userSetting', '/memberSetting', '/orderSetting', '/appverUpdate'].includes(menu.path),
-  );
-  await prisma.roleMenu.createMany({
-    data: opsMenus.map((menu) => ({
-      roleId: opsRole.id,
-      menuId: menu.id,
-    })),
-  });
-
-  const editorMenus = menus.filter((menu) =>
-    ['/teachingManage/book', '/authMenu'].includes(menu.path),
-  );
-  await prisma.roleMenu.createMany({
-    data: editorMenus.map((menu) => ({
-      roleId: editorRole.id,
-      menuId: menu.id,
-    })),
-  });
+  await syncMenus(prisma);
 
   await prisma.user.upsert({
     where: { account: process.env.DEFAULT_ADMIN_ACCOUNT || 'admin' },
@@ -940,6 +823,8 @@ async function main() {
       create: order,
     });
   }
+
+  await syncUserMenus(prisma, { reset: true });
 }
 
 main()
